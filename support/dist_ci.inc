@@ -82,10 +82,3 @@ ci_tag ::
 		-- $(EXTUTILS_ARGV)
 
 
-#  Checkin the changelog
-#
-ci_changelog ::
-	@$(PERL) -M$(EXTUTILS_CVS) \
-		-e "ExtUtils::CVS->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-

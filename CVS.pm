@@ -30,7 +30,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.4 $)[1];
+$REVISION=(qw$Revision: 1.5 $)[1];
 
 
 #  Package info
@@ -664,12 +664,19 @@ sub ci_mtime_sync {
     #  Last resort to ensure file mtime is correct based on what CVS thinks
     #
     my ($self, $fn)=@_;
+    my $method=(split(/:/, (caller(0))[3]))[-1];
 
 
     #  Get cvs binary name
     #
     my $bin_cvs=$Config_hr->{'CVS'} ||
         die('unable to determine cvs binary name');
+
+
+    #  Skip directories
+    #
+    (-d $fn) && return;
+
 
     #  Run cvs status on file, suck into array
     #
@@ -739,7 +746,8 @@ sub ci_mtime_sync {
 	       );
 	    $touch_or->touch($fn) ||
 		die("error on touch of file $fn, $!");
-	    print "synced file $fn to cvsmtime $mtime\n";
+	    printf("$method: synced file $fn to cvs mtime %s\n",
+		   scalar(localtime($mtime)));
 
 	}
 

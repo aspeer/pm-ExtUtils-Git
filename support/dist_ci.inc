@@ -7,7 +7,7 @@ ci :: ci_manicheck
 	$(CVS) commit -m "" -f $(VERSION_FROM) && \
 	$(CVS) tag $(DISTNAME)_`$(PERL) \
 		-e "$$::v=(do './$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"` && \
-	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_dump_version( \
+	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_version_dump( \
 		'$(NAME)', '$(VERSION_FROM)' )" && \
 	$(PERL) \
 		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)" && \
@@ -34,9 +34,8 @@ ci_version :
 	@$(PERL) \
 		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)"
 
-
-ci_dump_version :
-	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_dump_version( \
+ci_version_dump :
+	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_version_dump( \
 		'$(NAME)', '$(VERSION_FROM)' )"
 
 branch :

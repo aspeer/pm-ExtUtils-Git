@@ -29,7 +29,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.1 $)[1];
+$REVISION=(qw$Revision: 1.2 $)[1];
 
 
 #  Package info
@@ -640,7 +640,7 @@ sub ci_manicheck {
 }
 
 
-sub ci_dump_version {
+sub ci_version_dump {
 
 
     #  Get self ref

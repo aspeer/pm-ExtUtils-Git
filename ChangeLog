@@ -1,241 +1,278 @@
-2003-11-03 12:43  aspeer
+2004-02-04 15:40  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		VERSION.pm (1.35), "Exp", lines: +2 -2
+
+	Version increment
+
+2004-02-04 15:40  aspeer
+
+	Changed:
+		CVS.pm (1.22), "Exp", lines: +2 -4
+
+	Code tidyup
+
+2004-02-04 15:39  aspeer
+
+	Changed:
+		VERSION.pm (1.34), "Exp", lines: +2 -2
+
+	Version increment
+
+2004-02-04 15:39  aspeer
+
+	Changed:
+		Config.pm (1.7), "Exp", lines: +2 -2
+
+	Altered CVS2CL command line args - added unify window time of 15
+	secs, resorted to using --file intead of -F to get around small bug
+
+2004-02-04 15:07  aspeer
+
+	Changed:
+		VERSION.pm (1.33), "Exp", lines: +2 -2
+
+	Version increment
+
+2004-02-04 15:07  aspeer
+
+	Added:
+		support/cvs2cl.pl (1.1)
+	Changed:
+		CVS.pm (1.21), "Exp", lines: +300 -143
+		Config.pm (1.6), "Exp", lines: +73 -25
+		MANIFEST (1.3), "Exp", lines: +1 -0
+		Makefile.PL (1.5), "Exp", lines: +6 -0
+		support/dist_ci.inc (1.13), "Exp", lines: +62 -26
+
+	Big rewrite to attempt streamlining and clarification of code.
+	Separated code into sections of public/private methods.
+
+		Re-wrote dist_ci target to be clearer
+
+		Added options in Config file to get better output from
+	cvs2cl.pl file, which is now included in the distribution
 
 2003-11-03 12:42  aspeer
 
-	* CVS.pm: Change mtime_sync alorithm again, attemp to support DST
+	Changed:
+		CVS.pm (1.20), "Exp", lines: +7 -2
 
-2003-11-03 02:19  aspeer
-
-	* CVS.pm, Config.pm, LICENSE, Makefile.PL, VERSION.pm,
-	  support/dist_ci.inc, ChangeLog: [no log message]
+	Change mtime_sync alorithm again, attemp to support DST
 
 2003-10-16 00:28  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		CVS.pm (1.18), "Exp", lines: +78 -29
+		Config.pm (1.4), "Exp", lines: +92 -12
+		support/dist_ci.inc (1.11), "Exp", lines: +12 -8
 
-2003-10-16 00:28  aspeer
-
-	* CVS.pm, Config.pm, support/dist_ci.inc: First crack at Win32
-	  compatible code for cvs manipulation of files
-
-2003-10-02 14:55  aspeer
-
-	* CVS.pm, Config.pm, VERSION.pm, ChangeLog: [no log message]
+	First crack at Win32 compatible code for cvs manipulation of files
 
 2003-09-01 16:51  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		CVS.pm (1.16), "Exp", lines: +143 -2
+		Makefile.PL (1.3), "Exp", lines: +0 -1
 
-2003-09-01 16:51  aspeer
-
-	* CVS.pm, Makefile.PL: Added pod doc to CVS.pm, removed empty
-	  man3pods sections from Makefile.PL
-
-2003-09-01 14:05  aspeer
-
-	* ChangeLog, VERSION.pm: [no log message]
+	Added pod doc to CVS.pm, removed empty man3pods sections from
+	Makefile.PL
 
 2003-09-01 14:05  aspeer
 
-	* CVS.pm, Config.pm, LICENSE, MANIFEST, Makefile.PL, VERSION.pm:
-	  Ran through ExtUtils::Lint, added license and copyright info into
-	  module
+	Added:
+		LICENSE (1.1)
+	Changed:
+		CVS.pm (1.15), "Exp", lines: +15 -1
+		Config.pm (1.2), "Exp", lines: +14 -0
+		MANIFEST (1.2), "Exp", lines: +1 -0
+		Makefile.PL (1.2), "Exp", lines: +27 -14
+		VERSION.pm (1.24), "Exp", lines: +15 -1
+
+	Ran through ExtUtils::Lint, added license and copyright info into
+	module
 
 2003-07-06 18:06  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		CVS.pm (1.14), "Exp", lines: +39 -1
 
-2003-07-06 18:06  aspeer
-
-	* CVS.pm: Added routine in "manicheck" method to check for patch
-	  dir, and if found make sure all patch files are in CVS and the
-	  MANIFEST
+	Added routine in "manicheck" method to check for patch dir, and if
+	found make sure all patch files are in CVS and the MANIFEST
 
 2003-06-17 00:13  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		CVS.pm (1.13), "Exp", lines: +2 -2
 
-2003-06-17 00:13  aspeer
-
-	* CVS.pm: Remove File::Touch module, add reminder if we use it
-	  again
+	Remove File::Touch module, add reminder if we use it again
 
 2003-06-15 16:14  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		CVS.pm (1.12), "Exp", lines: +22 -12
+		support/dist_ci.inc (1.10), "Exp", lines: +2 -0
 
-2003-06-15 16:14  aspeer
+	No longer 'touch' files that have mtime out of sync with CVS
+	status, allow 'cvs status' to do this for us. Modify the may we go
+	through the CVS 'Entries' file, read it all in at once and iterate.
+	Previously going through it line by line, but were doing 'cvs'
+	operations that changed it while we were iterating - result was
+	missed some files, did some needlessly
 
-	* CVS.pm, support/dist_ci.inc: No longer 'touch' files that have
-	  mtime out of sync with CVS status, allow 'cvs status' to do this
-	  for us. Modify the may we go through the CVS 'Entries' file, read
-	  it all in at once and iterate. Previously going through it line
-	  by line, but were doing 'cvs' operations that changed it while we
-	  were iterating - result was missed some files, did some
-	  needlessly
-
-	  Update dist_ci to do 'cvs status' before check-in to update file
-	  timestamps if needed.
-
-2003-04-29 13:48  aspeer
-
-	* ChangeLog, VERSION.pm: [no log message]
-
-2003-04-29 13:44  aspeer
-
-	* CVS.pm, ChangeLog, VERSION.pm: [no log message]
+		Update dist_ci to do 'cvs status' before check-in to update
+	file timestamps if needed.
 
 2002-12-12 04:20  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		CVS.pm (1.10), "Exp", lines: +7 -4
 
-2002-12-12 04:20  aspeer
-
-	* CVS.pm: Fix long standing bug in CVS.pm that did not test for
-	  file commit time, rather the version file commit time, and thus
-	  missed commiting sometimes
-
-2002-12-09 12:53  aspeer
-
-	* ChangeLog, VERSION.pm: [no log message]
+	Fix long standing bug in CVS.pm that did not test for file commit
+	time, rather the version file commit time, and thus missed
+	commiting sometimes
 
 2002-12-09 12:53  aspeer
 
-	* CVS.pm, support/dist_ci.inc: Update to use "our" vars for
-	  important global vars, rather than "my"
+	Changed:
+		CVS.pm (1.9), "Exp", lines: +7 -9
+		support/dist_ci.inc (1.9), "Exp", lines: +6 -6
+
+	Update to use "our" vars for important global vars, rather than
+	"my"
 
 2002-11-14 23:25  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		support/dist_ci.inc (1.8), "Exp", lines: +2 -2
 
-2002-11-14 23:25  aspeer
-
-	* support/dist_ci.inc: Minfor change on branch target in Makefile,
-	  make brache tags end in "xxx-0", rather thant "xxx-2". No real
-	  reason, other than -2 did not seem meaningful, as there is no 0,1
-
-2002-10-09 01:44  aspeer
-
-	* ChangeLog, VERSION.pm: [no log message]
+	Minfor change on branch target in Makefile, make brache tags end in
+	"xxx-0", rather thant "xxx-2". No real reason, other than -2 did
+	not seem meaningful, as there is no 0,1
 
 2002-10-09 01:44  aspeer
 
-	* CVS.pm: Updated to work with new RegDB
+	Changed:
+		CVS.pm (1.8), "Exp", lines: +2 -2
+
+	Updated to work with new RegDB
 
 2002-06-05 03:37  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		CVS.pm (1.7), "Exp", lines: +19 -5
 
-2002-06-05 03:37  aspeer
-
-	* CVS.pm: Added ci_mtime_sync in a couple more errors to make sure
-	  mtime on files is real
-
-2002-06-03 23:06  aspeer
-
-	* ChangeLog, VERSION.pm: [no log message]
+	Added ci_mtime_sync in a couple more errors to make sure mtime on
+	files is real
 
 2002-06-03 23:06  aspeer
 
-	* CVS.pm: Modified ci_mtime_sync method to use relative file name,
-	  as CVS does not seem to like absolute
+	Changed:
+		CVS.pm (1.6), "Exp", lines: +7 -6
+
+	Modified ci_mtime_sync method to use relative file name, as CVS
+	does not seem to like absolute
 
 2002-06-03 22:35  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		CVS.pm (1.5), "Exp", lines: +10 -2
 
-2002-06-03 22:35  aspeer
-
-	* CVS.pm: Minor change to CVS.pm to not sync mtime of dirs
-
-2002-06-03 22:14  aspeer
-
-	* ChangeLog, VERSION.pm: [no log message]
+	Minor change to CVS.pm to not sync mtime of dirs
 
 2002-06-03 22:14  aspeer
 
-	* CVS.pm: Finished ci_mtime_sync method, allows mtime of file to be
-	  synced back to the CVS mtime, thus making mtime checks module
-	  files more robost, as an update -C does not fool it into thinking
-	  a file has changed, just because its mtime has.
+	Changed:
+		CVS.pm (1.4), "Exp", lines: +98 -44
 
-	  No change to Makefile.PL
+	Finished ci_mtime_sync method, allows mtime of file to be synced
+	back to the CVS mtime, thus making mtime checks module files more
+	robost, as an update -C does not fool it into thinking a file has
+	changed, just because its mtime has.
+
+		No change to Makefile.PL
 
 2002-06-03 20:54  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		CVS.pm (1.3), "Exp", lines: +65 -4
 
-2002-06-03 20:54  aspeer
-
-	* CVS.pm: Interim checkin only, test impleimentation of
-	  ci_mtime_sync method
+	Interim checkin only, test impleimentation of ci_mtime_sync method
 
 2002-06-03 01:57  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		support/dist_ci.inc (1.7), "Exp", lines: +1 -1
 
-2002-06-03 01:57  aspeer
-
-	* support/dist_ci.inc: Made sure when Makefile.PL run again, it is
-	  run with ExtUtils::CVS modules loaded in place, so resulting
-	  Makefile still has all local cvs targets
-
-2002-05-26 00:38  aspeer
-
-	* ChangeLog, VERSION.pm: [no log message]
+	Made sure when Makefile.PL run again, it is run with ExtUtils::CVS
+	modules loaded in place, so resulting Makefile still has all local
+	cvs targets
 
 2002-05-26 00:38  aspeer
 
-	* CVS.pm, support/dist_ci.inc: Rename ci_dump_version
-	  ci_version_dump
+	Changed:
+		CVS.pm (1.2), "Exp", lines: +2 -2
+		support/dist_ci.inc (1.6), "Exp", lines: +3 -4
+
+	Rename ci_dump_version ci_version_dump
 
 2002-05-22 01:09  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		VERSION.pm (1.6), "Exp", lines: +1 -1
 
-2002-05-22 01:09  aspeer
-
-	* VERSION.pm: Standardised VERSION.pm file format
-
-2002-05-17 04:04  aspeer
-
-	* ChangeLog, VERSION.pm: [no log message]
+	Standardised VERSION.pm file format
 
 2002-05-17 04:04  aspeer
 
-	* support/dist_ci.inc: Added @ to ci_version traget to hide perl
-	  commands
+	Changed:
+		support/dist_ci.inc (1.5), "Exp", lines: +1 -1
+
+	Added @ to ci_version traget to hide perl commands
 
 2002-05-17 03:57  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		support/dist_ci.inc (1.4), "Exp", lines: +5 -5
 
-2002-05-17 03:57  aspeer
-
-	* support/dist_ci.inc: Updated version determination target to have
-	  ./ in front of file name
+	Updated version determination target to have ./ in front of file
+	name
 
 2002-05-17 03:50  aspeer
 
-	* support/dist_ci.inc: Fixed dumb sytax error in ci_version target
+	Changed:
+		support/dist_ci.inc (1.3), "Exp", lines: +1 -1
+
+	Fixed dumb sytax error in ci_version target
 
 2002-05-17 03:49  aspeer
 
-	* ChangeLog, VERSION.pm: [no log message]
+	Changed:
+		support/dist_ci.inc (1.2), "Exp", lines: +5 -0
 
-2002-05-17 03:49  aspeer
-
-	* support/dist_ci.inc: Added ci_version target
-
-2002-05-16 22:01  aspeer
-
-	* CVS.pm, ChangeLog, Config.pm, MANIFEST, Makefile.PL, VERSION.pm,
-	  support/dist_ci.inc: Initial import
+	Added ci_version target
 
 2002-05-16 22:01  aspeer
 
-	* CVS.pm, ChangeLog, Config.pm, MANIFEST, Makefile.PL, VERSION.pm,
-	  support/dist_ci.inc: Initial revision
+	Changed:
+		CVS.pm (1.1.1.1), "Exp", lines: +0 -0
+		Config.pm (1.1.1.1), "Exp", lines: +0 -0
+		MANIFEST (1.1.1.1), "Exp", lines: +0 -0
+		Makefile.PL (1.1.1.1), "Exp", lines: +0 -0
+		VERSION.pm (1.1.1.1), "Exp", lines: +0 -0
+		support/dist_ci.inc (1.1.1.1), "Exp", lines: +0 -0
+
+	Initial import
+
+2002-05-16 22:01  aspeer
+
+	Added:
+		CVS.pm (1.1)
+		Config.pm (1.1)
+		MANIFEST (1.1)
+		Makefile.PL (1.1)
+		VERSION.pm (1.1)
+		support/dist_ci.inc (1.1)
+
+	Initial revision
 

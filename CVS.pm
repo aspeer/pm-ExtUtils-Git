@@ -30,7 +30,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.9 $)[1];
+$REVISION=(qw$Revision: 1.10 $)[1];
 
 
 #  Package info
@@ -330,19 +330,21 @@ sub ci_status {
 	    #
 	    my $mtime_fn=(stat($entry_fn))[9] ||
 		die("$method: unable to stat file $entry_fn, $!");
-	    #print "mtime_fn $mtime_fn commit_time $commit_time\n";
+	    #print "mtime_fn $mtime_fn commit_time $commit_time, vtime $version_fn_mtime\n";
 
 
 	    #  Compare
 	    #
 	    ($mtime_fn > $commit_time) && do {
+	    
+	    	#print "mtime > commit\n";
 
 
 		#  Give it one more chance
 		#
 		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
 		    $mtime_fn;
-		($mtime_fn > $version_fn_mtime) &&
+		($mtime_fn > $commit_time) &&
 		    die("$method: $entry_fn has mtime greater commit time, cvs commit may be required.\n");
 
 
@@ -353,6 +355,7 @@ sub ci_status {
 	    #
 	    ($mtime_fn > $version_fn_mtime) && do {
 
+	    	#print "mtime > version_mtime\n";
 
 		#  Give it one more chance
 		#
@@ -496,7 +499,7 @@ sub ci_status_bundle {
 
 		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
 		    $mtime_fn;
-		($mtime_fn > $version_fn_mtime) &&
+		($mtime_fn > $commit_time) &&
 		    die("$method: $entry_fn has mtime greater commit time, cvs commit may be required.\n");
 
 	    };

@@ -1,3 +1,12 @@
+2002-12-09 12:53  aspeer
+
+	* CVS.pm, support/dist_ci.inc: Update to use "our" vars for
+	important global vars, rather than "my"
+
+2002-11-14 23:25  aspeer
+
+	* ChangeLog, VERSION.pm: [no log message]
+
 2002-11-14 23:25  aspeer
 
 	* support/dist_ci.inc: Minfor change on branch target in Makefile,

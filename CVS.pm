@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.21 2004/02/04 04:37:05 aspeer Exp $
+#  $Id: CVS.pm,v 1.22 2004/02/04 05:10:34 aspeer Exp $
 #
 
 
@@ -61,7 +61,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.21 $)[1];
+$REVISION=(qw$Revision: 1.22 $)[1];
 
 
 #  Load up our config file
@@ -1082,9 +1082,7 @@ sub _fmt {
     my $message=sprintf(shift(), @_);
     chomp($message);
     $message=$Arg{'distname'} . ", $message" if ($Arg{'distname'});
-    #$message=~/\.$/ || ($message .= '.');
     formline $format, $caller . ':', undef;
-    #formline $format, $caller, undef;
     $message=$^A . $message; $^A=undef;
     return $message;
 

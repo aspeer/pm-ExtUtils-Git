@@ -1,9 +1,19 @@
+2002-06-03 22:35  aspeer
+
+	* CVS.pm (1.5): Minor change to CVS.pm to not sync mtime of dirs
+
 2002-06-03 22:14  aspeer
 
-	* CVS.pm (1.4): Finished ci_mtime_sync method, allows mtime of file
-	to be synced back to the CVS mtime, thus making mtime checks module
-	files more robost, as an update -C does not fool it into thinking a
-	file has changed, just because its mtime has.
+	* ChangeLog (1.10), VERSION.pm (1.11) (utags: Bundle-ExtUtils_1-34,
+	ExtUtils-CVS_1-11): [no log message]
+
+2002-06-03 22:14  aspeer
+
+	* CVS.pm (1.4, Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11): Finished
+	ci_mtime_sync method, allows mtime of file to be synced back to the
+	CVS mtime, thus making mtime checks module files more robost, as an
+	update -C does not fool it into thinking a file has changed, just
+	because its mtime has.
 	
 	No change to Makefile.PL
 
@@ -24,10 +34,11 @@
 
 2002-06-03 01:57  aspeer
 
-	* support/dist_ci.inc (1.7, ExtUtils-CVS_1-10,
-	Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9): Made sure when Makefile.PL
-	run again, it is run with ExtUtils::CVS modules loaded in place, so
-	resulting Makefile still has all local cvs targets
+	* support/dist_ci.inc (1.7, Bundle-ExtUtils_1-34,
+	ExtUtils-CVS_1-11, ExtUtils-CVS_1-10, Bundle-ExtUtils_1-33,
+	ExtUtils-CVS_1-9): Made sure when Makefile.PL run again, it is run
+	with ExtUtils::CVS modules loaded in place, so resulting Makefile
+	still has all local cvs targets
 
 2002-05-26 00:38  aspeer
 
@@ -118,18 +129,7 @@
 	Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4, ExtUtils-CVS_1-7,
 	Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5,
 	ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1), ChangeLog (1.1.1.1),
-	Config.pm (1.1.1.1, ExtUtils-CVS_1-10, Bundle-ExtUtils_1-33,
-	ExtUtils-CVS_1-9, Bundle-ExtUtils_1-32, Bundle-ExtUtils_1-31,
-	Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-29, Bundle-ExtUtils_1-28,
-	Bundle-ExtUtils_1-27, Bundle-ExtUtils_1-26, Bundle-ExtUtils_1-25,
-	Bundle-ExtUtils_1-24, Bundle-ExtUtils_1-23, Bundle-ExtUtils_1-22,
-	Bundle-ExtUtils_1-20, Bundle-ExtUtils_1-19, Bundle-ExtUtils_1-18,
-	Bundle-ExtUtils_1-16, Bundle-ExtUtils_1-15, Bundle-ExtUtils_1-14,
-	ExtUtils-CVS_1-8, Bundle-ExtUtils_1-13, Bundle-ExtUtils_1-12,
-	Bundle-ExtUtils_1-11, Bundle-ExtUtils_1-9, Bundle-ExtUtils_1-7,
-	Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4, ExtUtils-CVS_1-7,
-	Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5,
-	ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1), MANIFEST (1.1.1.1,
+	Config.pm (1.1.1.1, Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11,
 	ExtUtils-CVS_1-10, Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9,
 	Bundle-ExtUtils_1-32, Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-30,
 	Bundle-ExtUtils_1-29, Bundle-ExtUtils_1-28, Bundle-ExtUtils_1-27,
@@ -141,7 +141,20 @@
 	Bundle-ExtUtils_1-9, Bundle-ExtUtils_1-7, Bundle-ExtUtils_1-6,
 	Bundle-ExtUtils_1-4, ExtUtils-CVS_1-7, Bundle-ExtUtils_1-3,
 	Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5, ExtUtils-CVS_1-4,
-	ExtUtils-CVS_1-1-1-1), Makefile.PL (1.1.1.1, ExtUtils-CVS_1-10,
+	ExtUtils-CVS_1-1-1-1), MANIFEST (1.1.1.1, Bundle-ExtUtils_1-34,
+	ExtUtils-CVS_1-11, ExtUtils-CVS_1-10, Bundle-ExtUtils_1-33,
+	ExtUtils-CVS_1-9, Bundle-ExtUtils_1-32, Bundle-ExtUtils_1-31,
+	Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-29, Bundle-ExtUtils_1-28,
+	Bundle-ExtUtils_1-27, Bundle-ExtUtils_1-26, Bundle-ExtUtils_1-25,
+	Bundle-ExtUtils_1-24, Bundle-ExtUtils_1-23, Bundle-ExtUtils_1-22,
+	Bundle-ExtUtils_1-20, Bundle-ExtUtils_1-19, Bundle-ExtUtils_1-18,
+	Bundle-ExtUtils_1-16, Bundle-ExtUtils_1-15, Bundle-ExtUtils_1-14,
+	ExtUtils-CVS_1-8, Bundle-ExtUtils_1-13, Bundle-ExtUtils_1-12,
+	Bundle-ExtUtils_1-11, Bundle-ExtUtils_1-9, Bundle-ExtUtils_1-7,
+	Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4, ExtUtils-CVS_1-7,
+	Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5,
+	ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1), Makefile.PL (1.1.1.1,
+	Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11, ExtUtils-CVS_1-10,
 	Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9, Bundle-ExtUtils_1-32,
 	Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-29,
 	Bundle-ExtUtils_1-28, Bundle-ExtUtils_1-27, Bundle-ExtUtils_1-26,

@@ -1,15 +1,15 @@
 #
 #
-#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights 
+#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
 #  reserved.
 #
-#  This program is NOT free software,  it licensed under the conditions provided 
-#  in the LICENSE file included with the software. If you are not able to locate 
-#  the LICENSE file, or need  further information you  should contact the author 
+#  This program is NOT free software,  it licensed under the conditions provided
+#  in the LICENSE file included with the software. If you are not able to locate
+#  the LICENSE file, or need  further information you  should contact the author
 #  at the email adddress give above.
 #
 #
-#  $Id: CVS.pm,v 1.17 2003/10/02 05:25:26 aspeer Exp $
+#  $Id: CVS.pm,v 1.18 2003/10/15 14:58:10 aspeer Exp $
 
 
 #  Package to assist using CVS with Makefile.PL
@@ -26,6 +26,7 @@ use ExtUtils::Manifest;
 use Data::Dumper;
 use Date::Parse qw(str2time);
 use File::Find qw(find);
+use File::Touch;
 use Cwd qw(cwd);
 use CPAN;
 
@@ -44,7 +45,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.17 $)[1];
+$REVISION=(qw$Revision: 1.18 $)[1];
 
 
 #  Package info
@@ -132,18 +133,17 @@ sub config_read {
 
     #  Get our dir
     #
-    my @config_dn;
-    ($config_dn[0]=$INC{'ExtUtils/CVS.pm'})=~s/\.pm$//;
+    (my $config_dn=$INC{'ExtUtils/CVS.pm'})=~s/\.pm$//;
 
 
     #  Unless absolute, add cwd
     #
-    unless ($config_dn[0]=~/^\//) { unshift @config_dn, cwd() }
+    $config_dn=File::Spec->rel2abs($config_dn);
 
 
     #  And now file name
     #
-    my $config_fn=File::Spec->catfile(@config_dn, 'Config.pm');
+    my $config_fn=File::Spec->catfile($config_dn, 'Config.pm');
 
 
     #  Read and return
@@ -153,7 +153,7 @@ sub config_read {
 
     #  Read any local config file. Only present for local customisation
     #
-    my $local_hr=eval { do { File::Spec->catfile(@config_dn, 'Local.pm') } };
+    my $local_hr=eval { do { File::Spec->catfile($config_dn, 'Local.pm') } };
 
 
     #  Local overrides global
@@ -247,6 +247,40 @@ sub dist_ci {
 }
 
 
+sub ci_tag {
+
+
+    #  Build unique tag for checked in files
+    #
+    my ($self, $cvs_exe, $distname, $version_from)=@_;
+
+
+    #  Canonify version from file
+    #
+    $version_from=File::Spec->rel2abs($version_from);
+
+
+    #  Read in version number, convers .'s to -
+    #
+    my $version=do($version_from) ||
+        die('unable to get version number');
+    $version=~s/\./-/g;
+
+
+    #  Add distname
+    #
+    my $tag=join('_', $distname, $version);
+    print "tag $tag\n";
+
+
+    #  Run cvs program to update
+    #
+    system($cvs_exe, 'tag', $tag);
+
+
+}
+
+
 sub ci_status {
 
 
@@ -255,6 +289,7 @@ sub ci_status {
     #
     my ($self, $version_fn)=@_;
     my $method=(split(/:/, (caller(0))[3]))[-1];
+    print "ci_status\n";
 
 
     #  Stat the master version file
@@ -358,7 +393,7 @@ sub ci_status {
 
 		#  Give it one more chance
 		#
-		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
+		$mtime_fn=$self->ci_mtime_sync($entry_fn, $commit_time) ||
 		    $mtime_fn;
 		($mtime_fn > $commit_time) &&
 		    die("$method: $entry_fn has mtime $mtime_fn greater commit time $commit_time, ".
@@ -376,7 +411,7 @@ sub ci_status {
 
 		#  Give it one more chance
 		#
-		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
+		$mtime_fn=$self->ci_mtime_sync($entry_fn, $commit_time) ||
 		    $mtime_fn;
 		($mtime_fn > $version_fn_mtime) &&
 		    die("$method: $fn has mtime greater than $version_fn, cvs commit may be required.\n");
@@ -423,6 +458,7 @@ sub ci_status_bundle {
     #  Get cwd
     #
     my $cwd=cwd();
+    $cwd=File::Spec->rel2abs($cwd);
 
 
     #  Find all the CVS/Entries files
@@ -485,6 +521,7 @@ sub ci_status_bundle {
 		@entries_dn,
 		$fn
 	       );
+	    $entry_fn=File::Spec->rel2abs($entry_fn);
 
 
 	    #  Get mtime
@@ -548,15 +585,21 @@ sub ci_manicheck {
     my $method=(split(/:/, (caller(0))[3]))[-1];
 
 
-    #  Get cwd
+    #  Get cwd, dance around Win32 formatting
     #
     my $cwd=cwd();
+    $cwd=(File::Spec->splitpath($cwd,1))[1];
+    $cwd=File::Spec->rel2abs($cwd);
 
 
-    #  Get the manifest
+    #  Get the manifest, jump Win32 hoops with file names
     #
     ExtUtils::Manifest::manicheck() && die('MANIFEST manicheck error');
     my $manifest_hr=ExtUtils::Manifest::maniread();
+    foreach my $fn (keys %{$manifest_hr}) {
+        delete $manifest_hr->{$fn};
+        $manifest_hr->{File::Spec->canonpath($fn)}=undef;
+    }
     my %manifest;
 
 
@@ -605,7 +648,7 @@ sub ci_manicheck {
 	#  Get top level
 	#
 	my $repository=(File::Spec->splitdir($repository_dn))[0];
-	#print "repository $repository, module $module\n";
+	#print "repository *$repository*, module *$module*\n";
 	next unless ($repository eq $module);
 
 
@@ -637,11 +680,13 @@ sub ci_manicheck {
 		@entries_dn,
 		$fn
 	       );
+	    $manifest_fn=File::Spec->rel2abs($manifest_fn);
 
 
-	    #  Get rid of cwd
+	    #  Get rid of cwd, leading slash
 	    #
 	    $manifest_fn=~s/^\Q$cwd\E\/?//;
+	    $manifest_fn=~s/^\\//;
 
 
 	    #  Add to manifest
@@ -734,7 +779,7 @@ sub ci_mtime_sync {
 
     #  Last resort to ensure file mtime is correct based on what CVS thinks
     #
-    my ($self, $fn)=@_;
+    my ($self, $fn, $mtime_fn)=@_;
     my $method=(split(/:/, (caller(0))[3]))[-1];
     #print "$method:fn $sync_fn\n";
 
@@ -742,6 +787,13 @@ sub ci_mtime_sync {
     #  Turn abs filenames into relative, cvs does not seem to like it
     #
     $fn=File::Spec->abs2rel($fn);
+
+
+    #  Get timezone offset from GMT
+    #
+    my $time=time();
+    #my $tz_offset=($time-timelocal(gmtime($time))) || 0;
+    #print "tz_offset $tz_offset\n";
 
 
     #  Get cvs binary name
@@ -806,24 +858,22 @@ sub ci_mtime_sync {
 	#
 	if ($line_date && $line_date=~/^date:\s+(\S+)\s+(\S+)\;/) {
 
+
+	    #  Convert string time
+	    #
 	    $mtime=str2time("$1 $2", 'GMT') ||
 		die("unable to parse date string $1 $2");
 
 
-	    #  As note. Probably no need to touch, just get mtime, as cvs status will
-	    #  bring have brough back into line
-	    #
-
 	    #  Touch it
 	    #
-	    #  remomber to 'use File::Touch' if re-instating this code
-	    #my $touch_or=File::Touch->new(
+	    my $touch_or=File::Touch->new(
 
-		#'time'	=>  $mtime,
+		'mtime'	=>  $mtime,
 
-	       #);
-	    #$touch_or->touch($fn) ||
-		#die("error on touch of file $fn, $!");
+	       );
+	    $touch_or->touch($fn) ||
+		die("error on touch of file $fn, $!");
 	    printf("$method: synced file $fn to cvs mtime $mtime (%s)\n",
 		   scalar(localtime($mtime)));
 
@@ -838,7 +888,6 @@ sub ci_mtime_sync {
 
 
 }
-
 
 
 sub ci_version_dump {

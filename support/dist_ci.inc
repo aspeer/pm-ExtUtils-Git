@@ -1,13 +1,13 @@
 
 ci :: ci_manicheck
-	@$(CVS) status > /dev/null
-	@$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')" || ( \
+	$(CVS) status $(DEV_NULL)
+	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')" || ( \
 	$(CVS) commit && \
 	$(CVS2CL) && \
 	$(CVS) commit -m "" ChangeLog && \
 	$(CVS) commit -m "" -f $(VERSION_FROM) && \
-	$(CVS) tag $(DISTNAME)_`$(PERL) \
-		-e "$$::v=(do './$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"` && \
+        $(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_tag( \
+		'$(CVS)', '$(DISTNAME)', '$(VERSION_FROM)' )" && \
 	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_version_dump( \
 		'$(NAME)', '$(VERSION_FROM)' )" && \
 	$(PERL) \
@@ -24,21 +24,25 @@ import :: disttest
 
 
 ci_manicheck ::
-	@$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_manicheck('$(DISTNAME)')"
+	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_manicheck('$(DISTNAME)')"
 
 
 ci_status :: ci_manicheck
-	@$(CVS) status > /dev/null
-	@$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')"
+	$(CVS) status $(DEV_NULL)
+	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')"
 
 
 ci_version ::
-	@$(PERL) \
+	$(PERL) \
 		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)"
 
 ci_version_dump ::
 	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_version_dump( \
 		'$(NAME)', '$(VERSION_FROM)' )"
+		
+ci_tag ::
+        $(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_tag( \
+		'$(CVS)', '$(DISTNAME)', '$(VERSION_FROM)' )"
 
 branch ::
 	$(CVS) tag -b $(DISTNAME)_`$(PERL) -e "do './$(VERSION_FROM)'; ($$::_=$$::VERSION)=~s/\\\./-/g;print"`-0 && \

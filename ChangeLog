@@ -1,10 +1,23 @@
+2004-02-04 17:17  aspeer
+
+	* VERSION.pm (1.40): Version increment
+
+2004-02-04 17:17  aspeer
+
+	* CVS.pm (1.26), Config.pm (1.11), support/dist_ci.inc (1.16): Get
+	  rid of obselete ci_changelog target
+
+2004-02-04 17:15  aspeer
+
+	* VERSION.pm (1.39): Version increment
+
 2004-02-04 17:15  aspeer
 
 	* Config.pm (1.10): Next attempt ..
 
 2004-02-04 17:14  aspeer
 
-	* VERSION.pm (1.38), VERSION.pm (1.39): Version increment
+	* VERSION.pm (1.38): Version increment
 
 2004-02-04 17:14  aspeer
 
@@ -23,11 +36,15 @@
 
 2004-02-04 15:40  aspeer
 
+	* VERSION.pm (1.35): Version increment
+
+2004-02-04 15:40  aspeer
+
 	* CVS.pm (1.22): Code tidyup
 
 2004-02-04 15:39  aspeer
 
-	* VERSION.pm (1.34), VERSION.pm (1.35): Version increment
+	* VERSION.pm (1.34): Version increment
 
 2004-02-04 15:39  aspeer
 

@@ -1,7 +1,18 @@
+2002-06-05 03:37  aspeer
+
+	* CVS.pm (1.7): Added ci_mtime_sync in a couple more errors to make
+	sure mtime on files is real
+
 2002-06-03 23:06  aspeer
 
-	* CVS.pm (1.6): Modified ci_mtime_sync method to use relative file
-	name, as CVS does not seem to like absolute
+	* ChangeLog (1.12), VERSION.pm (1.13) (utags: ExtUtils-CVS_1-13,
+	Bundle-ExtUtils_1-36, Bundle-ExtUtils_1-38): [no log message]
+
+2002-06-03 23:06  aspeer
+
+	* CVS.pm (1.6, Bundle-ExtUtils_1-38, Bundle-ExtUtils_1-36,
+	ExtUtils-CVS_1-13): Modified ci_mtime_sync method to use relative
+	file name, as CVS does not seem to like absolute
 
 2002-06-03 22:35  aspeer
 
@@ -45,7 +56,8 @@
 
 2002-06-03 01:57  aspeer
 
-	* support/dist_ci.inc (1.7, Bundle-ExtUtils_1-35,
+	* support/dist_ci.inc (1.7, Bundle-ExtUtils_1-38,
+	Bundle-ExtUtils_1-36, ExtUtils-CVS_1-13, Bundle-ExtUtils_1-35,
 	ExtUtils-CVS_1-12, Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11,
 	ExtUtils-CVS_1-10, Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9): Made
 	sure when Makefile.PL run again, it is run with ExtUtils::CVS
@@ -141,7 +153,8 @@
 	Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4, ExtUtils-CVS_1-7,
 	Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5,
 	ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1), ChangeLog (1.1.1.1),
-	Config.pm (1.1.1.1, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12,
+	Config.pm (1.1.1.1, Bundle-ExtUtils_1-38, Bundle-ExtUtils_1-36,
+	ExtUtils-CVS_1-13, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12,
 	Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11, ExtUtils-CVS_1-10,
 	Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9, Bundle-ExtUtils_1-32,
 	Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-29,
@@ -154,7 +167,8 @@
 	Bundle-ExtUtils_1-7, Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4,
 	ExtUtils-CVS_1-7, Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2,
 	ExtUtils-CVS_1-5, ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1), MANIFEST
-	(1.1.1.1, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12,
+	(1.1.1.1, Bundle-ExtUtils_1-38, Bundle-ExtUtils_1-36,
+	ExtUtils-CVS_1-13, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12,
 	Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11, ExtUtils-CVS_1-10,
 	Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9, Bundle-ExtUtils_1-32,
 	Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-29,
@@ -167,7 +181,8 @@
 	Bundle-ExtUtils_1-7, Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4,
 	ExtUtils-CVS_1-7, Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2,
 	ExtUtils-CVS_1-5, ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1),
-	Makefile.PL (1.1.1.1, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12,
+	Makefile.PL (1.1.1.1, Bundle-ExtUtils_1-38, Bundle-ExtUtils_1-36,
+	ExtUtils-CVS_1-13, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12,
 	Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11, ExtUtils-CVS_1-10,
 	Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9, Bundle-ExtUtils_1-32,
 	Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-29,

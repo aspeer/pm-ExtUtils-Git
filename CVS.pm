@@ -9,7 +9,7 @@
 #  at the email adddress give above.
 #
 #
-#  $Id: CVS.pm,v 1.16 2003/09/01 07:21:00 aspeer Exp $
+#  $Id: CVS.pm,v 1.17 2003/10/02 05:25:26 aspeer Exp $
 
 
 #  Package to assist using CVS with Makefile.PL
@@ -44,7 +44,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.16 $)[1];
+$REVISION=(qw$Revision: 1.17 $)[1];
 
 
 #  Package info

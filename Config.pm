@@ -9,7 +9,7 @@
 #  at the email adddress give above.
 #
 #
-#  $Id: Config.pm,v 1.2 2003/09/01 04:35:27 aspeer Exp $
+#  $Id: Config.pm,v 1.3 2003/10/02 05:25:26 aspeer Exp $
 
 
 $_ = {

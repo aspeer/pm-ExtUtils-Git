@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.23 2004/02/04 06:08:58 aspeer Exp $
+#  $Id: CVS.pm,v 1.24 2004/02/04 06:19:10 aspeer Exp $
 #
 
 
@@ -61,7 +61,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.23 $)[1];
+$REVISION=(qw$Revision: 1.24 $)[1];
 
 
 #  Load up our config file
@@ -294,11 +294,12 @@ sub ci_changelog {
     #  Build comment
     #
     my $comment="Module version: $version";
+    _msg("comment is $comment");
     
     
     #  Run cvs program to checkin
     #
-    system($bin_cvs, 'commit', '-m', $comment, $changelog_fn);
+    system($bin_cvs, 'commit', '-m', qq["$comment"], $changelog_fn);
 
 
 }

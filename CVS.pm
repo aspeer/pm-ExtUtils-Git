@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.22 2004/02/04 05:10:34 aspeer Exp $
+#  $Id: CVS.pm,v 1.23 2004/02/04 06:08:58 aspeer Exp $
 #
 
 
@@ -61,7 +61,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.22 $)[1];
+$REVISION=(qw$Revision: 1.23 $)[1];
 
 
 #  Load up our config file
@@ -247,11 +247,6 @@ sub ci_tag {
         _err('unable to determine cvs binary name');
 
 
-    #  Canonify version from file
-    #
-    $version_from=File::Spec->rel2abs($version_from);
-
-
     #  Read in version number, convers .'s to -
     #
     my $version_cvs=$self->ci_version(@_) ||
@@ -268,6 +263,42 @@ sub ci_tag {
     #  Run cvs program to update
     #
     system($bin_cvs, 'tag', $tag);
+
+
+}
+
+
+sub ci_changelog {
+
+
+    #  Checking change log
+    #
+    my $self=shift();
+    my ($name, $distname, $distvname, $version, $version_from)=_arg(@_);
+
+
+    #  Get cvs binary name, changelog file name
+    #
+    my $bin_cvs=$Config_hr->{'CVS'} ||
+        _err('unable to determine cvs binary name');
+    my $changelog_fn=$Config_hr->{'CHANGELOG'} ||
+        _err('unable to determine changelog file name');
+
+
+    #  Read in version number
+    #
+    my $version_cvs=$self->ci_version(@_) ||
+        _err('unable to get version number');
+    
+    
+    #  Build comment
+    #
+    my $comment="Module version: $version";
+    
+    
+    #  Run cvs program to checkin
+    #
+    system($bin_cvs, 'commit', '-m', $comment, $changelog_fn);
 
 
 }

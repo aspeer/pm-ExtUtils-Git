@@ -18,17 +18,16 @@ ci :: ci_manicheck
 	@$(PERL) -M$(EXTUTILS_CVS) \
 	-e "$(EXTUTILS_CVS)->ci_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
 		$(CVS) commit 									&&	\
-		$(CVS) commit -m "Version increment" -f "$(VERSION_FROM)" 	                && 	\
+		$(CVS) commit -m "" -f "$(VERSION_FROM)" 	                                && 	\
 		$(CVS2CL) $(CVS2CL_ARG) 							&&	\
-		$(CVS) commit -m "" ChangeLog 							&& 	\
+        	$(PERL) -M$(EXTUTILS_CVS) 								\
+			-e  "$(EXTUTILS_CVS)->ci_changelog(@ARGV)"   						\
+			--  $(EXTUTILS_ARGV)   							&&	\
         	$(PERL) -M$(EXTUTILS_CVS) 								\
 			-e  "$(EXTUTILS_CVS)->ci_tag(@ARGV)"   						\
 			--  $(EXTUTILS_ARGV)   							&&	\
 		$(PERL) -M$(EXTUTILS_CVS) 								\
 			-e "$(EXTUTILS_CVS)->ci_version_dump(@ARGV)"					\
-			-- $(EXTUTILS_ARGV)							&& 	\
-		$(PERL) -M$(EXTUTILS_CVS) 								\
-			-e "$(EXTUTILS_CVS)->ci_version(@ARGV)"						\
 			-- $(EXTUTILS_ARGV)							&& 	\
 		$(PERL) -MExtUtils::CVS=:all -MExtUtils::Dist=:all Makefile.PL 				\
 	)
@@ -80,6 +79,14 @@ ci_version_dump ::
 #  Tag all files with current CVS version
 #
 ci_tag ::
+	@$(PERL) -M$(EXTUTILS_CVS) \
+		-e "ExtUtils::CVS->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
+
+
+#  Checkin the changelog
+#
+ci_changelog ::
 	@$(PERL) -M$(EXTUTILS_CVS) \
 		-e "ExtUtils::CVS->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)

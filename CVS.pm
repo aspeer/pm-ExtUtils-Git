@@ -29,7 +29,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.2 $)[1];
+$REVISION=(qw$Revision: 1.3 $)[1];
 
 
 #  Package info
@@ -117,22 +117,29 @@ sub config_read {
 
     #  Get our dir
     #
-    (my $config_dn=$INC{'ExtUtils/CVS.pm'})=~s/\.pm$//;
+    my @config_dn;
+    ($config_dn[0]=$INC{'ExtUtils/CVS.pm'})=~s/\.pm$//;
 
+
+    #  Unless absolute, add cwd
+    #
+    unless ($config_dn[0]=~/^\//) { unshift @config_dn, cwd() }
+    
 
     #  And now file name
     #
-    my $config_fn=File::Spec->catfile($config_dn, 'Config.pm');
+    my $config_fn=File::Spec->catfile(@config_dn, 'Config.pm');
 
 
     #  Read and return
     #
+    print "fn $config_fn\n";
     my $config_hr=do($config_fn) || die $!;
 
 
     #  Read any local config file. Only present for local customisation
     #
-    my $local_hr=eval { do { File::Spec->catfile($config_dn, 'Local.pm') } };
+    my $local_hr=eval { do { File::Spec->catfile(@config_dn, 'Local.pm') } };
 
 
     #  Local overrides global
@@ -638,6 +645,60 @@ sub ci_manicheck {
     return \undef;
 
 }
+
+sub ci_mtime_sync {
+
+
+    #  Last resort to ensure file mtime is correct based on what CVS thinks
+    #
+    my ($self, $fn)=@_;
+    
+    
+    #  Get cvs bindary name
+    #
+    my $bin_cvs=$Config_hr->{'CVS'} ||
+        return err('unable to determine cvs binary name');
+    
+    #  Run cvs status on file, suck into array
+    #
+    my $system_fh=IO::File->new("$bin_cvs status $fn|") ||
+        retun err("unable to get handle for cvs status command");
+    my @system=<$system_fh>;
+    $system_fh->close();
+    print Data::Dumper::Dumper(\@system);
+    
+    
+    #  Look for uptodate flag
+    #
+    my $uptodate;
+    for (@system) { /Status:\s+Up-to-date/i && do { $uptodate++; last } };
+    
+    
+    #  Get working rev
+    #
+    my $ver_working;
+    for (@system) { /Working revision:\s+(\S+)/ && do { $ver_working=$1; last } };
+    print "u2d $uptodate, ver $ver_working\n";
+    
+
+    #  Looks OK, search for date
+    #
+    my $system_fh=IO::File->new("$bin_cvs log $fn|") ||
+        retun err("unable to get handle for cvs log command");
+    my @system=<$system_fh>;
+    $system_fh->close();
+    print Data::Dumper::Dumper(\@system);
+
+
+    #  Get date
+    #
+    my $line_date;
+    for (0.. $#system) { $system[$_]=~/revision\s+\Q$ver_working\E\s+/ && do { $line_date=$_; last } };
+    print "u2d $uptodate, ver $ver_working line_date:",  $system[++$line_date], "\n";
+    
+    
+}
+    
 
 
 sub ci_version_dump {

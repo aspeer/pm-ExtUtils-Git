@@ -1,3 +1,13 @@
+2004-02-05 22:01  aspeer
+
+	* VERSION.pm (1.43): ExtUtils-CVS version increment
+
+2004-02-05 22:01  aspeer
+
+	* CVS.pm (1.28), support/dist_ci.inc (1.19): Interim checkin -
+	  convert method params from array to hash ref, experiment with
+	  version dump
+
 2004-02-05 16:40  aspeer
 
 	* VERSION.pm (1.42): ExtUtils-CVS version increment

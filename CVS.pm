@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.31 2004/03/27 06:55:28 aspeer Exp $
+#  $Id: CVS.pm,v 1.32 2004/06/08 01:35:07 aspeer Exp $
 #
 
 
@@ -62,7 +62,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.31 $)[1];
+$REVISION=(qw$Revision: 1.32 $)[1];
 
 
 #  Load up our config file
@@ -125,7 +125,7 @@ sub import {
     my $const_config_cr=sub {
 
 	$Const_config_chain_cr=UNIVERSAL::can('MY', 'const_config');
-	print "CVS $Const_config_chain_cr\n";
+	#print "CVS $Const_config_chain_cr\n";
 	*MY::const_config=sub { &const_config(@_) };
 	0 && MY::const_config();
 
@@ -283,7 +283,7 @@ sub makefile {
     #  Build the  makefile -M line
     #
     my $makefile_module;
-    print Data::Dumper::Dumper(\%MY::Import_class);
+    #print Data::Dumper::Dumper(\%MY::Import_class);
     while (my ($class, $param_ar)=each %MY::Import_class) {
     #if (my @param=@{$MY::Import_param_ar}) {
 	    if ($param_ar) {

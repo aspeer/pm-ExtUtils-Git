@@ -27,7 +27,7 @@ ci :: ci_manicheck
 		$(PERL) -M$(EXTUTILS_CVS) 								\
 			-e "$(EXTUTILS_CVS)->ci_version_dump(@ARGV)"					\
 			-- $(EXTUTILS_ARGV)							&& 	\
-		$(PERL) -MExtUtils::CVS=:all -MExtUtils::Dist=:all Makefile.PL 				\
+		$(MAKE) Makefile                                                                        \
 	)
 
 

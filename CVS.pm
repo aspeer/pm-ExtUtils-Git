@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.26 2004/02/04 06:47:27 aspeer Exp $
+#  $Id: CVS.pm,v 1.27 2004/02/05 06:10:39 aspeer Exp $
 #
 
 
@@ -61,7 +61,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.26 $)[1];
+$REVISION=(qw$Revision: 1.27 $)[1];
 
 
 #  Load up our config file
@@ -70,9 +70,10 @@ my $Config_hr=&_config_read() || _err('unable to process load config file');
 
 
 #  Vars to hold chained soubroutines, if needed (loaded by import). Must be
-#  global (our) vars.
+#  global (our) vars. Also need to remember import param
 #
-our ($Const_config_chain_cr, $Dist_ci_chain_cr);
+our ($Const_config_chain_cr, $Dist_ci_chain_cr, $Makefile_chain_cr);
+#our ($Import_class, $Import_param_ar);
 
 
 #  Intercepts method arguments, holds some info across method calls to be used
@@ -102,22 +103,34 @@ sub import {
     #
     my ($self, @param)=@_;
     no warnings;
+    
+    
+    #  Store for later use in MY::Makefile section
+    #
+    ($MY::Import_class, $MY::Import_param_ar)=($self, \@param);
 
 
     #  Code ref for params
     #
-    my $const_config_sr=sub {
+    my $const_config_cr=sub {
 
 	$Const_config_chain_cr=UNIVERSAL::can('MY', 'const_config');
 	*MY::const_config=sub { &const_config(@_) };
 	0 && MY::const_config();
 
     };
-    my $dist_ci_sr=sub {
+    my $dist_ci_cr=sub {
 
 	$Dist_ci_chain_cr=UNIVERSAL::can('MY', 'dist_ci');
 	*MY::dist_ci=sub { &dist_ci(@_) };
 	0 && MY::dist_ci();
+
+    };
+    my $makefile_cr=sub {
+
+	$Makefile_chain_cr=UNIVERSAL::can('MY', 'makefile');
+	*MY::makefile=sub { &makefile(@_) };
+	0 && MY::makefile();
 
     };
 
@@ -126,9 +139,10 @@ sub import {
     #
     my %param=(
 
-	const_config	=>  $const_config_sr,
-	dist_ci		=>  $dist_ci_sr,
-	':all'		=>  sub { $const_config_sr->(); $dist_ci_sr->() }
+	const_config	=>  $const_config_cr,
+	dist_ci		=>  $dist_ci_cr,
+	makefile        =>  $makefile_cr,
+	':all'		=>  sub { $const_config_cr->(); $dist_ci_cr->(); $makefile_cr->() }
 
        );
 
@@ -219,8 +233,77 @@ sub dist_ci {
 
     #  All done, return result
     #
-    return join("\n", @dist_ci);
+    return join($/, @dist_ci);
 
+}
+
+
+#  MakeMaker::MY replacement Makefile section
+#
+sub makefile {
+
+
+    #  Change package
+    #
+    package MY;
+
+
+    #  Get self ref
+    #
+    my $self=shift();
+
+
+    #  Get original makefile text
+    #
+    my $makefile=$Makefile_chain_cr->($self);
+
+
+    #  Array to hold result
+    #
+    my @makefile;
+    
+
+    #  Build the  makefile -M line
+    #
+    my $makefile_module;
+    if (my @param=@{$MY::Import_param_ar}) {
+        $makefile_module="$MY::Import_class=".join(',', @param);
+    }
+    else {
+        $makefile_module=$MY::Import_class;
+    }
+    
+
+    #  Target line to replace
+    #
+    my $find=q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" Makefile.PL];
+    my $rplc=
+        sprintf(q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" -M%s Makefile.PL],
+                $makefile_module);           
+
+
+    #  Go through line by line
+    #
+    foreach my $line (split(/^/m, $makefile )) {
+
+
+	#  Chomp
+	#
+	chomp $line;
+
+
+	#  Check for target line
+	#
+	$line=~s/\Q$find\E/$rplc/i;
+	push @makefile, $line;
+	
+    }
+    
+
+    #  Done, return result
+    #
+    return join($/, @makefile);	
+    
 }
 
 
@@ -310,8 +393,8 @@ sub ci_status {
 
     }
     #print Data::Dumper::Dumper(\%manifest_dn);
-    
-    
+
+
     #  Array for files that may be out of date,
     #
     my @modified_fn;
@@ -408,10 +491,10 @@ sub ci_status {
 		$mtime_fn=$self->_ci_mtime_sync($entry_fn, $commit_time) ||
 		    $mtime_fn;
 		($mtime_fn > $version_from_mtime) && do {
-		        push @modified_fn, $entry_fn;
-		        next;
-		 };
-		
+		    push @modified_fn, $entry_fn;
+		    next;
+		};
+
 
 	    };
 
@@ -423,7 +506,7 @@ sub ci_status {
 	$entries_fh->close();
 
     }
-    
+
 
     #  Check for modified files, quit if found
     #
@@ -874,7 +957,6 @@ sub _ci_mtime_sync {
     #  Last resort to ensure file mtime is correct based on what CVS thinks
     #
     my ($self, $fn, $mtime_fn)=@_;
-    my $method=(split(/:/, (caller(0))[3]))[-1];
     #print "$method:fn $sync_fn\n";
 
 
@@ -939,7 +1021,7 @@ sub _ci_mtime_sync {
 	#print Data::Dumper::Dumper(\@system);
 
 
-	#  Get line with date date
+	#  Get line with date
 	#
 	my $line_date;
 	for (0.. $#system) {
@@ -972,7 +1054,7 @@ sub _ci_mtime_sync {
 	       );
 	    $touch_or->touch($fn) ||
 		_err("error on touch of file $fn, $!");
-	    printf("$method: synced file $fn to cvs mtime $mtime (%s)\n",
+	    _msg("synced file $fn to cvs mtime $mtime (%s)\n",
 		   scalar(localtime($mtime)));
 
 	}
@@ -1097,7 +1179,9 @@ sub _caller {
 
     #  Return the method name of the caller
     #
-    return (split(/:/, (caller(shift() || 1))[3]))[-1];
+    my $caller=(split(/:/, (caller(shift() || 1))[3]))[-1];
+    $caller=~s/^_//;
+    return $caller;
 
 }
 

@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: Config.pm,v 1.11 2004/02/04 06:47:27 aspeer Exp $
+#  $Id: Config.pm,v 1.12 2004/02/05 06:10:39 aspeer Exp $
 #
 
 
@@ -129,9 +129,9 @@ unless (0 && ($_ = do($cache_fn))) {
 	CVS	        =>  $bin_find_cr->([qw(cvs cvs.exe)]),
 
 	CVS2CL	        =>  $bin_find_cr->('cvs2cl.pl'),
-	
+
 	CVSROOT	        =>  $ENV{'CVSROOT'},
-	
+
 	CHANGELOG       =>  $_='ChangeLog',
 
 	CVS2CL_ARG      =>  "--window 15 --file $_ -P -r -I $_"

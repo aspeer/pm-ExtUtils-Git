@@ -39,6 +39,6 @@ ci_version_dump :
 		'$(NAME)', '$(VERSION_FROM)' )"
 
 branch :
-	$(CVS) tag -b $(DISTNAME)_`$(PERL) -e "do './$(VERSION_FROM)'; ($$::_=$$::VERSION)=~s/\\\./-/g;print"`-2 && \
+	$(CVS) tag -b $(DISTNAME)_`$(PERL) -e "do './$(VERSION_FROM)'; ($$::_=$$::VERSION)=~s/\\\./-/g;print"`-0 && \
 	$(CVS) update -r $(DISTNAME)_`$(PERL) \
-		-e "$$::v=(do'./$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"`-2	
+		-e "$$::v=(do'./$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"`-0

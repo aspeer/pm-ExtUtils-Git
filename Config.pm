@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: Config.pm,v 1.15 2004/03/27 06:55:28 aspeer Exp $
+#  $Id: Config.pm,v 1.16 2005/02/04 11:37:37 aspeer Exp $
 #
 
 
@@ -143,6 +143,8 @@ unless ($_ = do($cache_fn)) {
 	    q["$(VERSION_SYM)" "$(VERSION_FROM)"],
 
 	EXTUTILS_CVS		 =>  'ExtUtils::CVS',
+	
+	NO_META			 =>  '1',
 
 
        );

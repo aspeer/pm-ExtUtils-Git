@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.35 2004/06/17 16:22:48 aspeer Exp $
+#  $Id: CVS.pm,v 1.36 2005/02/04 11:37:37 aspeer Exp $
 #
 
 
@@ -62,7 +62,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.35 $)[1];
+$REVISION=(qw$Revision: 1.36 $)[1];
 
 
 #  Load up our config file
@@ -292,7 +292,8 @@ sub makefile {
     #  Target line to replace. Will need to change here if ExtUtils::MakeMaker ever
     #  changes format of this line
     #
-    my $find=q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" Makefile.PL];
+    my @find=(q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" Makefile.PL],
+      	q[$(PERLRUN) Makefile.PL]);
     my $rplc=
         sprintf(q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" %s Makefile.PL],
                 $makefile_module);
@@ -311,7 +312,7 @@ sub makefile {
 
 	#  Check for target line
 	#
-	$line=~s/\Q$find\E/$rplc/i && ($make=$line);
+	for (@find) { $line=~s/\Q$_\E/$rplc/i && ($make=$line) };
 
 
 	#  Also look for 'false' at end, erase

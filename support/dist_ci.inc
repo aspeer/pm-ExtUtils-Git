@@ -6,11 +6,11 @@ ci :: ci_manicheck
 	$(CVS) commit -m "" ChangeLog && \
 	$(CVS) commit -m "" -f $(VERSION_FROM) && \
 	$(CVS) tag $(DISTNAME)_`$(PERL) \
-		-e "$$::v=(do '$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"` && \
+		-e "$$::v=(do './$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"` && \
 	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_dump_version( \
 		'$(NAME)', '$(VERSION_FROM)' )" && \
 	$(PERL) \
-		-e "$$::v=(do '$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)" && \
+		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)" && \
 	$(PERL) Makefile.PL \
 	)
 
@@ -32,7 +32,7 @@ ci_status : ci_manicheck
 
 ci_version :
 	$(PERL) \
-		-e "$$::v=(do '$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)"
+		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)"
 
 
 ci_dump_version :
@@ -40,6 +40,6 @@ ci_dump_version :
 		'$(NAME)', '$(VERSION_FROM)' )"
 
 branch :
-	$(CVS) tag -b $(DISTNAME)_`$(PERL) -e "do '$(VERSION_FROM)'; ($$::_=$$::VERSION)=~s/\\\./-/g;print"`-2 && \
+	$(CVS) tag -b $(DISTNAME)_`$(PERL) -e "do './$(VERSION_FROM)'; ($$::_=$$::VERSION)=~s/\\\./-/g;print"`-2 && \
 	$(CVS) update -r $(DISTNAME)_`$(PERL) \
-		-e "$$::v=(do'$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"`-2	
+		-e "$$::v=(do'./$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"`-2	

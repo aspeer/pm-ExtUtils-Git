@@ -11,7 +11,6 @@ use ExtUtils::Manifest;
 use Data::Dumper;
 use Date::Parse qw(str2time);
 use File::Find qw(find);
-use File::Touch;
 use Cwd qw(cwd);
 use CPAN;
 
@@ -30,7 +29,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.12 $)[1];
+$REVISION=(qw$Revision: 1.13 $)[1];
 
 
 #  Package info
@@ -765,6 +764,7 @@ sub ci_mtime_sync {
 
 	    #  Touch it
 	    #
+	    #  remomber to 'use File::Touch' if re-instating this code
 	    #my $touch_or=File::Touch->new(
 
 		#'time'	=>  $mtime,

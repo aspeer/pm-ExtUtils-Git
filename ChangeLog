@@ -1,3 +1,13 @@
+2004-02-06 01:26  aspeer
+
+	* VERSION.pm (1.45): ExtUtils-CVS version increment
+
+2004-02-06 01:26  aspeer
+
+	* CVS.pm (1.30), Config.pm (1.14), support/dist_ci.inc (1.21):
+	  Convert private utility functions to OO methods so can be
+	  inherited by other ExtUtils:: modules
+
 2004-02-05 23:10  aspeer
 
 	* VERSION.pm (1.44): ExtUtils-CVS version increment

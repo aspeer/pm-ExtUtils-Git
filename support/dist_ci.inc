@@ -32,7 +32,7 @@ ci_status : ci_manicheck
 
 ci_version :
 	$(PERL) \
-		-e "$$::v=(do '$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)" && \
+		-e "$$::v=(do '$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)"
 
 
 ci_dump_version :

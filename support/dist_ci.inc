@@ -18,11 +18,9 @@ ci :: ci_manicheck
 	@$(PERL) -M$(EXTUTILS_CVS) \
 	-e "$(EXTUTILS_CVS)->ci_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
 		$(CVS) commit 									&&	\
-		$(CVS) commit -m "" -f "$(VERSION_FROM)" 	                                && 	\
+		$(CVS) commit -m "Version increment" -f "$(VERSION_FROM)" 	                && 	\
 		$(CVS2CL) $(CVS2CL_ARG) 							&&	\
-        	$(PERL) -M$(EXTUTILS_CVS) 								\
-			-e  "$(EXTUTILS_CVS)->ci_changelog(@ARGV)"   						\
-			--  $(EXTUTILS_ARGV)   							&&	\
+		$(CVS) commit -m "" $(CHANGELOG)                                                &&      \
         	$(PERL) -M$(EXTUTILS_CVS) 								\
 			-e  "$(EXTUTILS_CVS)->ci_tag(@ARGV)"   						\
 			--  $(EXTUTILS_ARGV)   							&&	\

@@ -1,3 +1,13 @@
+2004-02-05 23:10  aspeer
+
+	* VERSION.pm (1.44): ExtUtils-CVS version increment
+
+2004-02-05 23:10  aspeer
+
+	* CVS.pm (1.29), Config.pm (1.13), support/dist_ci.inc (1.20):
+	  Change name and format of Dumper file tp '.module.pm'. Revert
+	  back to old way of dumping version in dist_ci.
+
 2004-02-05 22:01  aspeer
 
 	* VERSION.pm (1.43): ExtUtils-CVS version increment

@@ -4,4 +4,5 @@ VERSION.pm
 Makefile.PL
 CVS.pm
 Config.pm
+LICENSE
 support/dist_ci.inc

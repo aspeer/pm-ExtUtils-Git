@@ -6,3 +6,4 @@ CVS.pm
 Config.pm
 LICENSE
 support/dist_ci.inc
+support/cvs2cl.pl

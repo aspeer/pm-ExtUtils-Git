@@ -33,6 +33,12 @@ WriteMakefile(
 	'LICENSE',			 =>  '$(INST_LIBDIR)/Lint/LICENSE',
 
     },
+    
+    EXE_FILES                            =>  [
+    
+        'support/cvs2cl.pl',
+        
+    ],
 
     'dist'				 =>  {
 

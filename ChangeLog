@@ -1,3 +1,7 @@
+2003-11-03 12:43  aspeer
+
+	* ChangeLog, VERSION.pm: [no log message]
+
 2003-11-03 12:42  aspeer
 
 	* CVS.pm: Change mtime_sync alorithm again, attemp to support DST

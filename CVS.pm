@@ -20,12 +20,22 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.20 2003/11/03 02:12:58 aspeer Exp $
-package ExtUtils::CVS;#  Compiler Pragma#sub BEGIN   { $^W=0 };
+#  $Id: CVS.pm,v 1.21 2004/02/04 04:37:05 aspeer Exp $
+#
+
+
+#  Augment Perl ExtUtils::MakeMaker cvs functions
+#
+package ExtUtils::CVS;
+
+
+#  Compiler Pragma
+#
+sub BEGIN   { $^W=0 };
 use strict  qw(vars);
 use vars    qw($VERSION $REVISION $PACKAGE);
 use warnings;
-no warnings qw(uninitialized);
+no  warnings qw(uninitialized);
 
 
 #  External Packages
@@ -40,6 +50,7 @@ use File::Find qw(find);
 use File::Touch;
 use Cwd qw(cwd);
 use CPAN;
+use Carp;
 
 
 #  Version information in a formate suitable for CPAN etc. Must be
@@ -50,23 +61,24 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.20 $)[1];
-
-
-#  Package info
-#
-$PACKAGE=__PACKAGE__;
+$REVISION=(qw$Revision: 1.21 $)[1];
 
 
 #  Load up our config file
 #
-my $Config_hr=$PACKAGE->config_read();
+my $Config_hr=&_config_read() || _err('unable to process load config file');
 
 
 #  Vars to hold chained soubroutines, if needed (loaded by import). Must be
 #  global (our) vars.
 #
-our ($Const_config_chain_sr, $Dist_ci_chain_sr);
+our ($Const_config_chain_cr, $Dist_ci_chain_cr);
+
+
+#  Intercepts method arguments, holds some info across method calls to be used
+#  my message routines
+#
+my %Arg;
 
 
 #  All done, init finished
@@ -74,10 +86,14 @@ our ($Const_config_chain_sr, $Dist_ci_chain_sr);
 1;
 
 
-#------------------------------------------------------------------------------
+#===================================================================================================
 
 
-#  Manage activation of const_config and dist_ci targets
+#  Manage activation of const_config and dist_ci targets via import tags. Import tags are
+#
+#  use ExtUtils::CVS qw(const_config) to just replace the macros section of the Makefile
+#  .. qw(dist_ci) to replace standard MakeMaker targets with our own
+#  .. qw(:all) to get both of the above, usual usage
 #
 sub import {
 
@@ -88,18 +104,18 @@ sub import {
     no warnings;
 
 
-    #  Sub ref for params
+    #  Code ref for params
     #
     my $const_config_sr=sub {
 
-	$Const_config_chain_sr=UNIVERSAL::can('MY', 'const_config');
+	$Const_config_chain_cr=UNIVERSAL::can('MY', 'const_config');
 	*MY::const_config=sub { &const_config(@_) };
 	0 && MY::const_config();
 
     };
     my $dist_ci_sr=sub {
 
-	$Dist_ci_chain_sr=UNIVERSAL::can('MY', 'dist_ci');
+	$Dist_ci_chain_cr=UNIVERSAL::can('MY', 'dist_ci');
 	*MY::dist_ci=sub { &dist_ci(@_) };
 	0 && MY::dist_ci();
 
@@ -131,52 +147,7 @@ sub import {
 }
 
 
-
-#  Read in config file
-#
-sub config_read {
-
-
-    #  Get our dir
-    #
-    (my $config_dn=$INC{'ExtUtils/CVS.pm'})=~s/\.pm$//;
-
-
-    #  Unless absolute, add cwd
-    #
-    $config_dn=File::Spec->rel2abs($config_dn);
-
-
-    #  And now file name
-    #
-    my $config_fn=File::Spec->catfile($config_dn, 'Config.pm');
-
-
-    #  Read and return
-    #
-    my $config_hr=do($config_fn) || die $!;
-
-
-    #  Read any local config file. Only present for local customisation
-    #
-    my $local_hr=eval { do { File::Spec->catfile($config_dn, 'Local.pm') } };
-
-
-    #  Local overrides global
-    #
-    map { $config_hr->{$_}=$local_hr->{$_} } keys %{$local_hr};
-
-
-    #  Return
-    #
-    return $config_hr;
-
-
-}
-
-
-
-#  Replacement const_config section
+#  MakeMaker::MY replacement const_config section
 #
 sub const_config {
 
@@ -198,13 +169,13 @@ sub const_config {
 
     #  Return whatever our parent does
     #
-    return $Const_config_chain_sr->($self);
+    return $Const_config_chain_cr->($self);
 
 
 }
 
 
-#  Update ci section to include an "import" function
+#  MakeMaker::MY update ci section to include an "import" function
 #
 sub dist_ci {
 
@@ -232,7 +203,7 @@ sub dist_ci {
     #  Open it
     #
     my $patch_fh=IO::File->new($patch_fn, &ExtUtils::CVS::O_RDONLY) ||
-	die("unable to open $patch_fn, $!");
+	_err("unable to open $patch_fn, $!");
 
 
     #  Add in. We are replacing dist_ci entirely, so do not
@@ -253,12 +224,27 @@ sub dist_ci {
 }
 
 
+#===================================================================================================
+
+
+#  Public methods. Each one of the routines below corresponds with a Makefile target, eg
+#
+#  'make ci_tag' will tag the current cvs files
+#
+
 sub ci_tag {
 
 
     #  Build unique tag for checked in files
     #
-    my ($self, $cvs_exe, $distname, $version_from)=@_;
+    my $self=shift();
+    my ($name, $distname, $distvname, $version, $version_from)=_arg(@_);
+
+
+    #  Get cvs binary name
+    #
+    my $bin_cvs=$Config_hr->{'CVS'} ||
+        _err('unable to determine cvs binary name');
 
 
     #  Canonify version from file
@@ -268,20 +254,20 @@ sub ci_tag {
 
     #  Read in version number, convers .'s to -
     #
-    my $version=do($version_from) ||
-        die('unable to get version number');
-    $version=~s/\./-/g;
+    my $version_cvs=$self->ci_version(@_) ||
+        _err('unable to get version number');
+    $version_cvs=~s/\./-/g;
 
 
     #  Add distname
     #
-    my $tag=join('_', $distname, $version);
-    print "tag $tag\n";
+    my $tag=join('_', $distname, $version_cvs);
+    _msg(qq[tagging as "$tag"]);
 
 
     #  Run cvs program to update
     #
-    system($cvs_exe, 'tag', $tag);
+    system($bin_cvs, 'tag', $tag);
 
 
 }
@@ -293,15 +279,14 @@ sub ci_status {
     #  Checks that all files in the manifest are up to date with respect to
     #  CVS/Entries file
     #
-    my ($self, $version_fn)=@_;
-    my $method=(split(/:/, (caller(0))[3]))[-1];
-    print "ci_status\n";
+    my $self=shift();
+    my ($name, $distname, $distvname, $version, $version_from)=_arg(@_);
 
 
     #  Stat the master version file
     #
-    my $version_fn_mtime=(stat($version_fn))[9] ||
-	die("$method: unable to stat file $version_fn, $!");
+    my $version_from_mtime=(stat($version_from))[9] ||
+	_err("unable to stat file $version_from, $!");
 
 
     #  Get the manifest
@@ -311,7 +296,9 @@ sub ci_status {
 
     #  Ignore the ChangeLog file
     #
-    #delete $manifest_hr->{'ChangeLog'};
+    if (my $changelog_fn=$Config_hr->{'CHANGELOG'}) {
+        delete $manifest_hr->{$changelog_fn};
+    }
 
 
     #  Work out all the directory names
@@ -328,6 +315,11 @@ sub ci_status {
 
     }
     #print Data::Dumper::Dumper(\%manifest_dn);
+    
+    
+    #  Array for files that may be out of date,
+    #
+    my @modified_fn;
 
 
     #  Now go through, looking at files
@@ -350,7 +342,7 @@ sub ci_status {
 	#  Open
 	#
 	my $entries_fh=IO::File->new($entries_fn, O_RDONLY) ||
-	    die("unable to open $entries_fn, $!");
+	    _err("unable to open $entries_fn, $!");
 
 
 
@@ -386,8 +378,8 @@ sub ci_status {
 	    #  Stat file
 	    #
 	    my $mtime_fn=(stat($entry_fn))[9] ||
-		die("$method: unable to stat file $entry_fn, $!");
-	    #print "mtime_fn $mtime_fn commit_time $commit_time, vtime $version_fn_mtime\n";
+		_err("unable to stat file $entry_fn, $!");
+	    #print "mtime_fn $mtime_fn commit_time $commit_time, vtime $version_from_mtime\n";
 
 
 	    #  Compare
@@ -399,11 +391,12 @@ sub ci_status {
 
 		#  Give it one more chance
 		#
-		$mtime_fn=$self->ci_mtime_sync($entry_fn, $commit_time) ||
+		$mtime_fn=$self->_ci_mtime_sync($entry_fn, $commit_time) ||
 		    $mtime_fn;
-		($mtime_fn > $commit_time) &&
-		    die("$method: $entry_fn has mtime $mtime_fn greater commit time $commit_time, ".
-			    "cvs commit may be required.\n");
+		($mtime_fn > $commit_time) && do {
+		        push @modified_fn, $entry_fn;
+		        next;
+		};
 
 
 	    };
@@ -411,30 +404,44 @@ sub ci_status {
 
 	    #  Check against version
 	    #
-	    ($mtime_fn > $version_fn_mtime) && do {
+	    ($mtime_fn > $version_from_mtime) && do {
 
 	    	#print "mtime > version_mtime\n";
 
 		#  Give it one more chance
 		#
-		$mtime_fn=$self->ci_mtime_sync($entry_fn, $commit_time) ||
+		$mtime_fn=$self->_ci_mtime_sync($entry_fn, $commit_time) ||
 		    $mtime_fn;
-		($mtime_fn > $version_fn_mtime) &&
-		    die("$method: $fn has mtime greater than $version_fn, cvs commit may be required.\n");
+		($mtime_fn > $version_from_mtime) && do {
+		        push @modified_fn, $entry_fn;
+		        next;
+		 };
+		
 
 	    };
 
 	}
 
 
+	#  Done with entries file
+	#
 	$entries_fh->close();
 
     }
+    
+
+    #  Check for modified files, quit if found
+    #
+    (@modified_fn) && do {
+        my $err="The following files have an mtime > commit time or VERSION_FROM ($version_from) file:\n";
+        $err.=Data::Dumper::Dumper(\@modified_fn);
+        _err($err);
+    };
 
 
     #  All looks OK
     #
-    print "$method: all files up-to-date\n";
+    _msg("all files up-to-date");
 
 
     #  All OK
@@ -452,13 +459,12 @@ sub ci_status_bundle {
     #  CVS/Entries file
     #
     my ($self, $version_fn)=@_;
-    my $method=(split(/:/, (caller(0))[3]))[-1];
 
 
     #  Stat the master version file
     #
     my $version_fn_mtime=(stat($version_fn))[9] ||
-	die("$method: unable to stat file $version_fn, $!");
+	_err("unable to stat file $version_fn, $!");
 
 
     #  Get cwd
@@ -505,7 +511,7 @@ sub ci_status_bundle {
 	#  Open
 	#
 	my $entries_fh=IO::File->new($entries_fn, O_RDONLY) ||
-	    die("$method: unable to open file $entries_fn, $!");
+	    _err("unable to open file $entries_fn, $!");
 
 
 	#  Parse
@@ -542,10 +548,10 @@ sub ci_status_bundle {
 
 		#  Give it one more chance
 		#
-		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
+		$mtime_fn=$self->_ci_mtime_sync($entry_fn) ||
 		    $mtime_fn;
 		($mtime_fn > $version_fn_mtime) &&
-		    die("$method: $fn has mtime greater than $version_fn, cvs commit may be required.\n");
+		    _err("$fn has mtime greater than $version_fn, cvs commit may be required.");
 
 	    };
 
@@ -559,10 +565,10 @@ sub ci_status_bundle {
 	    #
 	    ($mtime_fn > $commit_time) && do {
 
-		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
+		$mtime_fn=$self->_ci_mtime_sync($entry_fn) ||
 		    $mtime_fn;
 		($mtime_fn > $commit_time) &&
-		    die("$method: $entry_fn has mtime greater commit time, cvs commit may be required.\n");
+		    _err("$entry_fn has mtime greater commit time, cvs commit may be required.");
 
 	    };
 	}
@@ -571,7 +577,7 @@ sub ci_status_bundle {
 
     #  All looks OK
     #
-    print "$method: all files up-to-date\n";
+    _msg('all files up-to-date');
 
 
     #  All OK
@@ -587,8 +593,8 @@ sub ci_manicheck {
 
     #  Checks that all files in the manifest are checked in to cvs
     #
-    my ($self, $module)=@_;
-    my $method=(split(/:/, (caller(0))[3]))[-1];
+    my $self=shift();
+    my ($name, $distname, $distvname, $version, $version_from)=_arg(@_);
 
 
     #  Get cwd, dance around Win32 formatting
@@ -600,7 +606,7 @@ sub ci_manicheck {
 
     #  Get the manifest, jump Win32 hoops with file names
     #
-    ExtUtils::Manifest::manicheck() && die('MANIFEST manicheck error');
+    ExtUtils::Manifest::manicheck() && _err('MANIFEST manicheck error');
     my $manifest_hr=ExtUtils::Manifest::maniread();
     foreach my $fn (keys %{$manifest_hr}) {
         delete $manifest_hr->{$fn};
@@ -647,7 +653,7 @@ sub ci_manicheck {
 	#
 	my $repository_fn=File::Spec->catfile(@entries_dn, 'Repository');
 	my $repository_fh=IO::File->new($repository_fn, O_RDONLY) ||
-	    die("$method: unable to open file $repository_fn, $!");
+	    _err("unable to open file $repository_fn, $!");
 	my $repository_dn=<$repository_fh>; chomp($repository_dn);
 
 
@@ -655,7 +661,7 @@ sub ci_manicheck {
 	#
 	my $repository=(File::Spec->splitdir($repository_dn))[0];
 	#print "repository *$repository*, module *$module*\n";
-	next unless ($repository eq $module);
+	next unless ($repository eq $distname);
 
 
 	#  Get rid of empty directories
@@ -666,7 +672,7 @@ sub ci_manicheck {
 	#  Open
 	#
 	my $entries_fh=IO::File->new($entries_fn, O_RDONLY) ||
-	    die("$method: unable to open file $entries_fn, $!");
+	    _err("unable to open file $entries_fn, $!");
 
 
 	#  Parse
@@ -709,14 +715,14 @@ sub ci_manicheck {
     my %test0=%{$manifest_hr};
     map { delete $test0{$_} } keys %manifest;
     if (keys %test0) {
-	printf("$method: the following files are in the manifest, but not in CVS: \n\n%s\n\n",
+	_msg("the following files are in the manifest, but not in CVS: \n\n%s\n",
 	       join("\n", keys %test0));
 	$fail++;
     }
     my %test1=%manifest;
     map { delete $test1{$_} } keys %{$manifest_hr};
     if (keys %test1) {
-	printf("$method: the following files are in CVS, but not in the manifest: \n\n%s\n\n",
+	_msg("the following files are in CVS, but not in the manifest: \n\n%s\n\n",
 	       join("\n", keys %test1));
 	$fail++;
     }
@@ -730,7 +736,7 @@ sub ci_manicheck {
 	#  Yes, must check files in that dir also. Process dir to get just file entries.
 	#
 	tie (my %fn_raw, 'IO::Dir', $dn) ||
-	    die("unable to tie IO::Dir to $dn, $!");
+	    _err("unable to tie IO::Dir to $dn, $!");
 	my %fn=%fn_raw;
 	map { delete $fn{$_} unless (-f File::Spec->catfile($cwd,'patch',$_)) } keys %fn;
 
@@ -740,7 +746,7 @@ sub ci_manicheck {
 	my %test0=%fn;
 	map { delete $test0{(File::Spec->splitpath($_))[2]}} keys %{$manifest_hr};
 	if (keys %test0) {
-	    printf("$method: the following files are in the patch dir, but not in the manifest: \n\n%s\n\n",
+	    _msg("the following files are in the patch dir, but not in the manifest: \n\n%s\n",
 		   join("\n", keys %test0));
 	    $fail++;
 	}
@@ -751,7 +757,7 @@ sub ci_manicheck {
 	my %test1=%fn;
 	map { delete $test1{(File::Spec->splitpath($_))[2]}} keys %manifest;
 	if (keys %test1) {
-	    printf("$method: the following files are in the patch dir, but not in the CVS: \n\n%s\n\n",
+	    _msg("the following files are in the patch dir, but not in the CVS: \n\n%s\n",
 		   join("\n", keys %test1));
 	    $fail++;
 	}
@@ -765,11 +771,11 @@ sub ci_manicheck {
 	my $yesno=ExtUtils::MakeMaker::prompt(
 	    'Do you wish to continue [yes|no] ?','yes');
 	if ($yesno=~/^n|no$/i) {
-	    die("$method: bundle build aborted by user !")
+	    _err('bundle build aborted by user !')
 	}
     }
     else {
-	print "$method: manifest and cvs in sync\n";
+	_msg('manifest and cvs in sync');
     }
 
 
@@ -780,7 +786,94 @@ sub ci_manicheck {
 }
 
 
-sub ci_mtime_sync {
+sub ci_version_dump {
+
+
+    #  Get self ref
+    #
+    my $self=shift();
+    my ($name, $distname, $distvname, $version, $version_from)=_arg(@_);
+
+
+    #  Get version we are saving
+    #
+    #my $have_version_fn=File::Spec->catfile(cwd(), $version_from);
+    #my $have_version=do($have_version_fn);
+    my $have_version=$self->ci_version(@_);
+
+
+    #  Get location of Dumper file, load up module, version info
+    #  that we are processing, save again
+    #
+    my $dump_fn=File::Spec->catfile(cwd(), 'Dumper.pm');
+	#$ExtUtils::Bundle::FILE_CPAN_DUMPER);
+    my $dump_hr=do ($dump_fn) || {};
+
+
+    #  Check if we need not update
+    #
+    my $dump_version=$dump_hr->{$name};
+    if (CPAN::Version->vcmp($dump_version, $have_version)) {
+
+	$dump_hr->{$name}=$have_version;
+	#print "Bundle:; UPDATING DUMPER FILE, hv $have_version, dv $dump_version\n";
+	my $dump_fh=IO::File->new($dump_fn, O_WRONLY|O_TRUNC|O_CREAT) ||
+	    die ("unable to open file $dump_fn, $!");
+	binmode($dump_fh);
+	$Data::Dumper::Indent=1;
+	print $dump_fh (Data::Dumper->Dump([$dump_hr],[]));
+	$dump_fh->close();
+
+
+    }
+
+
+    #  Message
+    #
+    _msg('cvs version dump complete');
+
+
+    #  Done
+    #
+    return \undef;
+
+}
+
+
+sub ci_version {
+
+
+    #  Print current version from version_from file
+    #
+    my $self=shift();
+    my ($name, $distname, $distvname, $version, $version_from)=_arg(@_);
+
+
+    #  Get version from version_from file
+    #
+    my $version_cvs=do(File::Spec->rel2abs($version_from)) ||
+	_err("unable to read version info from version_from file $version_from, $!");
+
+
+    #  Display
+    #
+    _msg("cvs version: $version_cvs");
+
+
+    #  Done
+    #
+    return $version_cvs;
+
+}
+
+
+#===================================================================================================
+
+#  Private methods. Utility functions - use externally at own risk
+#
+
+
+sub _ci_mtime_sync {
 
 
     #  Last resort to ensure file mtime is correct based on what CVS thinks
@@ -805,13 +898,13 @@ sub ci_mtime_sync {
     #  Get cvs binary name
     #
     my $bin_cvs=$Config_hr->{'CVS'} ||
-        die('unable to determine cvs binary name');
+        _err('unable to determine cvs binary name');
 
 
     #  Run cvs status on file, suck into array
     #
     my $system_fh=IO::File->new("$bin_cvs status $fn|") ||
-        die("unable to get handle for cvs status command");
+        _err("unable to get handle for cvs status command");
     my @system=<$system_fh>;
     $system_fh->close();
 
@@ -826,7 +919,7 @@ sub ci_mtime_sync {
     #  And var to hold mtime
     #
     my $mtime=(stat($fn))[9] ||
-	die("unable to stat file $fn, $!");
+	_err("unable to stat file $fn, $!");
 
 
     #  If uptodate, we need to sync mtime with CVS mtime
@@ -845,7 +938,7 @@ sub ci_mtime_sync {
 	#  Looks OK, search for date
 	#
 	my $system_fh=IO::File->new("$bin_cvs log $fn|") ||
-	    die("unable to get handle for cvs log command");
+	    _err("unable to get handle for cvs log command");
 	my @system=<$system_fh>;
 	$system_fh->close();
 	#print Data::Dumper::Dumper(\@system);
@@ -868,7 +961,7 @@ sub ci_mtime_sync {
 	    #  Convert string time
 	    #
 	    $mtime=str2time("$1 $2", 'GMT') ||
-		die("unable to parse date string $1 $2");
+		_err("unable to parse date string $1 $2");
 	    #print "choice of mtime $mtime (log) or $mtime_fn (commit)\n";
 
             #  Use oldest
@@ -883,7 +976,7 @@ sub ci_mtime_sync {
 
 	       );
 	    $touch_or->touch($fn) ||
-		die("error on touch of file $fn, $!");
+		_err("error on touch of file $fn, $!");
 	    printf("$method: synced file $fn to cvs mtime $mtime (%s)\n",
 		   scalar(localtime($mtime)));
 
@@ -900,50 +993,51 @@ sub ci_mtime_sync {
 }
 
 
-sub ci_version_dump {
+#  Read in config file
+#
+sub _config_read {
 
 
-    #  Get self ref
+    #  Get our dir
     #
-    my ($self, $name, $version_fn)=@_;
+    (my $config_dn=$INC{'ExtUtils/CVS.pm'})=~s/\.pm$//;
 
 
-    #  Get version we are saving
+    #  Unless absolute, add cwd
     #
-    my $have_version_fn=File::Spec->catfile(cwd(), $version_fn);
-    my $have_version=do($have_version_fn);
+    $config_dn=File::Spec->rel2abs($config_dn);
 
 
-    #  Get location of Dumper file, load up module, version info
-    #  that we are processing, save again
+    #  And now file name
     #
-    my $dump_fn=File::Spec->catfile(cwd(), 'Dumper.pm');
-	#$ExtUtils::Bundle::FILE_CPAN_DUMPER);
-    my $dump_hr=do ($dump_fn) || {};
+    my $config_fn=File::Spec->catfile($config_dn, 'Config.pm');
 
 
-    #  Check if we need not update
+    #  Read and return
     #
-    my $dump_version=$dump_hr->{$name};
-    if (CPAN::Version->vcmp($dump_version, $have_version)) {
-
-	$dump_hr->{$name}=$have_version;
-	#print "Bundle:; UPDATING DUMPER FILE, hv $have_version, dv $dump_version\n";
-	my $dump_fh=IO::File->new($dump_fn, O_WRONLY|O_TRUNC|O_CREAT) ||
-	    die ("unable to open file $dump_fn, $!");
-	$Data::Dumper::Indent=1;
-	print $dump_fh (Data::Dumper->Dump([$dump_hr],[]));
-	$dump_fh->close();
+    my $config_hr=do($config_fn) || _err($!);
 
 
-    }
+    #  Read any local config file. Only present for local customisation
+    #
+    my $local_hr=eval { do { File::Spec->catfile($config_dn, 'Local.pm') } };
 
-    return \undef;
+
+    #  Local overrides global
+    #
+    map { $config_hr->{$_}=$local_hr->{$_} } keys %{$local_hr};
+
+
+    #  Return
+    #
+    return $config_hr;
+
 
 }
 
 
-sub repository {
+
+sub _repository {
 
 
     #  Modify repository
@@ -952,6 +1046,65 @@ sub repository {
     $Config_hr->{'CVSROOT'}=$repository;
     return \$repository;
 
+
+}
+
+
+sub _err {
+
+
+    #  Quit on errors
+    #
+    my $message=_fmt("*error*\n\n" . shift(), @_);
+    croak $message;
+
+}
+
+
+sub _msg {
+
+
+    #  Print message
+    #
+    my $message=_fmt(@_);
+    CORE::print $message, "\n";
+
+}
+
+
+sub _fmt {
+
+
+    #  Format message nicely
+    #
+    my $caller=_caller(3) || 'unknown';
+    my $format=' @<<<<<<<<<<<<<<<< @<';
+    my $message=sprintf(shift(), @_);
+    chomp($message);
+    $message=$Arg{'distname'} . ", $message" if ($Arg{'distname'});
+    #$message=~/\.$/ || ($message .= '.');
+    formline $format, $caller . ':', undef;
+    #formline $format, $caller, undef;
+    $message=$^A . $message; $^A=undef;
+    return $message;
+
+}
+
+
+sub _arg {
+
+    #  Get args, does nothing but intercept distname for messages
+    #
+    @Arg{qw(name distname distvname version version_from)}=@_;
+
+}
+
+sub _caller {
+
+
+    #  Return the method name of the caller
+    #
+    return (split(/:/, (caller(shift() || 1))[3]))[-1];
 
 }
 
@@ -1005,7 +1158,7 @@ A sample Makefile.PL may look like this:
 
         sub BEGIN {  eval('use ExtUtils::CVS') }
 
-eval'ing ExtUtils::CVS within a BEGIN block allows to build your module even if they 
+eval'ing ExtUtils::CVS within a BEGIN block allows user to build your module even if they
 do not have a local copy of ExtUtils::CVS.
 
 =item Using as a module when running Makefile.PL
@@ -1090,6 +1243,10 @@ repository.
 =item make ci_version
 
 Will show the current version of the project in the working directory
+
+=item make ci_tag
+
+Will tag files with current version. Not recommended for manual use
 
 =back
 

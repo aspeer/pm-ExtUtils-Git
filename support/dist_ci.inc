@@ -1,20 +1,42 @@
 
+
+#  Define args sent to each ExtUtils:: method as standard
+#
+EXTUTILS_ARGV= "$(NAME)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" "$(VERSION_FROM)"
+
+
+#  Name of ExtUtil::CVS Perl module
+#
+EXTUTILS_CVS=  ExtUtils::CVS
+
+
+#  Check in files to CVS if needed, assuming MANIFEST checks out and files are not already
+#  uptodate (as determined by ci_status test)
+#
 ci :: ci_manicheck
-	$(CVS) status $(DEV_NULL)
-	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')" || ( \
-	$(CVS) commit && \
-	$(CVS2CL) && \
-	$(CVS) commit -m "" ChangeLog && \
-	$(CVS) commit -m "" -f $(VERSION_FROM) && \
-        $(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_tag( \
-		'$(CVS)', '$(DISTNAME)', '$(VERSION_FROM)' )" && \
-	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_version_dump( \
-		'$(NAME)', '$(VERSION_FROM)' )" && \
-	$(PERL) \
-		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)" && \
-	$(PERL) -MExtUtils::CVS=:all -MExtUtils::Dist=:all Makefile.PL \
+	@$(CVS) status $(DEV_NULL)
+	@$(PERL) -M$(EXTUTILS_CVS) \
+	-e "$(EXTUTILS_CVS)->ci_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
+		$(CVS) commit 									&&	\
+		$(CVS) commit -m "Version increment" -f "$(VERSION_FROM)" 	                && 	\
+		$(CVS2CL) $(CVS2CL_ARG) 							&&	\
+		$(CVS) commit -m "" ChangeLog 							&& 	\
+        	$(PERL) -M$(EXTUTILS_CVS) 								\
+			-e  "$(EXTUTILS_CVS)->ci_tag(@ARGV)"   						\
+			--  $(EXTUTILS_ARGV)   							&&	\
+		$(PERL) -M$(EXTUTILS_CVS) 								\
+			-e "$(EXTUTILS_CVS)->ci_version_dump(@ARGV)"					\
+			-- $(EXTUTILS_ARGV)							&& 	\
+		$(PERL) -M$(EXTUTILS_CVS) 								\
+			-e "$(EXTUTILS_CVS)->ci_version(@ARGV)"						\
+			-- $(EXTUTILS_ARGV)							&& 	\
+		$(PERL) -MExtUtils::CVS=:all -MExtUtils::Dist=:all Makefile.PL 				\
 	)
 
+
+
+#  Make clean distribution and import into CVS
+#
 import :: disttest
 	cd $(DISTVNAME) && $(MAKE) realclean
 	cd $(DISTVNAME) && \
@@ -23,28 +45,42 @@ import :: disttest
 	rm -rf $(DISTVNAME)
 
 
+#  Check manifest matches CVS
+#
 ci_manicheck ::
-	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_manicheck('$(DISTNAME)')"
+	@$(PERL) -M$(EXTUTILS_CVS) \
+		-e "ExtUtils::CVS->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
 
 
+#  Check all files are in CVS and up to date
+#
 ci_status :: ci_manicheck
-	$(CVS) status $(DEV_NULL)
-	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')"
+	@$(PERL) -M$(EXTUTILS_CVS) \
+		-e "ExtUtils::CVS->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
 
 
+#  Print out current CVS version
+#
 ci_version ::
-	$(PERL) \
-		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)"
+	@$(PERL) -M$(EXTUTILS_CVS) \
+		-e "ExtUtils::CVS->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
 
+
+#  Dump current CVS version to Dumper.pm file, can be picked up later
+#
 ci_version_dump ::
-	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_version_dump( \
-		'$(NAME)', '$(VERSION_FROM)' )"
+	@$(PERL) -M$(EXTUTILS_CVS) \
+		-e "ExtUtils::CVS->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
 
+
+#  Tag all files with current CVS version
+#
 ci_tag ::
-	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_tag( \
-	'$(CVS)', '$(DISTNAME)', '$(VERSION_FROM)')"
+	@$(PERL) -M$(EXTUTILS_CVS) \
+		-e "ExtUtils::CVS->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
 
-branch ::
-	$(CVS) tag -b $(DISTNAME)_`$(PERL) -e "do './$(VERSION_FROM)'; ($$::_=$$::VERSION)=~s/\\\./-/g;print"`-0 && \
-	$(CVS) update -r $(DISTNAME)_`$(PERL) \
-		-e "$$::v=(do'./$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"`-0

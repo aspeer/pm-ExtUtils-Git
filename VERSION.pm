@@ -1,1 +1,1 @@
-$VERSION=(split(/\s+/,'$Revision: 1.5 $'))[1];
+$VERSION=qw($Revision: 1.6 $)[1];

@@ -1,200 +1,119 @@
+2002-10-09 01:44  aspeer
+
+	* CVS.pm: Updated to work with new RegDB
+
 2002-06-05 03:37  aspeer
 
-	* CVS.pm (1.7): Added ci_mtime_sync in a couple more errors to make
-	sure mtime on files is real
+	* ChangeLog, VERSION.pm: [no log message]
+
+2002-06-05 03:37  aspeer
+
+	* CVS.pm: Added ci_mtime_sync in a couple more errors to make sure
+	mtime on files is real
 
 2002-06-03 23:06  aspeer
 
-	* ChangeLog (1.12), VERSION.pm (1.13) (utags: ExtUtils-CVS_1-13,
-	Bundle-ExtUtils_1-36, Bundle-ExtUtils_1-38): [no log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-06-03 23:06  aspeer
 
-	* CVS.pm (1.6, Bundle-ExtUtils_1-38, Bundle-ExtUtils_1-36,
-	ExtUtils-CVS_1-13): Modified ci_mtime_sync method to use relative
-	file name, as CVS does not seem to like absolute
+	* CVS.pm: Modified ci_mtime_sync method to use relative file name,
+	as CVS does not seem to like absolute
 
 2002-06-03 22:35  aspeer
 
-	* ChangeLog (1.11), VERSION.pm (1.12) (utags: Bundle-ExtUtils_1-35,
-	ExtUtils-CVS_1-12): [no log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-06-03 22:35  aspeer
 
-	* CVS.pm (1.5, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12): Minor
-	change to CVS.pm to not sync mtime of dirs
+	* CVS.pm: Minor change to CVS.pm to not sync mtime of dirs
 
 2002-06-03 22:14  aspeer
 
-	* ChangeLog (1.10), VERSION.pm (1.11) (utags: Bundle-ExtUtils_1-34,
-	ExtUtils-CVS_1-11): [no log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-06-03 22:14  aspeer
 
-	* CVS.pm (1.4, Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11): Finished
-	ci_mtime_sync method, allows mtime of file to be synced back to the
-	CVS mtime, thus making mtime checks module files more robost, as an
-	update -C does not fool it into thinking a file has changed, just
-	because its mtime has.
+	* CVS.pm: Finished ci_mtime_sync method, allows mtime of file to be
+	synced back to the CVS mtime, thus making mtime checks module files
+	more robost, as an update -C does not fool it into thinking a file
+	has changed, just because its mtime has.
 	
 	No change to Makefile.PL
 
 2002-06-03 20:54  aspeer
 
-	* ChangeLog (1.9), VERSION.pm (1.10) (utags: ExtUtils-CVS_1-10):
-	[no log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-06-03 20:54  aspeer
 
-	* CVS.pm (1.3, ExtUtils-CVS_1-10): Interim checkin only, test
-	impleimentation of ci_mtime_sync method
+	* CVS.pm: Interim checkin only, test impleimentation of
+	ci_mtime_sync method
 
 2002-06-03 01:57  aspeer
 
-	* ChangeLog (1.8), VERSION.pm (1.9) (utags: ExtUtils-CVS_1-9,
-	Bundle-ExtUtils_1-33): [no log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-06-03 01:57  aspeer
 
-	* support/dist_ci.inc (1.7, Bundle-ExtUtils_1-38,
-	Bundle-ExtUtils_1-36, ExtUtils-CVS_1-13, Bundle-ExtUtils_1-35,
-	ExtUtils-CVS_1-12, Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11,
-	ExtUtils-CVS_1-10, Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9): Made
-	sure when Makefile.PL run again, it is run with ExtUtils::CVS
-	modules loaded in place, so resulting Makefile still has all local
-	cvs targets
+	* support/dist_ci.inc: Made sure when Makefile.PL run again, it is
+	run with ExtUtils::CVS modules loaded in place, so resulting
+	Makefile still has all local cvs targets
 
 2002-05-26 00:38  aspeer
 
-	* ChangeLog (1.7), VERSION.pm (1.8) (utags: Bundle-ExtUtils_1-26,
-	Bundle-ExtUtils_1-18, Bundle-ExtUtils_1-27, Bundle-ExtUtils_1-19,
-	Bundle-ExtUtils_1-28, ExtUtils-CVS_1-8, Bundle-ExtUtils_1-29,
-	Bundle-ExtUtils_1-20, Bundle-ExtUtils_1-14, Bundle-ExtUtils_1-22,
-	Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-15, Bundle-ExtUtils_1-23,
-	Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-16, Bundle-ExtUtils_1-24,
-	Bundle-ExtUtils_1-32, Bundle-ExtUtils_1-25): [no log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-05-26 00:38  aspeer
 
-	* CVS.pm (1.2, Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9),
-	support/dist_ci.inc (1.6) (utags: Bundle-ExtUtils_1-26,
-	Bundle-ExtUtils_1-18, Bundle-ExtUtils_1-27, Bundle-ExtUtils_1-19,
-	Bundle-ExtUtils_1-28, ExtUtils-CVS_1-8, Bundle-ExtUtils_1-29,
-	Bundle-ExtUtils_1-20, Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-22,
-	Bundle-ExtUtils_1-14, Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-23,
-	Bundle-ExtUtils_1-15, Bundle-ExtUtils_1-32, Bundle-ExtUtils_1-24,
-	Bundle-ExtUtils_1-16, Bundle-ExtUtils_1-25): Rename ci_dump_version
+	* CVS.pm, support/dist_ci.inc: Rename ci_dump_version
 	ci_version_dump
 
 2002-05-22 01:09  aspeer
 
-	* ChangeLog (1.6), VERSION.pm (1.7) (utags: ExtUtils-CVS_1-7,
-	Bundle-ExtUtils_1-4, Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-7,
-	Bundle-ExtUtils_1-9, Bundle-ExtUtils_1-11, Bundle-ExtUtils_1-12,
-	Bundle-ExtUtils_1-13): [no log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-05-22 01:09  aspeer
 
-	* VERSION.pm (1.6): Standardised VERSION.pm file format
+	* VERSION.pm: Standardised VERSION.pm file format
 
 2002-05-17 04:04  aspeer
 
-	* ChangeLog (1.5), VERSION.pm (1.5) (utags: Bundle-ExtUtils_1-2,
-	Bundle-ExtUtils_1-3, ExtUtils-CVS_1-5): [no log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-05-17 04:04  aspeer
 
-	* support/dist_ci.inc (1.5, Bundle-ExtUtils_1-13,
-	Bundle-ExtUtils_1-12, Bundle-ExtUtils_1-11, Bundle-ExtUtils_1-9,
-	Bundle-ExtUtils_1-7, Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4,
-	ExtUtils-CVS_1-7, Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2,
-	ExtUtils-CVS_1-5): Added @ to ci_version traget to hide perl
+	* support/dist_ci.inc: Added @ to ci_version traget to hide perl
 	commands
 
 2002-05-17 03:57  aspeer
 
-	* ChangeLog (1.4), VERSION.pm (1.4) (utags: ExtUtils-CVS_1-4): [no
-	log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-05-17 03:57  aspeer
 
-	* support/dist_ci.inc (1.4, ExtUtils-CVS_1-4): Updated version
-	determination target to have ./ in front of file name
+	* support/dist_ci.inc: Updated version determination target to have
+	./ in front of file name
 
 2002-05-17 03:50  aspeer
 
-	* ChangeLog (1.3), VERSION.pm (1.3): [no log message]
-
-2002-05-17 03:50  aspeer
-
-	* support/dist_ci.inc (1.3): Fixed dumb sytax error in ci_version
-	target
+	* support/dist_ci.inc: Fixed dumb sytax error in ci_version target
 
 2002-05-17 03:49  aspeer
 
-	* ChangeLog (1.2), VERSION.pm (1.2) (utags: ExtUtils-CVS_1-1-1-1):
-	[no log message]
+	* ChangeLog, VERSION.pm, ChangeLog, VERSION.pm: [no log message]
 
 2002-05-17 03:49  aspeer
 
-	* support/dist_ci.inc (1.2, ExtUtils-CVS_1-1-1-1): Added ci_version
-	target
+	* support/dist_ci.inc: Added ci_version target
 
 2002-05-16 22:01  aspeer
 
-	* CVS.pm (1.1), ChangeLog (1.1), Config.pm (1.1), MANIFEST (1.1),
-	Makefile.PL (1.1), VERSION.pm (1.1), support/dist_ci.inc (1.1):
-	Initial revision
+	* CVS.pm, ChangeLog, Config.pm, MANIFEST, Makefile.PL, VERSION.pm,
+	support/dist_ci.inc: Initial revision
 
 2002-05-16 22:01  aspeer
 
-	* CVS.pm (1.1.1.1, Bundle-ExtUtils_1-13, Bundle-ExtUtils_1-12,
-	Bundle-ExtUtils_1-11, Bundle-ExtUtils_1-9, Bundle-ExtUtils_1-7,
-	Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4, ExtUtils-CVS_1-7,
-	Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5,
-	ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1), ChangeLog (1.1.1.1),
-	Config.pm (1.1.1.1, Bundle-ExtUtils_1-38, Bundle-ExtUtils_1-36,
-	ExtUtils-CVS_1-13, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12,
-	Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11, ExtUtils-CVS_1-10,
-	Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9, Bundle-ExtUtils_1-32,
-	Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-29,
-	Bundle-ExtUtils_1-28, Bundle-ExtUtils_1-27, Bundle-ExtUtils_1-26,
-	Bundle-ExtUtils_1-25, Bundle-ExtUtils_1-24, Bundle-ExtUtils_1-23,
-	Bundle-ExtUtils_1-22, Bundle-ExtUtils_1-20, Bundle-ExtUtils_1-19,
-	Bundle-ExtUtils_1-18, Bundle-ExtUtils_1-16, Bundle-ExtUtils_1-15,
-	Bundle-ExtUtils_1-14, ExtUtils-CVS_1-8, Bundle-ExtUtils_1-13,
-	Bundle-ExtUtils_1-12, Bundle-ExtUtils_1-11, Bundle-ExtUtils_1-9,
-	Bundle-ExtUtils_1-7, Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4,
-	ExtUtils-CVS_1-7, Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2,
-	ExtUtils-CVS_1-5, ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1), MANIFEST
-	(1.1.1.1, Bundle-ExtUtils_1-38, Bundle-ExtUtils_1-36,
-	ExtUtils-CVS_1-13, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12,
-	Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11, ExtUtils-CVS_1-10,
-	Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9, Bundle-ExtUtils_1-32,
-	Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-29,
-	Bundle-ExtUtils_1-28, Bundle-ExtUtils_1-27, Bundle-ExtUtils_1-26,
-	Bundle-ExtUtils_1-25, Bundle-ExtUtils_1-24, Bundle-ExtUtils_1-23,
-	Bundle-ExtUtils_1-22, Bundle-ExtUtils_1-20, Bundle-ExtUtils_1-19,
-	Bundle-ExtUtils_1-18, Bundle-ExtUtils_1-16, Bundle-ExtUtils_1-15,
-	Bundle-ExtUtils_1-14, ExtUtils-CVS_1-8, Bundle-ExtUtils_1-13,
-	Bundle-ExtUtils_1-12, Bundle-ExtUtils_1-11, Bundle-ExtUtils_1-9,
-	Bundle-ExtUtils_1-7, Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4,
-	ExtUtils-CVS_1-7, Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2,
-	ExtUtils-CVS_1-5, ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1),
-	Makefile.PL (1.1.1.1, Bundle-ExtUtils_1-38, Bundle-ExtUtils_1-36,
-	ExtUtils-CVS_1-13, Bundle-ExtUtils_1-35, ExtUtils-CVS_1-12,
-	Bundle-ExtUtils_1-34, ExtUtils-CVS_1-11, ExtUtils-CVS_1-10,
-	Bundle-ExtUtils_1-33, ExtUtils-CVS_1-9, Bundle-ExtUtils_1-32,
-	Bundle-ExtUtils_1-31, Bundle-ExtUtils_1-30, Bundle-ExtUtils_1-29,
-	Bundle-ExtUtils_1-28, Bundle-ExtUtils_1-27, Bundle-ExtUtils_1-26,
-	Bundle-ExtUtils_1-25, Bundle-ExtUtils_1-24, Bundle-ExtUtils_1-23,
-	Bundle-ExtUtils_1-22, Bundle-ExtUtils_1-20, Bundle-ExtUtils_1-19,
-	Bundle-ExtUtils_1-18, Bundle-ExtUtils_1-16, Bundle-ExtUtils_1-15,
-	Bundle-ExtUtils_1-14, ExtUtils-CVS_1-8, Bundle-ExtUtils_1-13,
-	Bundle-ExtUtils_1-12, Bundle-ExtUtils_1-11, Bundle-ExtUtils_1-9,
-	Bundle-ExtUtils_1-7, Bundle-ExtUtils_1-6, Bundle-ExtUtils_1-4,
-	ExtUtils-CVS_1-7, Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2,
-	ExtUtils-CVS_1-5, ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1),
-	VERSION.pm (1.1.1.1), support/dist_ci.inc (1.1.1.1) (utags:
-	ExtUtils-CVS_1-1): Initial import
+	* CVS.pm, ChangeLog, Config.pm, MANIFEST, Makefile.PL, VERSION.pm,
+	support/dist_ci.inc: Initial import
 

@@ -31,7 +31,7 @@ ci_status : ci_manicheck
 
 
 ci_version :
-	$(PERL) \
+	@$(PERL) \
 		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)"
 
 

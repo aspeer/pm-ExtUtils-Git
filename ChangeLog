@@ -1,7 +1,17 @@
+2002-05-17 04:04  aspeer
+
+	* support/dist_ci.inc (1.5): Added @ to ci_version traget to hide
+	perl commands
+
 2002-05-17 03:57  aspeer
 
-	* support/dist_ci.inc (1.4): Updated version determination target
-	to have ./ in front of file name
+	* ChangeLog (1.4), VERSION.pm (1.4) (utags: ExtUtils-CVS_1-4): [no
+	log message]
+
+2002-05-17 03:57  aspeer
+
+	* support/dist_ci.inc (1.4, ExtUtils-CVS_1-4): Updated version
+	determination target to have ./ in front of file name
 
 2002-05-17 03:50  aspeer
 
@@ -30,9 +40,10 @@
 
 2002-05-16 22:01  aspeer
 
-	* CVS.pm (1.1.1.1, ExtUtils-CVS_1-1-1-1), ChangeLog (1.1.1.1),
-	Config.pm (1.1.1.1, ExtUtils-CVS_1-1-1-1), MANIFEST (1.1.1.1,
-	ExtUtils-CVS_1-1-1-1), Makefile.PL (1.1.1.1, ExtUtils-CVS_1-1-1-1),
-	VERSION.pm (1.1.1.1), support/dist_ci.inc (1.1.1.1) (utags:
-	ExtUtils-CVS_1-1): Initial import
+	* CVS.pm (1.1.1.1, ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1),
+	ChangeLog (1.1.1.1), Config.pm (1.1.1.1, ExtUtils-CVS_1-4,
+	ExtUtils-CVS_1-1-1-1), MANIFEST (1.1.1.1, ExtUtils-CVS_1-4,
+	ExtUtils-CVS_1-1-1-1), Makefile.PL (1.1.1.1, ExtUtils-CVS_1-4,
+	ExtUtils-CVS_1-1-1-1), VERSION.pm (1.1.1.1), support/dist_ci.inc
+	(1.1.1.1) (utags: ExtUtils-CVS_1-1): Initial import
 

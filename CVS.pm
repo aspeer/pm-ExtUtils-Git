@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.32 2004/06/08 01:35:07 aspeer Exp $
+#  $Id: CVS.pm,v 1.33 2004/06/17 12:49:51 aspeer Exp $
 #
 
 
@@ -62,7 +62,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.32 $)[1];
+$REVISION=(qw$Revision: 1.33 $)[1];
 
 
 #  Load up our config file
@@ -103,7 +103,6 @@ sub import {
     #
     my ($self, @param)=(shift(), @_);
     no warnings;
-    #print "IMPORT\n";
 
 
     #  Read config
@@ -115,9 +114,7 @@ sub import {
 
     #  Store for later use in MY::makefile section
     #
-    #(%MY::Import_class, $MY::Import_param_ar)=($self, \@param);
     $MY::Import_class{$self}=\@param;
-    #print "CVS import $self\n";
 
 
     #  Code ref for params
@@ -165,7 +162,7 @@ sub import {
     }
 
 
-    #  Done
+    #  Done. Replace with stub so not run again
     #
     *ExtUtils::CVS::import=sub { 
     	my $self=shift();
@@ -173,7 +170,6 @@ sub import {
 	$self->SUPER::import(@_) 
     };
     return $self->SUPER::import(@_);
-    #return \undef;
 
 }
 
@@ -263,7 +259,7 @@ sub makefile {
     #  Change package
     #
     package MY;
-   
+
 
     #  Get self ref
     #
@@ -283,15 +279,13 @@ sub makefile {
     #  Build the  makefile -M line
     #
     my $makefile_module;
-    #print Data::Dumper::Dumper(\%MY::Import_class);
     while (my ($class, $param_ar)=each %MY::Import_class) {
-    #if (my @param=@{$MY::Import_param_ar}) {
-	    if ($param_ar) {
-	        $makefile_module.=" -M$class=".join(',', @{$param_ar});
-	    }
-	    else {
-	        $makefile_module.=" -M$class";
-	    }
+	if ($param_ar) {
+	    $makefile_module.=" -M$class=".join(',', @{$param_ar});
+	}
+	else {
+	    $makefile_module.=" -M$class";
+	}
     }
 
 
@@ -318,8 +312,8 @@ sub makefile {
 	#  Check for target line
 	#
 	$line=~s/\Q$find\E/$rplc/i && ($make=$line);
-	
-	
+
+
 	#  Also look for 'false' at end, erase
 	#
 	next if $line=~/^\s*false/;
@@ -327,13 +321,11 @@ sub makefile {
 
 
     }
-    
-    
+
+
     #  For rebuilding Makefile.PL without error, used after ci
     #
-    #push @makefile, undef, undef;
     push @makefile, 'Makefile_PL :';
-    #push @makefile, $make;
 
 
     #  Done, return result
@@ -350,7 +342,6 @@ sub makefile {
 #
 #  'make ci_tag' will tag the current cvs files
 #
-
 sub ci_tag {
 
 
@@ -449,7 +440,6 @@ sub ci_status {
 	#
 	my @manifest_dn=File::Spec->splitdir($manifest_dn);
 	my $entries_fn=File::Spec->catfile(@manifest_dn, 'CVS', 'Entries');
-	#print "Entries file $entries_fn\n";
 
 
 	#  Only open if exists
@@ -467,7 +457,6 @@ sub ci_status {
 	#  Go through
 	#
 	my @entry=sort { $a cmp $b } <$entries_fh>;
-	#while (my $entry=<$entries_fh>) {
 	while (my $entry=pop @entry) {
 
 
@@ -483,9 +472,7 @@ sub ci_status {
 
 	    #  Skip unless manifest file
 	    #
-	    #print "looking at file $entry_fn\n";
 	    exists($manifest_hr->{$entry_fn}) || next;
-	    #print "found $fn in manifest\n";
 
 
 	    #  Convert date to GMT
@@ -497,14 +484,11 @@ sub ci_status {
 	    #
 	    my $mtime_fn=(stat($entry_fn))[9] ||
 		return $self->_err("unable to stat file $entry_fn, $!");
-	    #print "mtime_fn $mtime_fn commit_time $commit_time, vtime $version_from_mtime\n";
 
 
 	    #  Compare
 	    #
 	    ($mtime_fn > $commit_time) && do {
-
-	    	#print "mtime > commit\n";
 
 
 		#  Give it one more chance
@@ -608,7 +592,6 @@ sub ci_status_bundle {
 
     };
     find($wanted_cr, $cwd);
-    #print Dumper(\@entries);
 
 
     # Go through each Entries file, build up our own manifest
@@ -620,7 +603,6 @@ sub ci_status_bundle {
 	#
 	my $entries_dn=(File::Spec->splitpath($entries_fn))[1];
 	my @entries_dn=File::Spec->splitdir($entries_dn);
-	#print Dumper(\@entries_dn);
 
 
 	#  Check that this is in the module we are interested
@@ -638,7 +620,6 @@ sub ci_status_bundle {
 	#  Parse
 	#
 	my @entry=sort { $a cmp $b } <$entries_fh>;
-	#foreach my $entry (<$entries_fh>) {
 	while (my $entry=pop @entry) {
 
 
@@ -646,8 +627,8 @@ sub ci_status_bundle {
 	    #
 	    my ($fn_type, $fn, $version, $date)=split(/\//, $entry);
 	    $fn_type && next;
-	    
-	    
+
+
 	    #  Skip changelog
 	    #
 	    if ($fn eq $Config_hr->{'CHANGELOG'}) { next }
@@ -660,7 +641,6 @@ sub ci_status_bundle {
 		$fn
 	       );
 	    $entry_fn=File::Spec->rel2abs($entry_fn);
-	    #print "fn $fn entry_fn $entry_fn\n";
 
 
 	    #  Get mtime
@@ -750,12 +730,6 @@ sub ci_manicheck {
     #
     my @entries;
     my $wanted_cr=sub {
-
-
-	#  Skip if not at least a directory in our manifest
-	#
-	#my $dn=$File::Find::dir;
-	#$dn=~s/^\Q$cwd\E\/?//;
 
 	#  Is this a CVS entries file ? If so, add to hash
 	#
@@ -934,8 +908,6 @@ sub ci_version_dump {
     #
     my $dump_fn=File::Spec->catfile(cwd(), $Config_hr->{'DUMPER_FN'});
     my $dump_hr=do ($dump_fn);
-    #my $dump_tr=tie(my %dump, 'Tie::IxHash'), 
-    #@dump{qw(NAME DISTNAME VERSION)}=(@{$param_hr}{qw(NAME DISTNAME)}, $have_version);
     my %dump=(
 	$param_hr->{'NAME'} =>	$have_version
        );
@@ -1016,7 +988,6 @@ sub _ci_mtime_sync {
     #  Last resort to ensure file mtime is correct based on what CVS thinks
     #
     my ($self, $fn, $mtime_fn)=@_;
-    #print "$method:fn $sync_fn\n";
 
 
     #  Turn abs filenames into relative, cvs does not seem to like it
@@ -1068,7 +1039,6 @@ sub _ci_mtime_sync {
 	my $ver_working;
 	for (@system) {
 	    /Working revision:\s+(\S+)/ && do { $ver_working=$1; last } };
-	#print "u2d $uptodate, ver $ver_working\n";
 
 
 	#  Looks OK, search for date
@@ -1077,7 +1047,6 @@ sub _ci_mtime_sync {
 	    return $self->_err("unable to get handle for cvs log command");
 	my @system=<$system_fh>;
 	$system_fh->close();
-	#print Data::Dumper::Dumper(\@system);
 
 
 	#  Get line with date
@@ -1098,7 +1067,7 @@ sub _ci_mtime_sync {
 	    #
 	    $mtime=str2time("$1 $2", 'GMT') ||
 		return $self->_err("unable to parse date string $1 $2");
-	    #print "choice of mtime $mtime (log) or $mtime_fn (commit)\n";
+
 
             #  Use oldest
             #

@@ -9,7 +9,7 @@
 #  at the email adddress give above.
 #
 #
-#  $Id: VERSION.pm,v 1.25 2003/09/01 04:35:29 aspeer Exp $
+#  $Id: VERSION.pm,v 1.26 2003/09/01 07:21:02 aspeer Exp $
 
 
-$VERSION=qw($Revision: 1.25 $)[1];
+$VERSION=qw($Revision: 1.26 $)[1];

@@ -1,3 +1,12 @@
+2003-09-01 16:51  aspeer
+
+	* CVS.pm, Makefile.PL: Added pod doc to CVS.pm, removed empty
+	man3pods sections from Makefile.PL
+
+2003-09-01 14:05  aspeer
+
+	* ChangeLog, VERSION.pm: [no log message]
+
 2003-09-01 14:05  aspeer
 
 	* CVS.pm, Config.pm, LICENSE, MANIFEST, Makefile.PL, VERSION.pm:

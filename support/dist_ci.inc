@@ -11,7 +11,7 @@ ci :: ci_manicheck
 		'$(NAME)', '$(VERSION_FROM)' )" && \
 	$(PERL) \
 		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)" && \
-	$(PERL) Makefile.PL \
+	$(PERL) -MExtUtils::CVS=:all -MExtUtils::Dist=:all Makefile.PL \
 	)
 
 import : disttest

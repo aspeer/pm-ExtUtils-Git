@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.34 2004/06/17 13:38:27 aspeer Exp $
+#  $Id: CVS.pm,v 1.35 2004/06/17 16:22:48 aspeer Exp $
 #
 
 
@@ -62,7 +62,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.34 $)[1];
+$REVISION=(qw$Revision: 1.35 $)[1];
 
 
 #  Load up our config file
@@ -122,7 +122,6 @@ sub import {
     my $const_config_cr=sub {
 
 	$Const_config_chain_cr=UNIVERSAL::can('MY', 'const_config');
-	#print "CVS $Const_config_chain_cr\n";
 	*MY::const_config=sub { &const_config(@_) };
 	0 && MY::const_config();
 
@@ -150,7 +149,8 @@ sub import {
 	const_config	=>  $const_config_cr,
 	dist_ci		=>  $dist_ci_cr,
 	makefile        =>  $makefile_cr,
-	':all'		=>  sub { $const_config_cr->(); $dist_ci_cr->(); $makefile_cr->() }
+	':all'		=>  sub { $const_config_cr->(); $dist_ci_cr->(); $makefile_cr->() },
+	':errnofatal'	=>  sub { $Config_hr->{'errnofatal'}++ },
 
        );
 

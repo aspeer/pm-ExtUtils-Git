@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.29 2004/02/05 12:40:37 aspeer Exp $
+#  $Id: CVS.pm,v 1.30 2004/02/05 14:56:27 aspeer Exp $
 #
 
 
@@ -62,12 +62,12 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.29 $)[1];
+$REVISION=(qw$Revision: 1.30 $)[1];
 
 
 #  Load up our config file
 #
-our $Config_hr=&_config_read() || _err('unable to process load config file');
+our $Config_hr;
 
 
 #  Vars to hold chained soubroutines, if needed (loaded by import). Must be
@@ -101,8 +101,15 @@ sub import {
 
     #  Get params
     #
-    my ($self, @param)=@_;
+    my ($self, @param)=(shift(), @_);
     no warnings;
+
+
+    #  Read config
+    #
+    $Config_hr=$self->_config_read() ||
+	return $self->_err('unable to process load config file');
+
 
 
     #  Store for later use in MY::makefile section
@@ -156,7 +163,8 @@ sub import {
 
     #  Done
     #
-    return \undef;
+    return $self->SUPER::import(@_);
+    #return \undef;
 
 }
 
@@ -217,7 +225,7 @@ sub dist_ci {
     #  Open it
     #
     my $patch_fh=IO::File->new($patch_fn, &ExtUtils::CVS::O_RDONLY) ||
-	return _err("unable to open $patch_fn, $!");
+	return $self->_err("unable to open $patch_fn, $!");
 
 
     #  Add in. We are replacing dist_ci entirely, so do not
@@ -322,28 +330,28 @@ sub ci_tag {
     #  Build unique tag for checked in files
     #
     my $self=shift();
-    my $param_hr=_arg(@_);
+    my $param_hr=$self->_arg(@_);
     my $distname=$param_hr->{'DISTNAME'} ||
-	return _err('unable to get distname');
+	return $self->_err('unable to get distname');
 
 
     #  Get cvs binary name
     #
     my $bin_cvs=$Config_hr->{'CVS'} ||
-        return _err('unable to determine cvs binary name');
+        return $self->_err('unable to determine cvs binary name');
 
 
     #  Read in version number, convers .'s to -
     #
     my $version_cvs=$self->ci_version(@_) ||
-        return _err('unable to get version number');
+        return $self->_err('unable to get version number');
     $version_cvs=~s/\./-/g;
 
 
     #  Add distname
     #
     my $tag=join('_', $distname, $version_cvs);
-    _msg(qq[tagging as "$tag"]);
+    $self->_msg(qq[tagging as "$tag"]);
 
 
     #  Run cvs program to update
@@ -361,15 +369,15 @@ sub ci_status {
     #  CVS/Entries file
     #
     my $self=shift();
-    my $param_hr=_arg(@_);
+    my $param_hr=$self->_arg(@_);
     my $version_from=$param_hr->{'VERSION_FROM'} ||
-	return _err('unable to get version_from');
+	return $self->_err('unable to get version_from');
 
 
     #  Stat the master version file
     #
     my $version_from_mtime=(stat($version_from))[9] ||
-	return _err("unable to stat file $version_from, $!");
+	return $self->_err("unable to stat file $version_from, $!");
 
 
     #  Get the manifest
@@ -425,7 +433,7 @@ sub ci_status {
 	#  Open
 	#
 	my $entries_fh=IO::File->new($entries_fn, O_RDONLY) ||
-	    return _err("unable to open $entries_fn, $!");
+	    return $self->_err("unable to open $entries_fn, $!");
 
 
 
@@ -461,7 +469,7 @@ sub ci_status {
 	    #  Stat file
 	    #
 	    my $mtime_fn=(stat($entry_fn))[9] ||
-		return _err("unable to stat file $entry_fn, $!");
+		return $self->_err("unable to stat file $entry_fn, $!");
 	    #print "mtime_fn $mtime_fn commit_time $commit_time, vtime $version_from_mtime\n";
 
 
@@ -518,13 +526,13 @@ sub ci_status {
     (@modified_fn) && do {
         my $err="The following files have an mtime > commit time or VERSION_FROM ($version_from) file:\n";
         $err.=Data::Dumper::Dumper(\@modified_fn);
-        return _err($err);
+        return $self->_err($err);
     };
 
 
     #  All looks OK
     #
-    _msg("all files up-to-date");
+    $self->_msg("all files up-to-date");
 
 
     #  All OK
@@ -547,7 +555,7 @@ sub ci_status_bundle0 {
     #  Stat the master version file
     #
     my $version_fn_mtime=(stat($version_fn))[9] ||
-	return _err("unable to stat file $version_fn, $!");
+	return $self->_err("unable to stat file $version_fn, $!");
 
 
     #  Get cwd
@@ -594,7 +602,7 @@ sub ci_status_bundle0 {
 	#  Open
 	#
 	my $entries_fh=IO::File->new($entries_fn, O_RDONLY) ||
-	    return _err("unable to open file $entries_fn, $!");
+	    return $self->_err("unable to open file $entries_fn, $!");
 
 
 	#  Parse
@@ -634,7 +642,8 @@ sub ci_status_bundle0 {
 		$mtime_fn=$self->_ci_mtime_sync($entry_fn) ||
 		    $mtime_fn;
 		($mtime_fn > $version_fn_mtime) &&
-		    return _err("$fn has mtime greater than $version_fn, cvs commit may be required.");
+		    return
+			$self->_err("$fn has mtime greater than $version_fn, cvs commit may be required.");
 
 	    };
 
@@ -651,7 +660,8 @@ sub ci_status_bundle0 {
 		$mtime_fn=$self->_ci_mtime_sync($entry_fn) ||
 		    $mtime_fn;
 		($mtime_fn > $commit_time) &&
-		    return _err("$entry_fn has mtime greater commit time, cvs commit may be required.");
+		    return
+			$self->_err("$entry_fn has mtime greater commit time, cvs commit may be required.");
 
 	    };
 	}
@@ -660,7 +670,7 @@ sub ci_status_bundle0 {
 
     #  All looks OK
     #
-    _msg('all files up-to-date');
+    $self->_msg('all files up-to-date');
 
 
     #  All OK
@@ -677,9 +687,9 @@ sub ci_manicheck {
     #  Checks that all files in the manifest are checked in to cvs
     #
     my $self=shift();
-    my $param_hr=_arg(@_);
+    my $param_hr=$self->_arg(@_);
     my $distname=$param_hr->{'DISTNAME'} ||
-	return _err('unable to get distname');
+	return $self->_err('unable to get distname');
 
 
     #  Get cwd, dance around Win32 formatting
@@ -691,7 +701,7 @@ sub ci_manicheck {
 
     #  Get the manifest, jump Win32 hoops with file names
     #
-    ExtUtils::Manifest::manicheck() && return _err('MANIFEST manicheck error');
+    ExtUtils::Manifest::manicheck() && return $self->_err('MANIFEST manicheck error');
     my $manifest_hr=ExtUtils::Manifest::maniread();
     foreach my $fn (keys %{$manifest_hr}) {
         delete $manifest_hr->{$fn};
@@ -737,7 +747,7 @@ sub ci_manicheck {
 	#
 	my $repository_fn=File::Spec->catfile(@entries_dn, 'Repository');
 	my $repository_fh=IO::File->new($repository_fn, O_RDONLY) ||
-	    return _err("unable to open file $repository_fn, $!");
+	    return $self->_err("unable to open file $repository_fn, $!");
 	my $repository_dn=<$repository_fh>; chomp($repository_dn);
 
 
@@ -755,7 +765,7 @@ sub ci_manicheck {
 	#  Open
 	#
 	my $entries_fh=IO::File->new($entries_fn, O_RDONLY) ||
-	    return _err("unable to open file $entries_fn, $!");
+	    return $self->_err("unable to open file $entries_fn, $!");
 
 
 	#  Parse
@@ -798,14 +808,14 @@ sub ci_manicheck {
     my %test0=%{$manifest_hr};
     map { delete $test0{$_} } keys %manifest;
     if (keys %test0) {
-	_msg("the following files are in the manifest, but not in CVS: \n\n%s\n",
+	$self->_msg("the following files are in the manifest, but not in CVS: \n\n%s\n",
 	       join("\n", keys %test0));
 	$fail++;
     }
     my %test1=%manifest;
     map { delete $test1{$_} } keys %{$manifest_hr};
     if (keys %test1) {
-	_msg("the following files are in CVS, but not in the manifest: \n\n%s\n\n",
+	$self->_msg("the following files are in CVS, but not in the manifest: \n\n%s\n\n",
 	       join("\n", keys %test1));
 	$fail++;
     }
@@ -819,7 +829,7 @@ sub ci_manicheck {
 	#  Yes, must check files in that dir also. Process dir to get just file entries.
 	#
 	tie (my %fn_raw, 'IO::Dir', $dn) ||
-	    return _err("unable to tie IO::Dir to $dn, $!");
+	    return $self->_err("unable to tie IO::Dir to $dn, $!");
 	my %fn=%fn_raw;
 	map { delete $fn{$_} unless (-f File::Spec->catfile($cwd,'patch',$_)) } keys %fn;
 
@@ -829,7 +839,7 @@ sub ci_manicheck {
 	my %test0=%fn;
 	map { delete $test0{(File::Spec->splitpath($_))[2]}} keys %{$manifest_hr};
 	if (keys %test0) {
-	    _msg("the following files are in the patch dir, but not in the manifest: \n\n%s\n",
+	    $self->_msg("the following files are in the patch dir, but not in the manifest: \n\n%s\n",
 		   join("\n", keys %test0));
 	    $fail++;
 	}
@@ -840,7 +850,7 @@ sub ci_manicheck {
 	my %test1=%fn;
 	map { delete $test1{(File::Spec->splitpath($_))[2]}} keys %manifest;
 	if (keys %test1) {
-	    _msg("the following files are in the patch dir, but not in the CVS: \n\n%s\n",
+	    $self->_msg("the following files are in the patch dir, but not in the CVS: \n\n%s\n",
 		   join("\n", keys %test1));
 	    $fail++;
 	}
@@ -854,11 +864,11 @@ sub ci_manicheck {
 	my $yesno=ExtUtils::MakeMaker::prompt(
 	    'Do you wish to continue [yes|no] ?','yes');
 	if ($yesno=~/^n|no$/i) {
-	    return _err('bundle build aborted by user !')
+	    return $self->_err('bundle build aborted by user !')
 	}
     }
     else {
-	_msg('manifest and cvs in sync');
+	$self->_msg('manifest and cvs in sync');
     }
 
 
@@ -875,7 +885,7 @@ sub ci_version_dump {
     #  Get self ref
     #
     my $self=shift();
-    my $param_hr=_arg(@_);
+    my $param_hr=$self->_arg(@_);
 
 
     #  Get version we are saving
@@ -886,7 +896,7 @@ sub ci_version_dump {
     #  Get location of Dumper file, load up module, version info
     #  that we are processing, save again
     #
-    my $dump_fn=File::Spec->catfile(cwd(), $Config_hr->{'DUMPER_FN'});
+    my $dump_fn=File::Spec->catfile(cwd(), $Config_hr->{'DUMPER_MODULE_FN'});
     my $dump_hr=do ($dump_fn);
     my $dump_tr=tie(my %dump, 'Tie::IxHash');
     @dump{qw(NAME DISTNAME VERSION)}=(@{$param_hr}{qw(NAME DISTNAME)}, $have_version);
@@ -904,7 +914,7 @@ sub ci_version_dump {
 	$Data::Dumper::Indent=1;
 	print $dump_fh (Data::Dumper->Dump([\%dump],[]));
 	$dump_fh->close();
-	_msg('cvs version dump complete');
+	$self->_msg('cvs version dump complete');
 
 
     }
@@ -913,7 +923,7 @@ sub ci_version_dump {
 
 	#  Message
 	#
-	_msg('cvs version dump file up-to-date');
+	$self->_msg('cvs version dump file up-to-date');
 
 
     }
@@ -932,20 +942,20 @@ sub ci_version {
     #  Print current version from version_from file
     #
     my $self=shift();
-    my $param_hr=_arg(@_);
+    my $param_hr=$self->_arg(@_);
     my $version_from=$param_hr->{'VERSION_FROM'} ||
-	return _err('unable to get version_from');
+	return $self->_err('unable to get version_from');
 
 
     #  Get version from version_from file
     #
     my $version_cvs=do(File::Spec->rel2abs($version_from)) ||
-	return _err("unable to read version info from version_from file $version_from, $!");
+	return $self->_err("unable to read version info from version_from file $version_from, $!");
 
 
     #  Display
     #
-    _msg("cvs version: $version_cvs");
+    $self->_msg("cvs version: $version_cvs");
 
 
     #  Done
@@ -985,13 +995,13 @@ sub _ci_mtime_sync {
     #  Get cvs binary name
     #
     my $bin_cvs=$Config_hr->{'CVS'} ||
-        return _err('unable to determine cvs binary name');
+        return $self->_err('unable to determine cvs binary name');
 
 
     #  Run cvs status on file, suck into array
     #
     my $system_fh=IO::File->new("$bin_cvs status $fn|") ||
-        return _err("unable to get handle for cvs status command");
+        return $self->_err("unable to get handle for cvs status command");
     my @system=<$system_fh>;
     $system_fh->close();
 
@@ -1006,7 +1016,7 @@ sub _ci_mtime_sync {
     #  And var to hold mtime
     #
     my $mtime=(stat($fn))[9] ||
-	return _err("unable to stat file $fn, $!");
+	return $self->_err("unable to stat file $fn, $!");
 
 
     #  If uptodate, we need to sync mtime with CVS mtime
@@ -1025,7 +1035,7 @@ sub _ci_mtime_sync {
 	#  Looks OK, search for date
 	#
 	my $system_fh=IO::File->new("$bin_cvs log $fn|") ||
-	    return _err("unable to get handle for cvs log command");
+	    return $self->_err("unable to get handle for cvs log command");
 	my @system=<$system_fh>;
 	$system_fh->close();
 	#print Data::Dumper::Dumper(\@system);
@@ -1048,7 +1058,7 @@ sub _ci_mtime_sync {
 	    #  Convert string time
 	    #
 	    $mtime=str2time("$1 $2", 'GMT') ||
-		return _err("unable to parse date string $1 $2");
+		return $self->_err("unable to parse date string $1 $2");
 	    #print "choice of mtime $mtime (log) or $mtime_fn (commit)\n";
 
             #  Use oldest
@@ -1063,8 +1073,8 @@ sub _ci_mtime_sync {
 
 	       );
 	    $touch_or->touch($fn) ||
-		return _err("error on touch of file $fn, $!");
-	    _msg("synced file $fn to cvs mtime $mtime (%s)\n",
+		return $self->_err("error on touch of file $fn, $!");
+	    $self->_msg("synced file $fn to cvs mtime $mtime (%s)\n",
 		   scalar(localtime($mtime)));
 
 	}
@@ -1087,6 +1097,7 @@ sub _config_read {
 
     #  Get our dir
     #
+    my $self=shift();
     (my $config_dn=$INC{'ExtUtils/CVS.pm'})=~s/\.pm$//;
 
 
@@ -1102,7 +1113,7 @@ sub _config_read {
 
     #  Read and return
     #
-    my $config_hr=do($config_fn) || return _err($!);
+    my $config_hr=do($config_fn) || return $self->_err($!);
 
 
     #  Read any local config file. Only present for local customisation
@@ -1142,7 +1153,8 @@ sub _err {
 
     #  Quit on errors
     #
-    my $message=_fmt("*error*\n\n" . shift(), @_);
+    my $self=shift();
+    my $message=$self->_fmt("*error*\n\n" . shift(), @_);
     croak $message;
 
 }
@@ -1153,7 +1165,8 @@ sub _msg {
 
     #  Print message
     #
-    my $message=_fmt(@_);
+    my $self=shift();
+    my $message=$self->_fmt(@_);
     CORE::print $message, "\n";
 
 }
@@ -1164,7 +1177,8 @@ sub _fmt {
 
     #  Format message nicely
     #
-    my $caller=_caller(3) || 'unknown';
+    my $self=shift();
+    my $caller=$self->_caller(3) || 'unknown';
     my $format=' @<<<<<<<<<<<<<<<< @<';
     my $message=sprintf(shift(), @_);
     chomp($message);
@@ -1181,18 +1195,19 @@ sub _arg {
     #  Get args, does nothing but intercept distname for messages, cobvert to param
     #  hash
     #
-    #@Arg{qw(name name_sym distname distvname version version_sym version_from)}=@_;
+    shift();
     @Arg{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM)}=@_;
-    #map {$Arg{lc($_)}=$Arg{$_}} keys %Arg;
-    return \%Arg;
+    return \%Arg, @_[7..$#_];
 
 }
+
 
 sub _caller {
 
 
     #  Return the method name of the caller
     #
+    shift();
     my $caller=(split(/:/, (caller(shift() || 1))[3]))[-1];
     $caller=~s/^_//;
     return $caller;

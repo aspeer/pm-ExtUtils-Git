@@ -1,15 +1,5 @@
 
 
-#  Define args sent to each ExtUtils:: method as standard
-#
-EXTUTILS_ARGV= "$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" "$(VERSION_SYM)" "$(VERSION_FROM)"
-
-
-#  Name of ExtUtil::CVS Perl module
-#
-EXTUTILS_CVS=  ExtUtils::CVS
-
-
 #  Check in files to CVS if needed, assuming MANIFEST checks out and files are not already
 #  uptodate (as determined by ci_status test)
 #

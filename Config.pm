@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: Config.pm,v 1.13 2004/02/05 12:40:37 aspeer Exp $
+#  $Id: Config.pm,v 1.14 2004/02/05 14:56:27 aspeer Exp $
 #
 
 
@@ -122,21 +122,27 @@ if (-e $cache_fn && ((stat($cache_fn))[9] < (time() - (1 * 60)))) {
 unless ($_ = do($cache_fn)) {
 
 
-    #  Could not find cache file, create hash
+    #  Could not find cache file, create hash. Should probably put this stuff into a
+    #  support/const.inc file later as a template, as contains some constants
     #
     my %Config= (
 
-	CVS	        =>  $bin_find_cr->([qw(cvs cvs.exe)]),
+	CVS			 =>  $bin_find_cr->([qw(cvs cvs.exe)]),
 
-	CVS2CL	        =>  $bin_find_cr->('cvs2cl.pl'),
+	CVS2CL			 =>  $bin_find_cr->('cvs2cl.pl'),
 
-	CVSROOT	        =>  $ENV{'CVSROOT'},
+	CVSROOT			 =>  $ENV{'CVSROOT'},
 
-	CHANGELOG       =>  $_='ChangeLog',
+	CHANGELOG		 =>  $_='ChangeLog',
 
-	CVS2CL_ARG      =>  "--window 15 --file $_ -P -r -I $_",
+	CVS2CL_ARG		 =>  "--window 15 --file $_ -P -r -I $_",
 
-	DUMPER_FN	=>  '.module.pm',
+	DUMPER_MODULE_FN	 =>  '.module.pm',
+
+	EXTUTILS_ARGV		 =>  q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ].
+	    q["$(VERSION_SYM)" "$(VERSION_FROM)"],
+
+	EXTUTILS_CVS		 =>  'ExtUtils::CVS',
 
 
        );

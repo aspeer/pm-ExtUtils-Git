@@ -1,3 +1,13 @@
+2002-11-14 23:25  aspeer
+
+	* support/dist_ci.inc: Minfor change on branch target in Makefile,
+	make brache tags end in "xxx-0", rather thant "xxx-2". No real
+	reason, other than -2 did not seem meaningful, as there is no 0,1
+
+2002-10-09 01:44  aspeer
+
+	* ChangeLog, VERSION.pm: [no log message]
+
 2002-10-09 01:44  aspeer
 
 	* CVS.pm: Updated to work with new RegDB

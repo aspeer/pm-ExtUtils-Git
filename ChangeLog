@@ -1,0 +1,41 @@
+2002-04-24 04:07  aspeer
+
+	* VERSION.pm, CVS.pm, MANIFEST, Makefile.PL: [no log message]
+
+2002-04-24 04:05  root
+
+	* Config.pm, Makefile, bs.pl, bs.pm, ds.pm, pm_to_blib: Initial
+	revision
+
+2002-04-24 04:05  root
+
+	* CVS.pm, ChangeLog, Config.pm, MANIFEST, Makefile, Makefile.PL,
+	VERSION.pm, bs.pl, bs.pm, ds.pm, pm_to_blib: [no log message]
+
+2001-11-18 14:58  aspeer
+
+	* CVS.pm: Modified const_config section to chain onto next handler
+	so multiple modules could patch into const_config if needed. We
+	find put current code location of const_config by doing UNIVERSAL
+	call and saving the result
+
+2001-11-18 14:57  aspeer
+
+	* VERSION.pm, CVS.pm, ChangeLog, MANIFEST, Makefile.PL, VERSION.pm:
+	[no log message]
+
+2001-11-17 19:07  aspeer
+
+	* VERSION.pm, CVS.pm, ChangeLog, MANIFEST, Makefile.PL, VERSION.pm:
+	[no log message]
+
+2001-11-17 19:07  aspeer
+
+	* CVS.pm, ChangeLog, MANIFEST, Makefile.PL, VERSION.pm: Initial
+	revision
+
+2001-11-17 19:07  aspeer
+
+	* CVS.pm, ChangeLog, MANIFEST, Makefile.PL, VERSION.pm: initial
+	import
+

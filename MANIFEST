@@ -1,0 +1,7 @@
+ChangeLog
+MANIFEST
+VERSION.pm
+Makefile.PL
+CVS.pm
+Config.pm
+support/dist_ci.inc

@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.33 2004/06/17 12:49:51 aspeer Exp $
+#  $Id: CVS.pm,v 1.34 2004/06/17 13:38:27 aspeer Exp $
 #
 
 
@@ -62,7 +62,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.33 $)[1];
+$REVISION=(qw$Revision: 1.34 $)[1];
 
 
 #  Load up our config file
@@ -641,6 +641,7 @@ sub ci_status_bundle {
 		$fn
 	       );
 	    $entry_fn=File::Spec->rel2abs($entry_fn);
+	    my $entry_rel_fn=File::Spec->abs2rel($entry_fn, cwd());
 
 
 	    #  Get mtime
@@ -655,11 +656,11 @@ sub ci_status_bundle {
 
 		#  Give it one more chance
 		#
-		$mtime_fn=$self->_ci_mtime_sync($entry_fn) ||
+		$mtime_fn=$self->_ci_mtime_sync($entry_fn, $mtime_fn) ||
 		    $mtime_fn;
 		($mtime_fn > $version_from_mtime) &&
 		    return
-			$self->_err("$fn has mtime greater than $version_from, cvs commit may be required.");
+			$self->_err("file $entry_rel_fn has mtime greater than $version_from, cvs commit may be required.");
 
 	    };
 
@@ -673,11 +674,11 @@ sub ci_status_bundle {
 	    #
 	    ($mtime_fn > $commit_time) && do {
 
-		$mtime_fn=$self->_ci_mtime_sync($entry_fn) ||
+		$mtime_fn=$self->_ci_mtime_sync($entry_fn, $mtime_fn) ||
 		    $mtime_fn;
 		($mtime_fn > $commit_time) &&
 		    return
-			$self->_err("$entry_fn has mtime greater commit time, cvs commit may be required.");
+			$self->_err("file $entry_rel_fn has mtime greater commit time, cvs commit may be required.");
 
 	    };
 	}
@@ -1142,7 +1143,6 @@ sub _config_read {
 }
 
 
-
 sub _repository {
 
 
@@ -1162,7 +1162,7 @@ sub _err {
     #  Quit on errors
     #
     my $self=shift();
-    my $message=$self->_fmt("*error*\n\n" . shift(), @_);
+    my $message=$self->_fmt("*error*\n\n" . ucfirst(shift()), @_);
     croak $message;
 
 }

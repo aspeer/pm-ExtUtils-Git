@@ -1,3 +1,13 @@
+2003-07-06 18:06  aspeer
+
+	* CVS.pm: Added routine in "manicheck" method to check for patch
+	dir, and if found make sure all patch files are in CVS and the
+	MANIFEST
+
+2003-06-17 00:13  aspeer
+
+	* ChangeLog, VERSION.pm: [no log message]
+
 2003-06-17 00:13  aspeer
 
 	* CVS.pm: Remove File::Touch module, add reminder if we use it

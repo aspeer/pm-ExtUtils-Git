@@ -1,1 +1,1 @@
-$VERSION=qw($Revision: 1.22 $)[1];
+$VERSION=qw($Revision: 1.23 $)[1];

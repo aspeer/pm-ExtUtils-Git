@@ -30,7 +30,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.7 $)[1];
+$REVISION=(qw$Revision: 1.8 $)[1];
 
 
 #  Package info
@@ -535,7 +535,7 @@ sub ci_manicheck {
 
     #  Get the manifest
     #
-    ExtUtils::Manifest::manicheck() && die;
+    ExtUtils::Manifest::manicheck() && die('MANIFEST manicheck error');
     my $manifest_hr=ExtUtils::Manifest::maniread();
     my %manifest;
 

@@ -1,6 +1,22 @@
+2003-06-15 16:14  aspeer
+
+	* CVS.pm, support/dist_ci.inc: No longer 'touch' files that have
+	mtime out of sync with CVS status, allow 'cvs status' to do this
+	for us. Modify the may we go through the CVS 'Entries' file, read
+	it all in at once and iterate. Previously going through it line by
+	line, but were doing 'cvs' operations that changed it while we were
+	iterating - result was missed some files, did some needlessly
+	
+	Update dist_ci to do 'cvs status' before check-in to update file
+	timestamps if needed.
+
+2003-04-29 13:48  aspeer
+
+	* ChangeLog, VERSION.pm: [no log message]
+
 2003-04-29 13:44  aspeer
 
-	* CVS.pm: [no log message]
+	* CVS.pm, ChangeLog, VERSION.pm: [no log message]
 
 2002-12-12 04:20  aspeer
 
@@ -138,7 +154,7 @@
 
 2002-05-17 03:49  aspeer
 
-	* ChangeLog, VERSION.pm, ChangeLog, VERSION.pm: [no log message]
+	* ChangeLog, VERSION.pm: [no log message]
 
 2002-05-17 03:49  aspeer
 
@@ -147,10 +163,10 @@
 2002-05-16 22:01  aspeer
 
 	* CVS.pm, ChangeLog, Config.pm, MANIFEST, Makefile.PL, VERSION.pm,
-	support/dist_ci.inc: Initial revision
+	support/dist_ci.inc: Initial import
 
 2002-05-16 22:01  aspeer
 
 	* CVS.pm, ChangeLog, Config.pm, MANIFEST, Makefile.PL, VERSION.pm,
-	support/dist_ci.inc: Initial import
+	support/dist_ci.inc: Initial revision
 

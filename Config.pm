@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: Config.pm,v 1.12 2004/02/05 06:10:39 aspeer Exp $
+#  $Id: Config.pm,v 1.13 2004/02/05 12:40:37 aspeer Exp $
 #
 
 
@@ -119,7 +119,7 @@ if (-e $cache_fn && ((stat($cache_fn))[9] < (time() - (1 * 60)))) {
 
 #  Try to read in cache details, or search disk for binaries if needed
 #
-unless (0 && ($_ = do($cache_fn))) {
+unless ($_ = do($cache_fn)) {
 
 
     #  Could not find cache file, create hash
@@ -134,7 +134,9 @@ unless (0 && ($_ = do($cache_fn))) {
 
 	CHANGELOG       =>  $_='ChangeLog',
 
-	CVS2CL_ARG      =>  "--window 15 --file $_ -P -r -I $_"
+	CVS2CL_ARG      =>  "--window 15 --file $_ -P -r -I $_",
+
+	DUMPER_FN	=>  '.module.pm',
 
 
        );

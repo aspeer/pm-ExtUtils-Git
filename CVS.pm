@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.28 2004/02/05 11:31:38 aspeer Exp $
+#  $Id: CVS.pm,v 1.29 2004/02/05 12:40:37 aspeer Exp $
 #
 
 
@@ -43,6 +43,7 @@ no  warnings qw(uninitialized);
 use IO::File;
 use IO::Dir;
 use File::Spec;
+use Tie::IxHash;
 use ExtUtils::Manifest;
 use Data::Dumper;
 use Date::Parse qw(str2time);
@@ -61,12 +62,12 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.28 $)[1];
+$REVISION=(qw$Revision: 1.29 $)[1];
 
 
 #  Load up our config file
 #
-my $Config_hr=&_config_read() || _err('unable to process load config file');
+our $Config_hr=&_config_read() || _err('unable to process load config file');
 
 
 #  Vars to hold chained soubroutines, if needed (loaded by import). Must be
@@ -679,7 +680,6 @@ sub ci_manicheck {
     my $param_hr=_arg(@_);
     my $distname=$param_hr->{'DISTNAME'} ||
 	return _err('unable to get distname');
-    #my ($name, $distname, $distvname, $version, $version_from)=_arg(@_);
 
 
     #  Get cwd, dance around Win32 formatting
@@ -730,7 +730,6 @@ sub ci_manicheck {
 	#
 	my $entries_dn=(File::Spec->splitpath($entries_fn))[1];
 	my @entries_dn=File::Spec->splitdir($entries_dn);
-	#print Dumper(\@entries_dn);
 
 
 	#  Check that this is in the module we are interested
@@ -745,7 +744,6 @@ sub ci_manicheck {
 	#  Get top level
 	#
 	my $repository=(File::Spec->splitdir($repository_dn))[0];
-	#print "repository *$repository*, module *$module*\n";
 	next unless ($repository eq $distname);
 
 
@@ -878,42 +876,33 @@ sub ci_version_dump {
     #
     my $self=shift();
     my $param_hr=_arg(@_);
-    #my $version_from=$param_hr->{'version_from'} ||
-	#return _err('unable to get version_from');
-
-    #my ($name, $distname, $distvname, $version, $version_from)=_arg(@_);
 
 
     #  Get version we are saving
     #
-    #my $have_version_fn=File::Spec->catfile(cwd(), $version_from);
-    #my $have_version=do($have_version_fn);
     my $have_version=$self->ci_version(@_);
 
 
     #  Get location of Dumper file, load up module, version info
     #  that we are processing, save again
     #
-    my $dump_fn=File::Spec->catfile(cwd(), 'Dumper.pm');
-	#$ExtUtils::Bundle::FILE_CPAN_DUMPER);
-    my $dump_hr=do ($dump_fn) || {};
+    my $dump_fn=File::Spec->catfile(cwd(), $Config_hr->{'DUMPER_FN'});
+    my $dump_hr=do ($dump_fn);
+    my $dump_tr=tie(my %dump, 'Tie::IxHash');
+    @dump{qw(NAME DISTNAME VERSION)}=(@{$param_hr}{qw(NAME DISTNAME)}, $have_version);
+
 
 
     #  Check if we need not update
     #
-    #my $dump_version=$dump_hr->{$name};
     my $dump_version=$dump_hr->{'VERSION'};
     if (CPAN::Version->vcmp($dump_version, $have_version)) {
 
-	#$dump_hr->{$name}=$have_version;
-	$dump_hr->{'version'}=$have_version;
-	#print "Bundle:; UPDATING DUMPER FILE, hv $have_version, dv $dump_version\n";
 	my $dump_fh=IO::File->new($dump_fn, O_WRONLY|O_TRUNC|O_CREAT) ||
 	    die ("unable to open file $dump_fn, $!");
 	binmode($dump_fh);
 	$Data::Dumper::Indent=1;
-	#print $dump_fh (Data::Dumper->Dump([$dump_hr],[]));
-	print $dump_fh (Data::Dumper->Dump([$param_hr],[]));
+	print $dump_fh (Data::Dumper->Dump([\%dump],[]));
 	$dump_fh->close();
 	_msg('cvs version dump complete');
 

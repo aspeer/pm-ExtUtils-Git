@@ -24,13 +24,12 @@ ci :: ci_manicheck
         	$(PERL) -M$(EXTUTILS_CVS) 								\
 			-e  "$(EXTUTILS_CVS)->ci_tag(@ARGV)"   						\
 			--  $(EXTUTILS_ARGV)   							&&	\
-		-$(MAKE) Makefile                                                                       \
-		$(MAKE) ci_version_dump                                                                 \
+		$(PERL) -M$(EXTUTILS_CVS) 								\
+			-e "$(EXTUTILS_CVS)->ci_version_dump(@ARGV)"					\
+			-- $(EXTUTILS_ARGV)							&& 	\
+		$(MAKE) Makefile                                                                        \
 	)
 
-#		$(PERL) -M$(EXTUTILS_CVS) 								\
-#			-e "$(EXTUTILS_CVS)->ci_version_dump(@ARGV)"					\
-#			-- $(EXTUTILS_ARGV)							&& 	\
 
 
 #  Make clean distribution and import into CVS

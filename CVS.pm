@@ -30,7 +30,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.10 $)[1];
+$REVISION=(qw$Revision: 1.11 $)[1];
 
 
 #  Package info
@@ -345,7 +345,7 @@ sub ci_status {
 		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
 		    $mtime_fn;
 		($mtime_fn > $commit_time) &&
-		    die("$method: $entry_fn has mtime greater commit time, cvs commit may be required.\n");
+		    die("$method: $entry_fn has mtime $mtime_fn greater commit time $commit_time, cvs commit may be required.\n");
 
 
 	    };

@@ -1,3 +1,13 @@
+2003-09-01 14:05  aspeer
+
+	* CVS.pm, Config.pm, LICENSE, MANIFEST, Makefile.PL, VERSION.pm:
+	Ran through ExtUtils::Lint, added license and copyright info into
+	module
+
+2003-07-06 18:06  aspeer
+
+	* ChangeLog, VERSION.pm: [no log message]
+
 2003-07-06 18:06  aspeer
 
 	* CVS.pm: Added routine in "manicheck" method to check for patch

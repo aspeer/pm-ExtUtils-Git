@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.30 2004/02/05 14:56:27 aspeer Exp $
+#  $Id: CVS.pm,v 1.31 2004/03/27 06:55:28 aspeer Exp $
 #
 
 
@@ -62,7 +62,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.30 $)[1];
+$REVISION=(qw$Revision: 1.31 $)[1];
 
 
 #  Load up our config file
@@ -103,6 +103,7 @@ sub import {
     #
     my ($self, @param)=(shift(), @_);
     no warnings;
+    #print "IMPORT\n";
 
 
     #  Read config
@@ -114,7 +115,9 @@ sub import {
 
     #  Store for later use in MY::makefile section
     #
-    ($MY::Import_class, $MY::Import_param_ar)=($self, \@param);
+    #(%MY::Import_class, $MY::Import_param_ar)=($self, \@param);
+    $MY::Import_class{$self}=\@param;
+    #print "CVS import $self\n";
 
 
     #  Code ref for params
@@ -122,6 +125,7 @@ sub import {
     my $const_config_cr=sub {
 
 	$Const_config_chain_cr=UNIVERSAL::can('MY', 'const_config');
+	print "CVS $Const_config_chain_cr\n";
 	*MY::const_config=sub { &const_config(@_) };
 	0 && MY::const_config();
 
@@ -163,6 +167,11 @@ sub import {
 
     #  Done
     #
+    *ExtUtils::CVS::import=sub { 
+    	my $self=shift();
+    	$MY::Import_class{$self}=\@param;
+	$self->SUPER::import(@_) 
+    };
     return $self->SUPER::import(@_);
     #return \undef;
 
@@ -254,7 +263,7 @@ sub makefile {
     #  Change package
     #
     package MY;
-
+   
 
     #  Get self ref
     #
@@ -274,11 +283,15 @@ sub makefile {
     #  Build the  makefile -M line
     #
     my $makefile_module;
-    if (my @param=@{$MY::Import_param_ar}) {
-        $makefile_module="$MY::Import_class=".join(',', @param);
-    }
-    else {
-        $makefile_module=$MY::Import_class;
+    print Data::Dumper::Dumper(\%MY::Import_class);
+    while (my ($class, $param_ar)=each %MY::Import_class) {
+    #if (my @param=@{$MY::Import_param_ar}) {
+	    if ($param_ar) {
+	        $makefile_module.=" -M$class=".join(',', @{$param_ar});
+	    }
+	    else {
+	        $makefile_module.=" -M$class";
+	    }
     }
 
 
@@ -287,8 +300,9 @@ sub makefile {
     #
     my $find=q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" Makefile.PL];
     my $rplc=
-        sprintf(q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" -M%s Makefile.PL],
+        sprintf(q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" %s Makefile.PL],
                 $makefile_module);
+    my $make;
 
 
     #  Go through line by line
@@ -303,10 +317,23 @@ sub makefile {
 
 	#  Check for target line
 	#
-	$line=~s/\Q$find\E/$rplc/i;
+	$line=~s/\Q$find\E/$rplc/i && ($make=$line);
+	
+	
+	#  Also look for 'false' at end, erase
+	#
+	next if $line=~/^\s*false/;
 	push @makefile, $line;
 
+
     }
+    
+    
+    #  For rebuilding Makefile.PL without error, used after ci
+    #
+    #push @makefile, undef, undef;
+    push @makefile, 'Makefile_PL :';
+    #push @makefile, $make;
 
 
     #  Done, return result
@@ -543,19 +570,22 @@ sub ci_status {
 }
 
 
-sub ci_status_bundle0 {
+sub ci_status_bundle {
 
 
     #  Checks that all files in the manifest are up to date with respect to
     #  CVS/Entries file
     #
-    my ($self, $version_fn)=@_;
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+    my $version_from=$param_hr->{'VERSION_FROM'} ||
+	return $self->_err('unable to get version_from');
 
 
     #  Stat the master version file
     #
-    my $version_fn_mtime=(stat($version_fn))[9] ||
-	return $self->_err("unable to stat file $version_fn, $!");
+    my $version_from_mtime=(stat($version_from))[9] ||
+	return $self->_err("unable to stat file $version_from, $!");
 
 
     #  Get cwd
@@ -616,6 +646,11 @@ sub ci_status_bundle0 {
 	    #
 	    my ($fn_type, $fn, $version, $date)=split(/\//, $entry);
 	    $fn_type && next;
+	    
+	    
+	    #  Skip changelog
+	    #
+	    if ($fn eq $Config_hr->{'CHANGELOG'}) { next }
 
 
 	    #  Rebuild
@@ -625,6 +660,7 @@ sub ci_status_bundle0 {
 		$fn
 	       );
 	    $entry_fn=File::Spec->rel2abs($entry_fn);
+	    #print "fn $fn entry_fn $entry_fn\n";
 
 
 	    #  Get mtime
@@ -634,16 +670,16 @@ sub ci_status_bundle0 {
 
 	    #  Check against version
 	    #
-	    ($mtime_fn > $version_fn_mtime) && do {
+	    ($mtime_fn > $version_from_mtime) && do {
 
 
 		#  Give it one more chance
 		#
 		$mtime_fn=$self->_ci_mtime_sync($entry_fn) ||
 		    $mtime_fn;
-		($mtime_fn > $version_fn_mtime) &&
+		($mtime_fn > $version_from_mtime) &&
 		    return
-			$self->_err("$fn has mtime greater than $version_fn, cvs commit may be required.");
+			$self->_err("$fn has mtime greater than $version_from, cvs commit may be required.");
 
 	    };
 
@@ -896,17 +932,20 @@ sub ci_version_dump {
     #  Get location of Dumper file, load up module, version info
     #  that we are processing, save again
     #
-    my $dump_fn=File::Spec->catfile(cwd(), $Config_hr->{'DUMPER_MODULE_FN'});
+    my $dump_fn=File::Spec->catfile(cwd(), $Config_hr->{'DUMPER_FN'});
     my $dump_hr=do ($dump_fn);
-    my $dump_tr=tie(my %dump, 'Tie::IxHash');
-    @dump{qw(NAME DISTNAME VERSION)}=(@{$param_hr}{qw(NAME DISTNAME)}, $have_version);
+    #my $dump_tr=tie(my %dump, 'Tie::IxHash'), 
+    #@dump{qw(NAME DISTNAME VERSION)}=(@{$param_hr}{qw(NAME DISTNAME)}, $have_version);
+    my %dump=(
+	$param_hr->{'NAME'} =>	$have_version
+       );
 
 
 
     #  Check if we need not update
     #
     my $dump_version=$dump_hr->{'VERSION'};
-    if (CPAN::Version->vcmp($dump_version, $have_version)) {
+    if (CPAN::Version->vcmp("v$dump_version", "v$have_version")) {
 
 	my $dump_fh=IO::File->new($dump_fn, O_WRONLY|O_TRUNC|O_CREAT) ||
 	    die ("unable to open file $dump_fn, $!");

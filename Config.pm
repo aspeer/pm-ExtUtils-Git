@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: Config.pm,v 1.14 2004/02/05 14:56:27 aspeer Exp $
+#  $Id: Config.pm,v 1.15 2004/03/27 06:55:28 aspeer Exp $
 #
 
 
@@ -137,7 +137,7 @@ unless ($_ = do($cache_fn)) {
 
 	CVS2CL_ARG		 =>  "--window 15 --file $_ -P -r -I $_",
 
-	DUMPER_MODULE_FN	 =>  '.module.pm',
+	DUMPER_FN	         =>  '.dumper.pm',
 
 	EXTUTILS_ARGV		 =>  q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ].
 	    q["$(VERSION_SYM)" "$(VERSION_FROM)"],

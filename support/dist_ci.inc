@@ -1,5 +1,6 @@
 
 ci :: ci_manicheck
+	@$(CVS) status > /dev/null
 	@$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')" || ( \
 	$(CVS) commit && \
 	$(CVS2CL) && \
@@ -27,6 +28,7 @@ ci_manicheck ::
 
 
 ci_status :: ci_manicheck
+	@$(CVS) status > /dev/null
 	@$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')"
 
 

@@ -30,7 +30,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.11 $)[1];
+$REVISION=(qw$Revision: 1.12 $)[1];
 
 
 #  Package info
@@ -277,7 +277,7 @@ sub ci_status {
 
     #  Now go through, looking at files
     #
-    foreach my $manifest_dn (keys %manifest_dn) {
+    foreach my $manifest_dn (sort { $a cmp $b } keys %manifest_dn) {
 
 
 	#  Get Entries FN
@@ -301,7 +301,9 @@ sub ci_status {
 
 	#  Go through
 	#
-	while (my $entry=<$entries_fh>) {
+	my @entry=sort { $a cmp $b } <$entries_fh>;
+	#while (my $entry=<$entries_fh>) {
+	while (my $entry=pop @entry) {
 
 
 	    #  Split, skip unless file we want
@@ -336,7 +338,7 @@ sub ci_status {
 	    #  Compare
 	    #
 	    ($mtime_fn > $commit_time) && do {
-	    
+
 	    	#print "mtime > commit\n";
 
 
@@ -345,7 +347,8 @@ sub ci_status {
 		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
 		    $mtime_fn;
 		($mtime_fn > $commit_time) &&
-		    die("$method: $entry_fn has mtime $mtime_fn greater commit time $commit_time, cvs commit may be required.\n");
+		    die("$method: $entry_fn has mtime $mtime_fn greater commit time $commit_time, ".
+			    "cvs commit may be required.\n");
 
 
 	    };
@@ -451,7 +454,9 @@ sub ci_status_bundle {
 
 	#  Parse
 	#
-	foreach my $entry (<$entries_fh>) {
+	my @entry=sort { $a cmp $b } <$entries_fh>;
+	#foreach my $entry (<$entries_fh>) {
+	while (my $entry=pop @entry) {
 
 
 	    #  Split, skip non plain files
@@ -753,16 +758,21 @@ sub ci_mtime_sync {
 	    $mtime=str2time("$1 $2", 'GMT') ||
 		die("unable to parse date string $1 $2");
 
+
+	    #  As note. Probably no need to touch, just get mtime, as cvs status will
+	    #  bring have brough back into line
+	    #
+
 	    #  Touch it
 	    #
-	    my $touch_or=File::Touch->new(
+	    #my $touch_or=File::Touch->new(
 
-		'time'	=>  $mtime,
+		#'time'	=>  $mtime,
 
-	       );
-	    $touch_or->touch($fn) ||
-		die("error on touch of file $fn, $!");
-	    printf("$method: synced file $fn to cvs mtime %s\n",
+	       #);
+	    #$touch_or->touch($fn) ||
+		#die("error on touch of file $fn, $!");
+	    printf("$method: synced file $fn to cvs mtime $mtime (%s)\n",
 		   scalar(localtime($mtime)));
 
 	}

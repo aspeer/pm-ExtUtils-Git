@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.36 2005/02/04 11:37:37 aspeer Exp $
+#  $Id: CVS.pm,v 1.37 2005/02/06 02:31:10 aspeer Exp $
 #
 
 
@@ -33,7 +33,7 @@ package ExtUtils::CVS;
 #
 sub BEGIN   { $^W=0 };
 use strict  qw(vars);
-use vars    qw($VERSION $REVISION $PACKAGE);
+use vars    qw($VERSION $REVISION);
 use warnings;
 no  warnings qw(uninitialized);
 
@@ -62,7 +62,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.36 $)[1];
+$REVISION=(qw$Revision: 1.37 $)[1];
 
 
 #  Load up our config file
@@ -258,6 +258,7 @@ sub makefile {
 
     #  Change package
     #
+    my $class=__PACKAGE__;
     package MY;
 
 
@@ -293,11 +294,11 @@ sub makefile {
     #  changes format of this line
     #
     my @find=(q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" Makefile.PL],
-      	q[$(PERLRUN) Makefile.PL]);
+	      q[$(PERLRUN) Makefile.PL]);
     my $rplc=
         sprintf(q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" %s Makefile.PL],
                 $makefile_module);
-    my $make;
+    my $match;
 
 
     #  Go through line by line
@@ -312,7 +313,7 @@ sub makefile {
 
 	#  Check for target line
 	#
-	for (@find) { $line=~s/\Q$_\E/$rplc/i && ($make=$line) };
+	for (@find) { $line=~s/\Q$_\E/$rplc/i && ($match=$line) };
 
 
 	#  Also look for 'false' at end, erase
@@ -322,6 +323,11 @@ sub makefile {
 
 
     }
+
+    #  Warn if line not found
+    #
+    $class->_msg('warning! ExtUtils::Makemaker makefile section replacement not successful') unless
+	$match;
 
 
     #  For rebuilding Makefile.PL without error, used after ci
@@ -922,7 +928,7 @@ sub ci_version_dump {
     if (CPAN::Version->vcmp("v$dump_version", "v$have_version")) {
 
 	my $dump_fh=IO::File->new($dump_fn, O_WRONLY|O_TRUNC|O_CREAT) ||
-	    die ("unable to open file $dump_fn, $!");
+	    $self->_err("unable to open file $dump_fn, $!");
 	binmode($dump_fh);
 	$Data::Dumper::Indent=1;
 	print $dump_fh (Data::Dumper->Dump([\%dump],[]));

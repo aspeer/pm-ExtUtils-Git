@@ -14,7 +14,7 @@ ci :: ci_manicheck
 	$(PERL) -MExtUtils::CVS=:all -MExtUtils::Dist=:all Makefile.PL \
 	)
 
-import : disttest
+import :: disttest
 	cd $(DISTVNAME) && $(MAKE) realclean
 	cd $(DISTVNAME) && \
 		$(CVS) -d $(CVSROOT) import -m "Initial import" \
@@ -22,23 +22,23 @@ import : disttest
 	rm -rf $(DISTVNAME)
 
 
-ci_manicheck :
+ci_manicheck ::
 	@$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_manicheck('$(DISTNAME)')"
 
 
-ci_status : ci_manicheck
+ci_status :: ci_manicheck
 	@$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')"
 
 
-ci_version :
+ci_version ::
 	@$(PERL) \
 		-e "$$::v=(do './$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)"
 
-ci_version_dump :
+ci_version_dump ::
 	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_version_dump( \
 		'$(NAME)', '$(VERSION_FROM)' )"
 
-branch :
+branch ::
 	$(CVS) tag -b $(DISTNAME)_`$(PERL) -e "do './$(VERSION_FROM)'; ($$::_=$$::VERSION)=~s/\\\./-/g;print"`-0 && \
 	$(CVS) update -r $(DISTNAME)_`$(PERL) \
 		-e "$$::v=(do'./$(VERSION_FROM)'); ($$::_=$$::VERSION || $$::v)=~s/\\\./-/g; print"`-0

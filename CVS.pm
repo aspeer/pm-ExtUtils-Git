@@ -30,7 +30,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.8 $)[1];
+$REVISION=(qw$Revision: 1.9 $)[1];
 
 
 #  Package info
@@ -40,13 +40,13 @@ $PACKAGE=__PACKAGE__;
 
 #  Load up our config file
 #
-our $Config_hr=$PACKAGE->config_read();
+my $Config_hr=$PACKAGE->config_read();
 
 
-#  Vars to hold chained soubroutines, if needed (loaded by import)
+#  Vars to hold chained soubroutines, if needed (loaded by import). Must be
+#  global (our) vars.
 #
-our($Const_config_chain_sr, $Dist_ci_chain_sr);
-0 && $Dist_ci_chain_sr;
+our ($Const_config_chain_sr, $Dist_ci_chain_sr);
 
 
 #  All done, init finished
@@ -164,7 +164,6 @@ sub const_config {
     #  Change packages so SUPER works OK
     #
     package MY;
-    #print "in CVS::const_config\n";
 
 
     #  Get self ref
@@ -174,7 +173,7 @@ sub const_config {
 
     #  Update macros with our config
     #
-    $self->{'macro'}=$Config_hr;
+    map { $self->{'macro'}{$_}=$Config_hr->{$_} } keys %{$Config_hr};
 
 
     #  Return whatever our parent does
@@ -193,7 +192,6 @@ sub dist_ci {
     #  Change package
     #
     package MY;
-    #print "in CVS::dist_ci\n";
 
 
     #  Get self ref
@@ -589,7 +587,7 @@ sub ci_manicheck {
 	next unless ($repository eq $module);
 
 
-	#  Get rid of 'CVS'
+	#  Get rid of empty directories
 	#
 	until ( pop @entries_dn ) {}
 

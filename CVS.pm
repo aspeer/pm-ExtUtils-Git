@@ -30,7 +30,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.5 $)[1];
+$REVISION=(qw$Revision: 1.6 $)[1];
 
 
 #  Package info
@@ -665,17 +665,18 @@ sub ci_mtime_sync {
     #
     my ($self, $fn)=@_;
     my $method=(split(/:/, (caller(0))[3]))[-1];
+    #print "$method:fn $sync_fn\n";
+
+
+    #  Turn abs filenames into relative, cvs does not seem to like it
+    #
+    $fn=File::Spec->abs2rel($fn);
 
 
     #  Get cvs binary name
     #
     my $bin_cvs=$Config_hr->{'CVS'} ||
         die('unable to determine cvs binary name');
-
-
-    #  Skip directories
-    #
-    (-d $fn) && return;
 
 
     #  Run cvs status on file, suck into array

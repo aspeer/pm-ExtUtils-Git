@@ -23,7 +23,6 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
 
     NAME				 =>  __PACKAGE__,
-    MAN3PODS				 =>  {},
     VERSION_FROM			 =>  'VERSION.pm',
     PM					 =>  {
 

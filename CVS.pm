@@ -9,7 +9,7 @@
 #  at the email adddress give above.
 #
 #
-#  $Id: CVS.pm,v 1.15 2003/09/01 04:35:27 aspeer Exp $
+#  $Id: CVS.pm,v 1.16 2003/09/01 07:21:00 aspeer Exp $
 
 
 #  Package to assist using CVS with Makefile.PL
@@ -44,7 +44,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.15 $)[1];
+$REVISION=(qw$Revision: 1.16 $)[1];
 
 
 #  Package info
@@ -896,4 +896,145 @@ sub repository {
 
 }
 
+
+__END__
+
+
+=head1 NAME
+
+ExtUtils::CVS - Class to add cvs related targets to Makefile generated from perl Makefile.PL
+
+=head1 SYNOPSIS
+
+    perl -MExtUtils::CVS=:all Makefile.PL
+    make import
+    make ci_manicheck
+    make ci
+
+=head1 DESCRIPTION
+
+ExtUtils::CVS is a class that extends ExtUtils::MakeMaker to add cvs related
+targets to the Makefile generated from Makefile.PL.
+
+ExtUtils::CVS will enforce various rules during modules distribution, such as not
+building a dist for a module before all components are checked in to CVS. It will
+also not build a dist if the MANIFEST and CVS ideas of what are in the module are
+out of sync.
+
+=head1 OVERVIEW
+
+Create a normal module using h2xs (see L<h2xs>). Either put ExtUtils::MakeMaker into
+an eval'd BEGIN block in your Makefile.PL, or build the Makefile.PL with ExtUtils::CVS
+as an included module.
+
+=over 4
+
+=item BEGIN block within Makefile.PL
+
+A sample Makefile.PL may look like this:
+
+        use strict;
+        use ExtUtils::MakeMaker;
+        
+        WriteMakeFile ( 
+        
+                NAME    =>  'Acme::Froogle'
+                ... MakeMaker keys here
+                
+        );
+        
+        sub BEGIN {  eval('use ExtUtils::CVS') }
+
+eval'ing ExtUtils::CVS within a BEGIN block allows to build your module even if they 
+do not have a local copy of ExtUtils::CVS.
+
+=item Using a module when running Makefile.PL
+
+If you do not want any reference to ExtUtils::CVS within your Makefile.PL, you can
+build the Makefile with the following command:
+
+        perl -MExtUtils::CVS=:all Makefile.PL
+        
+This will build a Makefile with all the ExtUtils::CVS targets.
+
+=back
+
+=head1 IMPORTING INTO CVS
+
+Once you have created the first draft of your module, and included ExtUtils::CVS into the
+Makefile.PL file in one of the above ways, you can import the module into CVS. Simply do a
+
+        make import
+        
+in the working directory. All files in the MANIFEST will be imported into CVS. This does B<not>
+create a CVS working directory in the current location.
+
+You should move to a clean directory location and do a
+
+        cvs co Acme-Froogle
+        
+Note the translation of '::' characters in the module name to '-' characters in CVS.
+
+=head1 ADDING OR REMOVING FILES WITHIN THE PROJECT
+
+Once checked out you can work on your files as per normal. If you add or remove a file from your
+module project you need to undertake the corresponding action in cvs with a
+
+        cvs add myfile.pm OR 
+        cvs del myfile.pm
+        
+You must remember to add or remove the file from the MANIFEST, or ExtUtils::CVS will generate a
+error when you try to build the dist. This is by design - the contents of the MANIFEST file should
+mirror the active CVS files.
+
+=head1 CHECKING IN MODIFICATIONS
+
+Periodically you will want to check modifications into the CVS repository. If you are not planning to make
+a distribution at this time a normal
+
+        cvs ci
+        
+will still work. As this is a stardard cvs checkin, no checking of the MANIFEST etc will be performed. 
+
+If you wish to build a distribution from the current project working directory you should do a 
+
+        make ci
+        
+Doing a 'make ci' will undertake a check to ensure that the MANIFEST and CVS are in sync. It will
+check modified files in to CVS, incrementing the current module version. In addition, it will then
+tag the repository with the new version in the form 'Acme-Froogle_1-26'. Thus at any time you can
+checkout an earlier version of your module with a cvs command in the form of
+
+        cvs co -r Acme-Froogle_1-10 Acme-Froogle
+        
+The checked out version will be 'sticky' (see L<cvs> for details), you will not be able to check
+changes back into the repository without branching your project.
+
+
+=head1 OTHER MAKEFILE TARGETS
+
+As well as 'make import' and 'make ci', the following other targets are supported. Many
+of these targets are called by the 'make ci' process, but can be run standalone also
+
+=over 4
+
+=item make ci_manicheck
+
+Will check that MANIFEST and CVS agree on files included in the project
+
+=item make ci_status
+
+Will check that no project files have been modified since last checked in to the 
+repository.
+
+=item make ci_version
+
+Will show the current version of the project in the working directory
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright (c) 2003 Andrew Speer <andrew.speer@isolutions.com.au>. All
+rights reserved.
 

@@ -1,7 +1,17 @@
+2002-05-22 01:09  aspeer
+
+	* VERSION.pm (1.6): Standardised VERSION.pm file format
+
 2002-05-17 04:04  aspeer
 
-	* support/dist_ci.inc (1.5): Added @ to ci_version traget to hide
-	perl commands
+	* ChangeLog (1.5), VERSION.pm (1.5) (utags: Bundle-ExtUtils_1-2,
+	Bundle-ExtUtils_1-3, ExtUtils-CVS_1-5): [no log message]
+
+2002-05-17 04:04  aspeer
+
+	* support/dist_ci.inc (1.5, Bundle-ExtUtils_1-3,
+	Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5): Added @ to ci_version
+	traget to hide perl commands
 
 2002-05-17 03:57  aspeer
 
@@ -40,10 +50,14 @@
 
 2002-05-16 22:01  aspeer
 
-	* CVS.pm (1.1.1.1, ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1),
-	ChangeLog (1.1.1.1), Config.pm (1.1.1.1, ExtUtils-CVS_1-4,
-	ExtUtils-CVS_1-1-1-1), MANIFEST (1.1.1.1, ExtUtils-CVS_1-4,
-	ExtUtils-CVS_1-1-1-1), Makefile.PL (1.1.1.1, ExtUtils-CVS_1-4,
+	* CVS.pm (1.1.1.1, Bundle-ExtUtils_1-3, Bundle-ExtUtils_1-2,
+	ExtUtils-CVS_1-5, ExtUtils-CVS_1-4, ExtUtils-CVS_1-1-1-1),
+	ChangeLog (1.1.1.1), Config.pm (1.1.1.1, Bundle-ExtUtils_1-3,
+	Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5, ExtUtils-CVS_1-4,
+	ExtUtils-CVS_1-1-1-1), MANIFEST (1.1.1.1, Bundle-ExtUtils_1-3,
+	Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5, ExtUtils-CVS_1-4,
+	ExtUtils-CVS_1-1-1-1), Makefile.PL (1.1.1.1, Bundle-ExtUtils_1-3,
+	Bundle-ExtUtils_1-2, ExtUtils-CVS_1-5, ExtUtils-CVS_1-4,
 	ExtUtils-CVS_1-1-1-1), VERSION.pm (1.1.1.1), support/dist_ci.inc
 	(1.1.1.1) (utags: ExtUtils-CVS_1-1): Initial import
 

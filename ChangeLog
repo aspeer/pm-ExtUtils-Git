@@ -1,3 +1,12 @@
+2004-02-04 17:22  aspeer
+
+	* VERSION.pm (1.41): ExtUtils-CVS version increment
+
+2004-02-04 17:22  aspeer
+
+	* support/dist_ci.inc (1.17): Change version increment message in
+	  ChangeLog
+
 2004-02-04 17:17  aspeer
 
 	* VERSION.pm (1.40): Version increment

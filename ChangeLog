@@ -1,3 +1,17 @@
+2004-02-04 16:49  aspeer
+
+	Changed:
+		CVS.pm (1.24), "Exp", lines: +2 -1
+
+	Further attempt at getting overall module version into ChangeLog
+
+2004-02-04 16:39  aspeer
+
+	Changed:
+		ChangeLog (1.31), "Exp", lines: +8 -27
+
+	Module version: 1.35
+
 2004-02-04 16:38  aspeer
 
 	Changed:

@@ -30,6 +30,11 @@ ci_status : ci_manicheck
 	@$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_status('$(VERSION_FROM)')"
 
 
+ci_version :
+	$(PERL) \
+		-e "$$::v=(do '$(VERSION_FROM)'); $$::_=$$::VERSION || $$::v; print qq($(NAME) Version: $$::_\n)" && \
+
+
 ci_dump_version :
 	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_dump_version( \
 		'$(NAME)', '$(VERSION_FROM)' )"

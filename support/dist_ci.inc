@@ -2,7 +2,7 @@
 
 #  Define args sent to each ExtUtils:: method as standard
 #
-EXTUTILS_ARGV= "$(NAME)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" "$(VERSION_FROM)"
+EXTUTILS_ARGV= "$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" "$(VERSION_SYM)" "$(VERSION_FROM)"
 
 
 #  Name of ExtUtil::CVS Perl module
@@ -24,12 +24,13 @@ ci :: ci_manicheck
         	$(PERL) -M$(EXTUTILS_CVS) 								\
 			-e  "$(EXTUTILS_CVS)->ci_tag(@ARGV)"   						\
 			--  $(EXTUTILS_ARGV)   							&&	\
-		$(PERL) -M$(EXTUTILS_CVS) 								\
-			-e "$(EXTUTILS_CVS)->ci_version_dump(@ARGV)"					\
-			-- $(EXTUTILS_ARGV)							&& 	\
-		$(MAKE) Makefile                                                                        \
+		-$(MAKE) Makefile                                                                       \
+		$(MAKE) ci_version_dump                                                                 \
 	)
 
+#		$(PERL) -M$(EXTUTILS_CVS) 								\
+#			-e "$(EXTUTILS_CVS)->ci_version_dump(@ARGV)"					\
+#			-- $(EXTUTILS_ARGV)							&& 	\
 
 
 #  Make clean distribution and import into CVS

@@ -11,6 +11,7 @@ use ExtUtils::Manifest;
 use Data::Dumper;
 use Date::Parse qw(str2time);
 use File::Find qw(find);
+use File::Touch;
 use Cwd qw(cwd);
 use CPAN;
 
@@ -29,7 +30,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.3 $)[1];
+$REVISION=(qw$Revision: 1.4 $)[1];
 
 
 #  Package info
@@ -124,7 +125,7 @@ sub config_read {
     #  Unless absolute, add cwd
     #
     unless ($config_dn[0]=~/^\//) { unshift @config_dn, cwd() }
-    
+
 
     #  And now file name
     #
@@ -133,7 +134,6 @@ sub config_read {
 
     #  Read and return
     #
-    print "fn $config_fn\n";
     my $config_hr=do($config_fn) || die $!;
 
 
@@ -343,9 +343,17 @@ sub ci_status {
 
 	    #  Check against version
 	    #
-	    ($mtime_fn > $version_fn_mtime) &&
-		die("$method: $fn has mtime greater than $version_fn, cvs commit may be required.\n");
+	    ($mtime_fn > $version_fn_mtime) && do {
 
+
+		#  Give it one more chance
+		#
+		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
+		    $mtime_fn;
+		($mtime_fn > $version_fn_mtime) &&
+		    die("$method: $fn has mtime greater than $version_fn, cvs commit may be required.\n");
+
+	    };
 
 	}
 
@@ -449,21 +457,24 @@ sub ci_status_bundle {
 	       );
 
 
-	    #
-	    #
-	    #print "looking at file $entry_fn\n";
-
-
 	    #  Get mtime
 	    #
 	    my $mtime_fn=(stat($entry_fn))[9];
-	    #print "mtime $mtime_fn\n";
 
 
 	    #  Check against version
 	    #
-	    ($mtime_fn > $version_fn_mtime) &&
-		die("$method: $fn has mtime greater than $version_fn, cvs commit may be required.\n");
+	    ($mtime_fn > $version_fn_mtime) && do {
+
+
+		#  Give it one more chance
+		#
+		$mtime_fn=$self->ci_mtime_sync($entry_fn) ||
+		    $mtime_fn;
+		($mtime_fn > $version_fn_mtime) &&
+		    die("$method: $fn has mtime greater than $version_fn, cvs commit may be required.\n");
+
+	    };
 
 
 	    #  Convert date to GMT
@@ -646,59 +657,102 @@ sub ci_manicheck {
 
 }
 
+
 sub ci_mtime_sync {
 
 
     #  Last resort to ensure file mtime is correct based on what CVS thinks
     #
     my ($self, $fn)=@_;
-    
-    
-    #  Get cvs bindary name
+
+
+    #  Get cvs binary name
     #
     my $bin_cvs=$Config_hr->{'CVS'} ||
-        return err('unable to determine cvs binary name');
-    
+        die('unable to determine cvs binary name');
+
     #  Run cvs status on file, suck into array
     #
     my $system_fh=IO::File->new("$bin_cvs status $fn|") ||
-        retun err("unable to get handle for cvs status command");
+        die("unable to get handle for cvs status command");
     my @system=<$system_fh>;
     $system_fh->close();
-    print Data::Dumper::Dumper(\@system);
-    
-    
+
+
     #  Look for uptodate flag
     #
     my $uptodate;
-    for (@system) { /Status:\s+Up-to-date/i && do { $uptodate++; last } };
-    
-    
-    #  Get working rev
-    #
-    my $ver_working;
-    for (@system) { /Working revision:\s+(\S+)/ && do { $ver_working=$1; last } };
-    print "u2d $uptodate, ver $ver_working\n";
-    
-
-    #  Looks OK, search for date
-    #
-    my $system_fh=IO::File->new("$bin_cvs log $fn|") ||
-        retun err("unable to get handle for cvs log command");
-    my @system=<$system_fh>;
-    $system_fh->close();
-    print Data::Dumper::Dumper(\@system);
+    for (@system) {
+	/Status:\s+Up-to-date/i && do { $uptodate++; last } };
 
 
-    #  Get date
+    #  And var to hold mtime
     #
-    my $line_date;
-    for (0.. $#system) { $system[$_]=~/revision\s+\Q$ver_working\E\s+/ && do { $line_date=$_; last } };
-    print "u2d $uptodate, ver $ver_working line_date:",  $system[++$line_date], "\n";
-    
-    
+    my $mtime=(stat($fn))[9] ||
+	die("unable to stat file $fn, $!");
+
+
+    #  If uptodate, we need to sync mtime with CVS mtime
+    #
+    if ($uptodate) {
+
+
+	#  Get working rev
+	#
+	my $ver_working;
+	for (@system) {
+	    /Working revision:\s+(\S+)/ && do { $ver_working=$1; last } };
+	#print "u2d $uptodate, ver $ver_working\n";
+
+
+	#  Looks OK, search for date
+	#
+	my $system_fh=IO::File->new("$bin_cvs log $fn|") ||
+	    die("unable to get handle for cvs log command");
+	my @system=<$system_fh>;
+	$system_fh->close();
+	#print Data::Dumper::Dumper(\@system);
+
+
+	#  Get line with date date
+	#
+	my $line_date;
+	for (0.. $#system) {
+	    $system[$_]=~/revision\s+\Q$ver_working\E\s+/ &&
+		do { $line_date=$system[++$_]; last };
+	};
+
+
+	#  Parse it out
+	#
+	if ($line_date && $line_date=~/^date:\s+(\S+)\s+(\S+)\;/) {
+
+	    $mtime=str2time("$1 $2", 'GMT') ||
+		die("unable to parse date string $1 $2");
+
+	    #  Touch it
+	    #
+	    my $touch_or=File::Touch->new(
+
+		'time'	=>  $mtime,
+
+	       );
+	    $touch_or->touch($fn) ||
+		die("error on touch of file $fn, $!");
+	    print "synced file $fn to cvsmtime $mtime\n";
+
+	}
+
+    }
+
+
+    #  return the mtime
+    #
+    return $mtime;
+
+
 }
-    
+
 
 
 sub ci_version_dump {

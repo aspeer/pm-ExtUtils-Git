@@ -20,11 +20,12 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.19 2003/11/02 15:49:11 aspeer Exp $
+#  $Id: CVS.pm,v 1.20 2003/11/03 02:12:58 aspeer Exp $
 package ExtUtils::CVS;#  Compiler Pragma#sub BEGIN   { $^W=0 };
 use strict  qw(vars);
 use vars    qw($VERSION $REVISION $PACKAGE);
 use warnings;
+no warnings qw(uninitialized);
 
 
 #  External Packages
@@ -49,7 +50,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.19 $)[1];
+$REVISION=(qw$Revision: 1.20 $)[1];
 
 
 #  Package info
@@ -868,7 +869,11 @@ sub ci_mtime_sync {
 	    #
 	    $mtime=str2time("$1 $2", 'GMT') ||
 		die("unable to parse date string $1 $2");
+	    #print "choice of mtime $mtime (log) or $mtime_fn (commit)\n";
 
+            #  Use oldest
+            #
+            $mtime=($mtime_fn < $mtime) ? $mtime_fn : $mtime;
 
 	    #  Touch it
 	    #

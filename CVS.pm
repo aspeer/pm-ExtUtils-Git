@@ -1,20 +1,30 @@
 #
 #
-#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
+#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights 
 #  reserved.
 #
-#  This program is NOT free software,  it licensed under the conditions provided
-#  in the LICENSE file included with the software. If you are not able to locate
-#  the LICENSE file, or need  further information you  should contact the author
-#  at the email adddress give above.
+#  This file is part of ExtUtils::CVS.
+#
+#  ExtUtils::CVS is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.18 2003/10/15 14:58:10 aspeer Exp $
-
-
-#  Package to assist using CVS with Makefile.PL
-#
-package ExtUtils::CVS;
+#  $Id: CVS.pm,v 1.19 2003/11/02 15:49:11 aspeer Exp $
+package ExtUtils::CVS;#  Compiler Pragma#sub BEGIN   { $^W=0 };
+use strict  qw(vars);
+use vars    qw($VERSION $REVISION $PACKAGE);
+use warnings;
 
 
 #  External Packages
@@ -31,12 +41,6 @@ use Cwd qw(cwd);
 use CPAN;
 
 
-#  Compiler Pragma
-#
-use strict  qw(vars);
-use vars    qw($VERSION $REVISION $PACKAGE);
-
-
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
@@ -45,7 +49,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.18 $)[1];
+$REVISION=(qw$Revision: 1.19 $)[1];
 
 
 #  Package info
@@ -80,6 +84,7 @@ sub import {
     #  Get params
     #
     my ($self, @param)=@_;
+    no warnings;
 
 
     #  Sub ref for params
@@ -959,6 +964,7 @@ ExtUtils::CVS - Class to add cvs related targets to Makefile generated from perl
     make import
     make ci_manicheck
     make ci
+    make ci_status
 
 =head1 DESCRIPTION
 
@@ -984,26 +990,26 @@ A sample Makefile.PL may look like this:
 
         use strict;
         use ExtUtils::MakeMaker;
-        
+
         WriteMakeFile ( 
-        
+
                 NAME    =>  'Acme::Froogle'
-                ... MakeMaker keys here
-                
+                ... MakeMaker options here
+
         );
-        
+
         sub BEGIN {  eval('use ExtUtils::CVS') }
 
 eval'ing ExtUtils::CVS within a BEGIN block allows to build your module even if they 
 do not have a local copy of ExtUtils::CVS.
 
-=item Using a module when running Makefile.PL
+=item Using as a module when running Makefile.PL
 
 If you do not want any reference to ExtUtils::CVS within your Makefile.PL, you can
 build the Makefile with the following command:
 
         perl -MExtUtils::CVS=:all Makefile.PL
-        
+
 This will build a Makefile with all the ExtUtils::CVS targets.
 
 =back
@@ -1014,14 +1020,14 @@ Once you have created the first draft of your module, and included ExtUtils::CVS
 Makefile.PL file in one of the above ways, you can import the module into CVS. Simply do a
 
         make import
-        
+
 in the working directory. All files in the MANIFEST will be imported into CVS. This does B<not>
 create a CVS working directory in the current location.
 
 You should move to a clean directory location and do a
 
         cvs co Acme-Froogle
-        
+
 Note the translation of '::' characters in the module name to '-' characters in CVS.
 
 =head1 ADDING OR REMOVING FILES WITHIN THE PROJECT
@@ -1029,9 +1035,9 @@ Note the translation of '::' characters in the module name to '-' characters in 
 Once checked out you can work on your files as per normal. If you add or remove a file from your
 module project you need to undertake the corresponding action in cvs with a
 
-        cvs add myfile.pm OR 
+        cvs add myfile.pm OR
         cvs del myfile.pm
-        
+
 You must remember to add or remove the file from the MANIFEST, or ExtUtils::CVS will generate a
 error when you try to build the dist. This is by design - the contents of the MANIFEST file should
 mirror the active CVS files.
@@ -1042,20 +1048,20 @@ Periodically you will want to check modifications into the CVS repository. If yo
 a distribution at this time a normal
 
         cvs ci
-        
+
 will still work. As this is a stardard cvs checkin, no checking of the MANIFEST etc will be performed. 
 
 If you wish to build a distribution from the current project working directory you should do a 
 
         make ci
-        
+
 Doing a 'make ci' will undertake a check to ensure that the MANIFEST and CVS are in sync. It will
 check modified files in to CVS, incrementing the current module version. In addition, it will then
 tag the repository with the new version in the form 'Acme-Froogle_1-26'. Thus at any time you can
 checkout an earlier version of your module with a cvs command in the form of
 
         cvs co -r Acme-Froogle_1-10 Acme-Froogle
-        
+
 The checked out version will be 'sticky' (see L<cvs> for details), you will not be able to check
 changes back into the repository without branching your project.
 

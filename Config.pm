@@ -1,25 +1,27 @@
 #
 #
-#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
+#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights 
 #  reserved.
 #
-#  This program is NOT free software,  it licensed under the conditions provided
-#  in the LICENSE file included with the software. If you are not able to locate
-#  the LICENSE file, or need  further information you  should contact the author
-#  at the email adddress give above.
+#  This file is part of ExtUtils::CVS.
+#
+#  ExtUtils::CVS is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: Config.pm,v 1.4 2003/10/15 14:58:10 aspeer Exp $
-
-
-#  Part of ExtUtils::CVS namespace
-#
-package ExtUtils::CVS;
-
-
-#  Need File::Find, other File utils
-#
-use File::Find;
+#  $Id: Config.pm,v 1.5 2003/11/02 15:49:11 aspeer Exp $
+package ExtUtils::CVS;#  Need File::Find, other File utils#use File::Find;
 use File::Spec;
 use IO::File;
 

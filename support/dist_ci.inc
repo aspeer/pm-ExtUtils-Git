@@ -39,10 +39,10 @@ ci_version ::
 ci_version_dump ::
 	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_version_dump( \
 		'$(NAME)', '$(VERSION_FROM)' )"
-		
+
 ci_tag ::
-        $(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_tag( \
-		'$(CVS)', '$(DISTNAME)', '$(VERSION_FROM)' )"
+	$(PERL) -MExtUtils::CVS -e "ExtUtils::CVS->ci_tag( \
+	'$(CVS)', '$(DISTNAME)', '$(VERSION_FROM)')"
 
 branch ::
 	$(CVS) tag -b $(DISTNAME)_`$(PERL) -e "do './$(VERSION_FROM)'; ($$::_=$$::VERSION)=~s/\\\./-/g;print"`-0 && \

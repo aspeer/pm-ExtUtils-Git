@@ -6,6 +6,7 @@ package ExtUtils::CVS;
 #  External Packages
 #
 use IO::File;
+use IO::Dir;
 use File::Spec;
 use ExtUtils::Manifest;
 use Data::Dumper;
@@ -29,7 +30,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.13 $)[1];
+$REVISION=(qw$Revision: 1.14 $)[1];
 
 
 #  Package info
@@ -653,6 +654,43 @@ sub ci_manicheck {
 	printf("$method: the following files are in CVS, but not in the manifest: \n\n%s\n\n",
 	       join("\n", keys %test1));
 	$fail++;
+    }
+
+
+    #  Now look for a patch dir
+    #
+    if (-d (my $dn=File::Spec->catdir($cwd, 'patch'))) {
+
+
+	#  Yes, must check files in that dir also. Process dir to get just file entries.
+	#
+	tie (my %fn_raw, 'IO::Dir', $dn) ||
+	    die("unable to tie IO::Dir to $dn, $!");
+	my %fn=%fn_raw;
+	map { delete $fn{$_} unless (-f File::Spec->catfile($cwd,'patch',$_)) } keys %fn;
+
+
+	#  Now test for files in patch dir. not in manifest
+	#
+	my %test0=%fn;
+	map { delete $test0{(File::Spec->splitpath($_))[2]}} keys %{$manifest_hr};
+	if (keys %test0) {
+	    printf("$method: the following files are in the patch dir, but not in the manifest: \n\n%s\n\n",
+		   join("\n", keys %test0));
+	    $fail++;
+	}
+
+
+	#  And files in patch dir, not in CVS
+	#
+	my %test1=%fn;
+	map { delete $test1{(File::Spec->splitpath($_))[2]}} keys %manifest;
+	if (keys %test1) {
+	    printf("$method: the following files are in the patch dir, but not in the CVS: \n\n%s\n\n",
+		   join("\n", keys %test1));
+	    $fail++;
+	}
+
     }
 
 

@@ -7,6 +7,7 @@ ci :: ci_manicheck
 	@$(CVS) status $(DEV_NULL)
 	@$(PERL) -M$(EXTUTILS_CVS) \
 	-e "$(EXTUTILS_CVS)->ci_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
+		$(CVS) status $(DEV_NULL)							&&	\
 		$(CVS) commit 									&&	\
 		$(CVS) commit -m "$(DISTNAME) version increment" -f "$(VERSION_FROM)" 	        && 	\
 		$(CVS2CL) $(CVS2CL_ARG) 							&&	\

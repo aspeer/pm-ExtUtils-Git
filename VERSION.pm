@@ -20,6 +20,6 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: VERSION.pm,v 1.52 2005/02/06 02:31:11 aspeer Exp $
+#  $Id: VERSION.pm,v 1.53 2005/10/23 07:25:52 aspeer Exp $
 
-$VERSION=qw($Revision: 1.52 $)[1];
+$VERSION=qw($Revision: 1.53 $)[1];

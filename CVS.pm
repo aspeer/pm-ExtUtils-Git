@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.37 2005/02/06 02:31:10 aspeer Exp $
+#  $Id: CVS.pm,v 1.38 2005/11/07 00:43:20 aspeer Exp $
 #
 
 
@@ -62,7 +62,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.37 $)[1];
+$REVISION=(qw$Revision: 1.38 $)[1];
 
 
 #  Load up our config file
@@ -795,6 +795,11 @@ sub ci_manicheck {
 	    #
 	    my ($fn_type, $fn, $version, $date)=split(/\//, $entry);
 	    $fn_type && next;
+	    
+	    
+	    #  Negative version means sched for removal
+	    #
+	    ($version=~/^-/) && next;
 
 
 	    #  Rebuild

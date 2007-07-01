@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: Config.pm,v 1.17 2005/02/06 02:31:10 aspeer Exp $
+#  $Id: Config.pm,v 1.18 2007/07/01 09:46:09 aspeer Exp $
 #
 
 
@@ -136,6 +136,8 @@ unless ($_ = do($cache_fn)) {
 	CHANGELOG		 =>  $_='ChangeLog',
 
 	CVS2CL_ARG		 =>  "--window 15 --file $_ -P -r -I $_",
+	
+	METAFILE		 =>  'META.yml',
 
 	DUMPER_FN	         =>  '.dumper.pm',
 

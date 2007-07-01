@@ -11,7 +11,8 @@ ci :: ci_manicheck
 		$(CVS) commit 									&&	\
 		$(CVS) commit -m "$(DISTNAME) version increment" -f "$(VERSION_FROM)" 	        && 	\
 		$(CVS2CL) $(CVS2CL_ARG) 							&&	\
-		$(CVS) commit -m "" $(CHANGELOG)                                                &&      \
+		$(MAKE) metafile 								&&	\
+		$(CVS) commit -m "" $(CHANGELOG) $(METAFILE)                                    &&      \
         	$(PERL) -M$(EXTUTILS_CVS) 								\
 			-e  "$(EXTUTILS_CVS)->ci_tag(@ARGV)"   						\
 			--  $(EXTUTILS_ARGV)   							&&	\
@@ -73,3 +74,9 @@ ci_tag ::
 		-- $(EXTUTILS_ARGV)
 
 
+#  Create links
+#
+links ::
+	@$(PERL) -M$(EXTUTILS_CVS) \
+		-e "ExtUtils::CVS->$@(@ARGV)" \
+		-- $(NAME) $(TO_INST_PM)

@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.38 2005/11/07 00:43:20 aspeer Exp $
+#  $Id: CVS.pm,v 1.39 2007/07/01 09:46:09 aspeer Exp $
 #
 
 
@@ -62,7 +62,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.38 $)[1];
+$REVISION=(qw$Revision: 1.39 $)[1];
 
 
 #  Load up our config file
@@ -417,6 +417,13 @@ sub ci_status {
     }
 
 
+    #  Ignore the META.yml file
+    #
+    if (my $metafile_fn=$Config_hr->{'METAFILE'}) {
+        delete $manifest_hr->{$metafile_fn};
+    }
+
+
     #  Work out all the directory names
     #
     my %manifest_dn;
@@ -636,9 +643,10 @@ sub ci_status_bundle {
 	    $fn_type && next;
 
 
-	    #  Skip changelog
+	    #  Skip changelog, metafile
 	    #
 	    if ($fn eq $Config_hr->{'CHANGELOG'}) { next }
+	    if ($fn eq $Config_hr->{'METAFILE'}) { next }
 
 
 	    #  Rebuild
@@ -795,8 +803,8 @@ sub ci_manicheck {
 	    #
 	    my ($fn_type, $fn, $version, $date)=split(/\//, $entry);
 	    $fn_type && next;
-	    
-	    
+
+
 	    #  Negative version means sched for removal
 	    #
 	    ($version=~/^-/) && next;
@@ -985,6 +993,30 @@ sub ci_version {
     #  Done
     #
     return $version_cvs;
+
+}
+
+
+sub links {
+
+
+    #  Create soft links in top level dir to files under 'lib' - makes
+    #  editing easier
+    #
+    my (undef, $name, @to_inst_pm)=@_;
+    require File::Spec;
+    foreach my $to_inst_pm (@to_inst_pm) {
+	my @name=('lib', split(/::/, $name)); 
+	pop @name;
+	my (undef,$dn,$fn)=File::Spec->splitpath($to_inst_pm);
+	my @dn=File::Spec->splitdir($dn);
+	while (@dn && ($dn[0] eq $name[0])) { shift @dn; shift @name }
+	my $link_fn=join('_', grep {$_} @dn, $fn);
+	next if (-f $link_fn);
+	print $_="ln -s $to_inst_pm $link_fn\n";
+	system($_);
+	#link $to_inst_pm, $link_fn || die $!;
+    }
 
 }
 
@@ -1217,7 +1249,7 @@ sub _arg {
     #
     shift();
     @Arg{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM)}=@_;
-    return \%Arg, @_[7..$#_];
+    return wantarray ? (\%Arg, @_[7..$#_]) : \%Arg;
 
 }
 

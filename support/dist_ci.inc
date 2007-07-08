@@ -11,6 +11,7 @@ ci :: ci_manicheck
 		$(CVS) commit 									&&	\
 		$(CVS) commit -m "$(DISTNAME) version increment" -f "$(VERSION_FROM)" 	        && 	\
 		$(CVS2CL) $(CVS2CL_ARG) 							&&	\
+		$(MAKE) Makefile_PL                                                             &&	\
 		$(MAKE) metafile 								&&	\
 		$(CVS) commit -m "" $(CHANGELOG) $(METAFILE)                                    &&      \
         	$(PERL) -M$(EXTUTILS_CVS) 								\
@@ -18,8 +19,7 @@ ci :: ci_manicheck
 			--  $(EXTUTILS_ARGV)   							&&	\
 		$(PERL) -M$(EXTUTILS_CVS) 								\
 			-e "$(EXTUTILS_CVS)->ci_version_dump(@ARGV)"					\
-			-- $(EXTUTILS_ARGV)							&& 	\
-		$(MAKE) Makefile_PL                                                             	\
+			-- $(EXTUTILS_ARGV)							        \
 	)
 
 

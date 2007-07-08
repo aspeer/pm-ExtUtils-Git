@@ -20,7 +20,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.39 2007/07/01 09:46:09 aspeer Exp $
+#  $Id: CVS.pm,v 1.40 2007/07/08 07:54:20 aspeer Exp $
 #
 
 
@@ -45,6 +45,7 @@ use IO::Dir;
 use File::Spec;
 use Tie::IxHash;
 use ExtUtils::Manifest;
+use ExtUtils::MM_Any;
 use Data::Dumper;
 use Date::Parse qw(str2time);
 use File::Find qw(find);
@@ -62,7 +63,7 @@ $VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.
 
 #  Revision information, auto maintained by CVS
 #
-$REVISION=(qw$Revision: 1.39 $)[1];
+$REVISION=(qw$Revision: 1.40 $)[1];
 
 
 #  Load up our config file
@@ -73,7 +74,7 @@ our $Config_hr;
 #  Vars to hold chained soubroutines, if needed (loaded by import). Must be
 #  global (our) vars. Also need to remember import param
 #
-our ($Const_config_chain_cr, $Dist_ci_chain_cr, $Makefile_chain_cr);
+our ($Const_config_chain_cr, $Dist_ci_chain_cr, $Makefile_chain_cr, $Metafile_target_chain_cr);
 
 
 #  Intercepts method arguments, holds some info across method calls to be used
@@ -140,6 +141,13 @@ sub import {
 	0 && MY::makefile();
 
     };
+    my $metafile_target_cr=sub {
+
+	$Metafile_target_chain_cr=UNIVERSAL::can('MY', 'metafile_target');
+	*ExtUtils::MM_Any::metafile_target=sub { &metafile_target(@_) };
+	0 && ExtUtils::MM_Any::metafile_target();
+
+    };
 
 
     #  Put into hash
@@ -149,7 +157,8 @@ sub import {
 	const_config	=>  $const_config_cr,
 	dist_ci		=>  $dist_ci_cr,
 	makefile        =>  $makefile_cr,
-	':all'		=>  sub { $const_config_cr->(); $dist_ci_cr->(); $makefile_cr->() },
+	metafile_target =>  $metafile_target_cr,
+	':all'		=>  sub { $const_config_cr->(); $dist_ci_cr->(); $makefile_cr->(); $metafile_target_cr->() },
 	':errnofatal'	=>  sub { $Config_hr->{'errnofatal'}++ },
 
        );
@@ -339,6 +348,32 @@ sub makefile {
     #
     return join($/, @makefile);	
 
+}
+
+
+sub metafile_target {
+
+
+    #  Change package
+    #
+    package MY;
+
+
+    #  Get self ref
+    #
+    my $self=shift();
+
+
+    #  Get original makefile text
+    #
+    my $metafile=$Metafile_target_chain_cr->($self);
+    $metafile=~s/\$\(DISTVNAME\)\/META.yml/META.yml/;
+    $metafile=~s/^metafile\s*:\s*create_distdir/metafile :/;
+    
+    #  Done, return modified version
+    #
+    return $metafile;
+    
 }
 
 

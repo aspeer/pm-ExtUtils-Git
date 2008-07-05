@@ -1,11 +1,11 @@
 #
 #
-#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights 
+#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
 #  reserved.
 #
-#  This file is part of ExtUtils::CVS.
+#  This file is part of ExtUtils::Git.
 #
-#  ExtUtils::CVS is free software; you can redistribute it and/or modify
+#  ExtUtils::Git is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
@@ -24,9 +24,9 @@
 #
 
 
-#  Augment Perl ExtUtils::MakeMaker cvs functions
+#  Augment Perl ExtUtils::MakeMaker functions
 #
-package ExtUtils::CVS;
+package ExtUtils::Git;
 
 
 #  Compiler Pragma
@@ -40,6 +40,7 @@ no  warnings qw(uninitialized);
 
 #  External Packages
 #
+use ExtUtils::Git::Constant;
 use IO::File;
 use IO::Dir;
 use File::Spec;
@@ -58,7 +59,7 @@ use Carp;
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = eval { require ExtUtils::CVS::VERSION; do $INC{'ExtUtils/CVS/VERSION.pm'}};
+$VERSION = eval { require ExtUtils::Git::VERSION; do $INC{'ExtUtils/Git/VERSION.pm'}};
 
 
 #  Revision information, auto maintained by CVS
@@ -102,7 +103,7 @@ sub import {
 
     #  Get params
     #
-    my ($self, @param)=(shift(), @_);
+    my ($self, @import)=(shift(), @_);
     no warnings;
 
 
@@ -115,13 +116,14 @@ sub import {
 
     #  Store for later use in MY::makefile section
     #
-    $MY::Import_class{$self}=\@param;
+    $MY::Import_class{$self}=\@import;
 
 
     #  Code ref for params
     #
     my $const_config_cr=sub {
 
+	print "cc 1\n";
 	$Const_config_chain_cr=UNIVERSAL::can('MY', 'const_config');
 	*MY::const_config=sub { &const_config(@_) };
 	0 && MY::const_config();
@@ -152,32 +154,42 @@ sub import {
 
     #  Put into hash
     #
-    my %param=(
+    my %import=(
 
 	const_config	=>  $const_config_cr,
 	dist_ci		=>  $dist_ci_cr,
 	makefile        =>  $makefile_cr,
 	metafile_target =>  $metafile_target_cr,
 	':all'		=>  sub { $const_config_cr->(); $dist_ci_cr->(); $makefile_cr->(); $metafile_target_cr->() },
-	':errnofatal'	=>  sub { $Config_hr->{'errnofatal'}++ },
 
        );
 
 
     #  Run appropriate
     #
-    foreach my $param (@param) {
-	$param{$param} && ($param{$param}->());
+    foreach my $import (@import) {
+	$import{$import} && ($import{$import}->());
+    };
+
+
+    #  Also include utilities into the MY address space
+    #
+    foreach my $sr (qw(_err)) {
+	*{"MY::${sr}"}=\&{$sr};
     }
 
 
     #  Done. Replace with stub so not run again
     #
-    *ExtUtils::CVS::import=sub { 
+    *ExtUtils::Git::import=sub {
     	my $self=shift();
-    	$MY::Import_class{$self}=\@param;
-	$self->SUPER::import(@_) 
+    	$MY::Import_class{$self}=\@import;
+	$self->SUPER::import(@_)
     };
+
+
+    #  And call any other import routine needed
+    #
     return $self->SUPER::import(@_);
 
 }
@@ -190,6 +202,7 @@ sub const_config {
 
     #  Change packages so SUPER works OK
     #
+    print "const config\n";
     package MY;
 
 
@@ -198,9 +211,16 @@ sub const_config {
     my $self=shift();
 
 
-    #  Update macros with our config
+    #  Import Constants into macros
     #
-    map { $self->{'macro'}{$_}=$Config_hr->{$_} } keys %{$Config_hr};
+    while (my ($key, $value)=each %ExtUtils::Git::Constant::Constant) {
+
+
+	#  Update macros with our config
+	#
+	$self->{'macro'}{$key}=$value;
+
+    }
 
 
     #  Return whatever our parent does
@@ -211,7 +231,7 @@ sub const_config {
 }
 
 
-#  MakeMaker::MY update ci section to include an "import" function
+#  MakeMaker::MY update ci section to include a "git_import" and other functions
 #
 sub dist_ci {
 
@@ -228,7 +248,7 @@ sub dist_ci {
 
     #  Found it, open our patch file. Get dir first
     #
-    (my $patch_dn=$INC{'ExtUtils/CVS.pm'})=~s/\.pm$//;
+    (my $patch_dn=$INC{'ExtUtils/Git.pm'})=~s/\.pm$//;
 
 
     #  And now file name
@@ -238,8 +258,8 @@ sub dist_ci {
 
     #  Open it
     #
-    my $patch_fh=IO::File->new($patch_fn, &ExtUtils::CVS::O_RDONLY) ||
-	return $self->_err("unable to open $patch_fn, $!");
+    my $patch_fh=IO::File->new($patch_fn, &ExtUtils::Git::O_RDONLY) ||
+	return ExtUtils::Git->_err("unable to open $patch_fn, $!");
 
 
     #  Add in. We are replacing dist_ci entirely, so do not
@@ -369,15 +389,57 @@ sub metafile_target {
     my $metafile=$Metafile_target_chain_cr->($self);
     $metafile=~s/\$\(DISTVNAME\)\/META.yml/META.yml/;
     $metafile=~s/^metafile\s*:\s*create_distdir/metafile :/;
-    
+
     #  Done, return modified version
     #
     return $metafile;
-    
+
 }
 
 
 #===================================================================================================
+
+
+
+sub git_import {
+
+
+    #  Checks that all files in the manifest are up to date with respect to
+    #  CVS/Entries file
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+
+
+    #  Get the manifest
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Check all files present
+    #
+    foreach my $fn (keys %{$manifest_hr}) {
+	unless (-f $fn) { $self->_err("file '$fn' in MANIFEST does not exist - aborting !") }
+    }
+
+
+    #  Build import command
+    #
+    my @system=($GIT_EXE, 'add', keys %{$manifest_hr});
+    system @system;
+
+
+    #  All OK
+    #
+    return \undef;
+
+
+}
+
+
+
+
+
 
 
 #  Public methods. Each one of the routines below corresponds with a Makefile target, eg
@@ -1182,11 +1244,17 @@ sub _ci_mtime_sync {
 #
 sub _config_read {
 
+    return \%ExtUtils::Git::Constant::Constant;
+
+}
+
+sub _config_read0 {
+
 
     #  Get our dir
     #
     my $self=shift();
-    (my $config_dn=$INC{'ExtUtils/CVS.pm'})=~s/\.pm$//;
+    (my $config_dn=$INC{'ExtUtils/Git.pm'})=~s/\.pm$//;
 
 
     #  Unless absolute, add cwd
@@ -1222,7 +1290,7 @@ sub _config_read {
 }
 
 
-sub _repository {
+sub _repository0 {
 
 
     #  Modify repository
@@ -1279,10 +1347,10 @@ sub _fmt {
 
 sub _arg {
 
-    #  Get args, does nothing but intercept distname for messages, cobvert to param
+    #  Get args, does nothing but intercept distname for messages, convert to param
     #  hash
     #
-    shift();
+    my $self=shift();
     @Arg{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM)}=@_;
     return wantarray ? (\%Arg, @_[7..$#_]) : \%Arg;
 
@@ -1294,7 +1362,7 @@ sub _caller {
 
     #  Return the method name of the caller
     #
-    shift();
+    my $self=shift();
     my $caller=(split(/:/, (caller(shift() || 1))[3]))[-1];
     $caller=~s/^_//;
     return $caller;

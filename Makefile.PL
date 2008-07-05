@@ -1,6 +1,6 @@
 #  Makefile.PL
 #
-package ExtUtils::CVS;
+package ExtUtils::Git;
 
 
 #  Compiler Pragma
@@ -22,48 +22,52 @@ use ExtUtils::MakeMaker;
 #
 WriteMakefile(
 
-    NAME				 =>  __PACKAGE__,
-    VERSION_FROM			 =>  'VERSION.pm',
-    PM					 =>  {
-
-	'CVS.pm'			 =>  '$(INST_LIBDIR)/CVS.pm',
-	'VERSION.pm'			 =>  '$(INST_LIBDIR)/CVS/VERSION.pm',
-	'Config.pm'			 =>  '$(INST_LIBDIR)/CVS/Config.pm',
-	'support/dist_ci.inc'		 =>  '$(INST_LIBDIR)/CVS/dist_ci.inc',
-	'LICENSE',			 =>  '$(INST_LIBDIR)/Lint/LICENSE',
-
-    },
-    
-    EXE_FILES                            =>  [
-    
-        'support/cvs2cl.pl',
-        
-    ],
-
-    'dist'				 =>  {
-
-	COMPRESS			 =>  'gzip -9f',
-	SUFFIX				 =>  '.gz',
-
-    },
+    NAME					  =>  __PACKAGE__,
 
 
-    'depend'				 =>  {
-	Makefile			 =>  '$(VERSION_FROM)',
-    },
+    VERSION_FROM				  =>  File::Spec->catfile(
+
+	'lib',
+	split(/::/, __PACKAGE__),
+	'VERSION.pm'
+
+       ),
 
 
-    'macro'				 =>  {
-        COPYRIGHT			 =>  'Copyright (c) 2003 Andrew Speer, All rights reserved',
-    	LICENSE				 =>  'GPL: GNU General Public License',
-    	statl				 =>  'g',
+    PM						  =>  {
+
+	'lib/ExtUtils/Git.pm'			  =>  '$(INST_LIBDIR)/Git.pm',
+	'lib/ExtUtils/Git/Constant.pm'		  =>  '$(INST_LIBDIR)/Git/Constant.pm',
+	'lib/ExtUtils/Git/VERSION.pm'		  =>  '$(INST_LIBDIR)/Git/VERSION.pm',
+	'lib/ExtUtils/Git/dist_ci.inc'		  =>  '$(INST_LIBDIR)/Git/dist_ci.inc',
+	'LICENSE'				  =>  '$(INST_LIBDIR)/Git/LICENSE',
+
+       },
+
+
+    'dist'					  =>  {
+
+	COMPRESS				  =>  'gzip -9f',
+	SUFFIX					  =>  '.gz',
+
     },
 
 
-    ($] >= 5.005 ?
-      (ABSTRACT_FROM 			 => 'CVS.pm',
-       AUTHOR     			 => 'Andrew Speer <andrew.speer@isolutions.com.au>') : ()
-    ),
+    'depend'					  =>  {
+	Makefile				  =>  '$(VERSION_FROM)',
+    },
+
+
+    'macro'					  =>  {
+        COPYRIGHT				  =>  'Copyright (c) 2003 Andrew Speer, All rights reserved',
+	LICENSE					  =>  'GPL: GNU General Public License',
+    },
+
+
+    ($] >=  5.005 ?
+	 (#ABSTRACT_FROM				  => '$(LIBDIR)/Git.pm',
+	  AUTHOR				  => 'Andrew Speer <andrew.speer@isolutions.com.au>') : ()
+	 ),
 
    );
 

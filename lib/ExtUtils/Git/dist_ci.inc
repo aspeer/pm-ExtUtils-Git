@@ -26,19 +26,17 @@ ci :: ci_manicheck
 
 #  Make clean distribution and import into CVS
 #
-import :: disttest
-	cd $(DISTVNAME) && $(MAKE) realclean
-	cd $(DISTVNAME) && \
-		$(CVS) -d $(CVSROOT) import -m "Initial import" \
-		$(DISTNAME) $(DISTNAME)_IMPORT_1-0 $(DISTNAME)_1-1 
-	rm -rf $(DISTVNAME)
-
+git_import ::
+	$(GIT_EXE) init -q && \
+	$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
 
 #  Check manifest matches CVS
 #
-ci_manicheck ::
-	@$(PERL) -M$(EXTUTILS_CVS) \
-		-e "ExtUtils::CVS->$@(@ARGV)" \
+git_manicheck ::
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "ExtUtils::Git->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
 
 

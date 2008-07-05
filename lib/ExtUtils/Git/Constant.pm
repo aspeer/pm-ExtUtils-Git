@@ -3,9 +3,9 @@
 #  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights 
 #  reserved.
 #
-#  This file is part of ExtUtils::CVS.
+#  This file is part of ExtUtils::Git.
 #
-#  ExtUtils::CVS is free software; you can redistribute it and/or modify
+#  ExtUtils::Git is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
@@ -25,11 +25,9 @@
 
 
 #  This package finds, then stores in a cache the full path to various
-#  executables and environmnet vars, including:
+#  executables and environment vars, including:
 #
-#  cvs
-#  cvs2cl
-#  CVSROOT
+#  bin
 #
 #  If no cache file is found, this modules will go through the path and
 #  look for the executables, then store the results away in a cache file
@@ -39,13 +37,14 @@
 
 #
 #
-package ExtUtils::CVS::Config;
+package ExtUtils::Git::Constant;
 
 
 #  Compiler Pragma
 #
 sub BEGIN   { $^W=0 };
 use strict  qw(vars);
+use vars qw($VERSION @ISA %EXPORT_TAGS @EXPORT_OK @EXPORT %Constant);
 use warnings;
 no  warnings qw(uninitialized);
 
@@ -55,6 +54,7 @@ no  warnings qw(uninitialized);
 use File::Find;
 use File::Spec;
 use IO::File;
+use Data::Dumper;
 
 
 #===================================================================================================
@@ -100,7 +100,7 @@ my $bin_find_cr=sub {
 
 #  Get cache file name
 #
-my $cache_fn=$INC{'ExtUtils/CVS.pm'} || File::Spec->rel2abs(__FILE__);
+my $cache_fn=$INC{'ExtUtils/Git/Constant.pm'} || File::Spec->rel2abs(__FILE__);
 $cache_fn .= '.cache';
 
 
@@ -109,55 +109,58 @@ $cache_fn .= '.cache';
 if (-e $cache_fn && ((stat($cache_fn))[9] < (time() - (1 * 60)))) {
 
 
-    #  Cache is stale, delete
+    #  Cache is stale, delete. Not fatal if fails, just blank out so
+    #  we do not use;
     #
-    unlink $cache_fn ||
-	die("unable to unlink $cache_fn, $!");
+    unlink $cache_fn || ($cache_fn=undef);
 
 }
 
 
 #  Try to read in cache details, or search disk for binaries if needed
 #
-unless ($_ = do($cache_fn)) {
+unless (%Constant = %{do($cache_fn)}) {
 
 
     #  Could not find cache file, create hash. Should probably put this stuff into a
     #  support/const.inc file later as a template, as contains some constants
     #
-    my %Config= (
+    %Constant= (
 
-	CVS			 =>  $bin_find_cr->([qw(cvs cvs.exe)]),
+	GIT_EXE			 =>  $bin_find_cr->([qw(git git.exe)]),
 
-	CVS2CL			 =>  $bin_find_cr->('cvs2cl.pl'),
+	CHANGELOG_FN		 =>  'ChangeLog',
 
-	CVSROOT			 =>  $ENV{'CVSROOT'},
+	METAFILE_FN		 =>  'META.yml',
 
-	CHANGELOG		 =>  $_='ChangeLog',
-
-	CVS2CL_ARG		 =>  "--window 15 --file $_ -P -r -I $_",
-	
-	METAFILE		 =>  'META.yml',
-
-	DUMPER_FN	         =>  '.dumper.pm',
+	DUMPER_FN	         =>  '.dumper.cache',
 
 	EXTUTILS_ARGV		 =>  q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ].
 	    q["$(VERSION_SYM)" "$(VERSION_FROM)"],
 
-	EXTUTILS_CVS		 =>  'ExtUtils::CVS',
-	
+	EXTUTILS_GIT		 =>  'ExtUtils::Git'
+
        );
 
 
     #  Store in cache file. Does not matter if not writeable
     #
     if (my $fh=IO::File->new($cache_fn, O_WRONLY|O_CREAT|O_TRUNC)) {
-        print $fh &Data::Dumper::Dumper(\%Config)
+        print $fh &Data::Dumper::Dumper(\%Constant)
     }
 
 
-    #  Return ref
-    #
-    $_=\%Config;
-
 }
+
+
+#  Export constants to namespace, place in export tags
+#
+require Exporter;
+@ISA=qw(Exporter);
+eval { require WebDyne::Constant; &WebDyne::Constant::local_constant_load(__PACKAGE__,\%Constant) };
+foreach (keys %Constant) { ${$_}=$Constant{$_} }
+@EXPORT=map { '$'.$_ } keys %Constant;
+@EXPORT_OK=@EXPORT;
+%EXPORT_TAGS=(all => [@EXPORT_OK]);
+$_=\%Constant;
+

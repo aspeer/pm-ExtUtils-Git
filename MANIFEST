@@ -1,9 +1,8 @@
 ChangeLog
 MANIFEST
-VERSION.pm
 Makefile.PL
-CVS.pm
-Config.pm
+lib/ExtUtils/Git.pm
+lib/ExtUtils/Git/Constant.pm
+lib/ExtUtils/Git/VERSION.pm
+lib/ExtUtils/Git/dist_ci.inc
 LICENSE
-support/dist_ci.inc
-support/cvs2cl.pl

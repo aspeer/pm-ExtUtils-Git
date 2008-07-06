@@ -422,11 +422,14 @@ sub git_import {
     #  Build import command
     #
     my @system=($GIT_EXE, 'add', keys %{$manifest_hr});
-    system @system;
+    system @system == 0 or
+	return $self->_err("failed to execute git import: $?");
+
 
 
     #  All OK
     #
+    $self->_msg('git import successful');
     return \undef;
 
 
@@ -462,14 +465,14 @@ sub git_manicheck {
     my %test0=%{$manifest_hr};
     map { delete $test0{$_} } keys %git_ls_files;
     if (keys %test0) {
-	$self->_msg("the following files are in the manifest, but not in Git: \n\n%s\n",
+	$self->_msg("the following files are in the manifest, but not in git: \n\n%s\n",
 	       join("\n", keys %test0));
 	$fail++;
     }
     my %test1=%git_ls_files;
     map { delete $test1{$_} } keys %{$manifest_hr};
     if (keys %test1) {
-	$self->_msg("the following files are in Git, but not in the manifest: \n\n%s\n\n",
+	$self->_msg("the following files are in git, but not in the manifest: \n\n%s\n\n",
 	       join("\n", keys %test1));
 	$fail++;
     }
@@ -485,7 +488,7 @@ sub git_manicheck {
 	}
     }
     else {
-	$self->_msg('manifest and Git in sync');
+	$self->_msg('git and maifest in sync');
     }
 
 

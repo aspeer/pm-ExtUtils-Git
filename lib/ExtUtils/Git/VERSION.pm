@@ -22,4 +22,4 @@
 #
 #  $Id: VERSION.pm,v 1.55 2007/07/01 09:46:10 aspeer Exp $
 
-$VERSION=qw($Revision: 1.55 $)[1];
+$VERSION=qw($Revision: 1.56 $)[1];

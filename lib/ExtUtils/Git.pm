@@ -581,7 +581,7 @@ sub git_status {
 
 	    #  Give it one more chance
 	    #
-	    $mtime_fn=$self->_ci_mtime_sync($fn, $commit_time) ||
+	    $mtime_fn=$self->_git_mtime_sync($fn, $commit_time) ||
 		$mtime_fn;
 	    ($mtime_fn > $version_from_mtime) && do {
 		push @modified_fn, $fn;

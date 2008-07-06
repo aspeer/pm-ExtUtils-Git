@@ -27,7 +27,7 @@ ci :: ci_manicheck
 #  Make clean distribution and import into CVS
 #
 git_import ::
-	$(GIT_EXE) init -q && \
+	@$(GIT_EXE) init -q && \
 	$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
@@ -36,7 +36,7 @@ git_import ::
 #
 git_manicheck ::
 	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "ExtUtils::Git->$@(@ARGV)" \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
 
 

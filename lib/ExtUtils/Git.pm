@@ -123,7 +123,6 @@ sub import {
     #
     my $const_config_cr=sub {
 
-	print "cc 1\n";
 	$Const_config_chain_cr=UNIVERSAL::can('MY', 'const_config');
 	*MY::const_config=sub { &const_config(@_) };
 	0 && MY::const_config();
@@ -202,7 +201,6 @@ sub const_config {
 
     #  Change packages so SUPER works OK
     #
-    print "const config\n";
     package MY;
 
 
@@ -404,23 +402,21 @@ sub metafile_target {
 sub git_import {
 
 
-    #  Checks that all files in the manifest are up to date with respect to
-    #  CVS/Entries file
+    #  Import all files in MANIFEST into Git.
     #
     my $self=shift();
     my $param_hr=$self->_arg(@_);
 
 
+    #  Check all files present
+    #
+    ExtUtils::Manifest::manicheck() &&
+	return $self->_err('MANIFEST manicheck error');
+
+
     #  Get the manifest
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
-
-
-    #  Check all files present
-    #
-    foreach my $fn (keys %{$manifest_hr}) {
-	unless (-f $fn) { $self->_err("file '$fn' in MANIFEST does not exist - aborting !") }
-    }
 
 
     #  Build import command
@@ -437,6 +433,67 @@ sub git_import {
 }
 
 
+
+sub git_manicheck {
+
+
+    #  Checks that all files in the manifest are checked in to Git
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+    my $distname=$param_hr->{'DISTNAME'} ||
+	return $self->_err('unable to get distname');
+
+
+    #  Get the manifest, jump Win32 hoops with file names
+    #
+    ExtUtils::Manifest::manicheck() && return $self->_err('MANIFEST manicheck error');
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Read in all the Git files
+    #
+    my %git_ls_files=map { chomp($_); $_=>1 } split($/, qx($GIT_EXE ls-files));
+
+
+    #  Check for files in Git, but not in the manifest, or vica versa
+    #
+    my $fail;
+    my %test0=%{$manifest_hr};
+    map { delete $test0{$_} } keys %git_ls_files;
+    if (keys %test0) {
+	$self->_msg("the following files are in the manifest, but not in Git: \n\n%s\n",
+	       join("\n", keys %test0));
+	$fail++;
+    }
+    my %test1=%git_ls_files;
+    map { delete $test1{$_} } keys %{$manifest_hr};
+    if (keys %test1) {
+	$self->_msg("the following files are in Git, but not in the manifest: \n\n%s\n\n",
+	       join("\n", keys %test1));
+	$fail++;
+    }
+
+
+    #  Die if there was an error, otherwise print OK text
+    #
+    if ($fail) {
+	my $yesno=ExtUtils::MakeMaker::prompt(
+	    'Do you wish to continue [yes|no] ?','yes');
+	if ($yesno=~/^n|no$/i) {
+	    return $self->_err('bundle build aborted by user !')
+	}
+    }
+    else {
+	$self->_msg('manifest and Git in sync');
+    }
+
+
+    #  All done
+    #
+    return \undef;
+
+}
 
 
 

@@ -359,7 +359,7 @@ sub makefile {
 
     #  For rebuilding Makefile.PL without error, used after ci
     #
-    push @makefile, 'Makefile_PL :';
+    #push @makefile, 'Makefile_PL :';
 
 
     #  Done, return result
@@ -422,8 +422,8 @@ sub git_import {
     #  Build import command
     #
     my @system=($GIT_EXE, 'add', keys %{$manifest_hr});
-    system @system == 0 or
-	return $self->_err("failed to execute git import: $?");
+    unless (system(@system) == 0) {
+	return $self->_err("failed to execute git import: $?") }
 
 
 
@@ -488,7 +488,7 @@ sub git_manicheck {
 	}
     }
     else {
-	$self->_msg('git and maifest in sync');
+	$self->_msg('git and manifest in sync');
     }
 
 
@@ -574,7 +574,6 @@ sub git_status {
 	    return $self->_err("unable to stat file $fn, $!");
 
 
-
 	#  Check against version file
 	#
 	if ($mtime_fn > $version_from_mtime) {
@@ -583,7 +582,7 @@ sub git_status {
 	    #
 	    $mtime_fn=$self->_git_mtime_sync($fn, $commit_time) ||
 		$mtime_fn;
-	    ($mtime_fn > $version_from_mtime) && do {
+	    if ($mtime_fn > $version_from_mtime)  {
 		push @modified_fn, $fn;
 		next;
 	    };
@@ -605,7 +604,7 @@ sub git_status {
 
     #  All looks OK
     #
-    $self->_msg("all files up-to-date");
+    $self->_msg("git files up-to-date");
 
 
     #  All OK
@@ -613,6 +612,7 @@ sub git_status {
     return \undef;
 
 }
+
 
 
 sub git_version_increment {
@@ -1502,7 +1502,7 @@ sub _git_mtime_sync {
 
     #  Is modifed ?
     #
-    unless (system($GIT_EXE, 'diff', '--quiet', $fn) >> 8) {
+    if (system($GIT_EXE, 'diff', '--exit-code', $fn) == 0) {
 
 
 	#  No, update mtime
@@ -1514,7 +1514,7 @@ sub _git_mtime_sync {
 	   );
 	$touch_or->touch($fn) ||
 	    return $self->_err("error on touch of file $fn, $!");
-	$self->_msg("synced file $fn to git mtime $commit_time (%s)\n",
+	$self->_msg("synced file $fn to git commit time (%s)\n",
 		    scalar(localtime($commit_time)));
 
 	#  Return commit time
@@ -1526,6 +1526,7 @@ sub _git_mtime_sync {
 
 	#  Has been modfied, return undef
 	#
+	$self->_msg("file $fn changed, kept mtime");
 	return undef;
 
     }

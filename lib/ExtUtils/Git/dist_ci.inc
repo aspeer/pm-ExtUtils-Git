@@ -32,12 +32,10 @@ git_ci :: git_manicheck
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_version_increment(@ARGV)"				\
 			-- $(EXTUTILS_ARGV)							&&	\
-		$(MAKE) Makefile_PL                                                             	\
+		#$(MAKE) Makefile_PL                                                             	\
 		$(MAKE) metafile 								&&	\
 		$(GIT_EXE) commit -a								&&	\
-		$(PERL) -M$(EXTUTILS_GIT)								\
-			-e "$(EXTUTILS_GIT)->git_generate_changelog(@ARGV)"				\
-			-- $(EXTUTILS_ARGV)							&&	\
+		$(GIT_EXE) rev-list  --all --pretty > $(CHANGELOG_FN)				&&	\
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_tag(@ARGV)"						\
 			-- $(EXTUTILS_ARGV)							&&	\

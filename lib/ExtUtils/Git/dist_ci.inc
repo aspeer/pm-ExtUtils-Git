@@ -23,6 +23,30 @@ ci :: ci_manicheck
 	)
 
 
+#  Check in files to CVS if needed, assuming MANIFEST checks out and files are not already
+#  uptodate (as determined by ci_status test)
+#
+git_ci :: git_manicheck
+	@$(PERL) -M$(EXTUTILS_GIT) \
+	-e "$(EXTUTILS_GIT)->git_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
+		$(PERL) -M$(EXTUTILS_GIT)								\
+			-e "$(EXTUTILS_GIT)->git_version_increment(@ARGV)"				\
+			-- $(EXTUTILS_ARGV)							&&	\
+		$(MAKE) Makefile_PL                                                             	\
+		$(MAKE) metafile 								&&	\
+		$(GIT_EXE) commit -a								&&	\
+		$(PERL) -M$(EXTUTILS_GIT)								\
+			-e "$(EXTUTILS_GIT)->git_generate_changelog(@ARGV)"				\
+			-- $(EXTUTILS_ARGV)							&&	\
+		$(PERL) -M$(EXTUTILS_GIT)								\
+			-e "$(EXTUTILS_GIT)->git_tag(@ARGV)"						\
+			-- $(EXTUTILS_ARGV)							&&	\
+		$(PERL) -M$(EXTUTILS_GIT)								\
+			-e "$(EXTUTILS_GIT)->git_version_dump(@ARGV)"					\
+			-- $(EXTUTILS_ARGV)								\
+	)
+
+
 
 #  Make clean distribution and import into CVS
 #
@@ -32,7 +56,7 @@ git_import ::
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
 
-#  Check manifest matches CVS
+#  Check manifest matches git
 #
 git_manicheck ::
 	@$(PERL) -M$(EXTUTILS_GIT) \
@@ -40,12 +64,53 @@ git_manicheck ::
 		-- $(EXTUTILS_ARGV)
 
 
-#  Check all files are in CVS and up to date
+#  Check all files are in git and up to date
 #
 git_status :: git_manicheck
 	@$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
+
+
+#  Check in all files
+#
+git_ci2 :: git_manicheck
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
+
+
+#  Increment version_from file
+#
+git_version_increment ::
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
+
+
+#  Print current version
+#
+git_version ::
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
+
+
+#  Tag current version
+#
+git_tag ::
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
+
+
+#  Dump current git version to Dumper.pm file, can be picked up later
+#
+git_version_dump ::
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
+
 
 
 #  Print out current CVS version

@@ -109,8 +109,8 @@ sub import {
 
     #  Read config
     #
-    $Config_hr=$self->_config_read() ||
-	return $self->_err('unable to process load config file');
+    #$Config_hr=$self->_config_read() ||
+	#return $self->_err('unable to process load config file');
 
 
 
@@ -502,8 +502,8 @@ sub git_manicheck {
 sub git_status {
 
 
-    #  Checks that all files in the manifest are up to date with respect to
-    #  CVS/Entries file
+    #  Checks that all files in the manifest checked in, and are not
+    #  newer than the VERSION_FROM file.
     #
     my $self=shift();
     my $param_hr=$self->_arg(@_);
@@ -529,7 +529,7 @@ sub git_status {
 
     #  Ignore the ChangeLog file
     #
-    if (-f (my $changelog_fn=$Config_hr->{'CHANGELOG_FN'})) {
+    if (-f (my $changelog_fn=$CHANGELOG_FN)) {
         delete $manifest_hr->{$changelog_fn};
         delete $git_modified{$changelog_fn};
     }
@@ -537,7 +537,7 @@ sub git_status {
 
     #  Ignore the META.yml file
     #
-    if (-f (my $metafile_fn=$Config_hr->{'METAFILE_FN'})) {
+    if (-f (my $metafile_fn=$METAFILE_FN)) {
         delete $manifest_hr->{$metafile_fn};
         delete $git_modified{$metafile_fn};
     }
@@ -552,7 +552,7 @@ sub git_status {
     };
 
 
-    #  Array for files that may be out of date with respect to version_from file
+    #  Array for files that may be newer than version_from file
     #
     my @modified_fn;
 
@@ -612,11 +612,188 @@ sub git_status {
     #
     return \undef;
 
+}
+
+
+sub git_version_increment {
+
+
+    #  Increment the VERSION_FROM file
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+    my $version_from_fn=$param_hr->{'VERSION_FROM'} ||
+	return $self->_err('unable to get version_from file name');
+
+
+    #  Get current version
+    #
+    my $version=$self->git_version(@_) ||
+	return $self->_err("unable to get existing version from $version_from_fn");
+    my @version=split(/\./, $version);
+    $version[-1]++;
+    my $version_new=join('.', @version);
+
+
+    #  Open file handles for read and write
+    #
+    my $old_fh=IO::File->new($version_from_fn, O_RDONLY) ||
+	return $self->_err("unable to open file '$version_from_fn' for read, $!");
+    my $new_fh=IO::File->new("$version_from_fn.tmp", O_WRONLY|O_CREAT|O_TRUNC) ||
+	return $self->_err("unable to open file '$version_from_fn.tmp' for write, $!");
+
+
+    #  Now iterate through file, increasing version number if found
+    #
+    while (my $line=<$old_fh>) {
+	$line=~s/\Q$version\E/$version_new/;
+	print $new_fh $line;
+    }
+
+    #  Close file handles, overwrite existing file
+    #
+    $old_fh->close();
+    $new_fh->close();
+    rename("$version_from_fn.tmp", $version_from_fn) ||
+	return $self->_err("unable to replace $version_from_fn with newer version, $!");
+
+
+    #  All OK
+    #
+    $self->_msg("updated $version_from_fn from version $version to $version_new");
+
+
+    #  Done
+    #
+    return \undef;
 
 }
 
 
+sub git_tag {
 
+
+    #  Build unique tag for checked in files
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+    my $distname=$param_hr->{'DISTNAME'} ||
+	return $self->_err('unable to get distname');
+
+
+    #  Read in version number, convers .'s to -
+    #
+    my $version=$self->git_version(@_) ||
+        return $self->_err('unable to get version number');
+    #$version_git=~s/\./-/g;
+
+
+    #  Add distname
+    #
+    my $tag=join('_', $distname, $version);
+    $self->_msg(qq[tagging as "$tag"]);
+
+
+    #  Run cvs program to update
+    #
+    unless (system($GIT_EXE, 'tag', $tag) == 0) {
+	return $self->_err("error on git tag, $?");
+    }
+
+
+    #  All done
+    #
+    return \undef;
+
+
+}
+
+
+sub git_version {
+
+
+    #  Print current version from version_from file
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+    my $version_from=$param_hr->{'VERSION_FROM'} ||
+	return $self->_err('unable to get version_from');
+
+
+    #  Get version from version_from file
+    #
+    my $version_git=do(File::Spec->rel2abs($version_from)) ||
+	return $self->_err("unable to read version info from version_from file $version_from, $!");
+
+
+    #  Display
+    #
+    $self->_msg("git version $version_git");
+
+
+    #  Done
+    #
+    return $version_git;
+
+}
+
+
+sub git_version_dump {
+
+
+    #  Get self ref
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+
+
+    #  Get version we are saving
+    #
+    my $have_version=$self->git_version(@_);
+
+
+    #  Get location of Dumper file, load up module, version info
+    #  that we are processing, save again
+    #
+    my $dump_fn=File::Spec->catfile(cwd(), $DUMPER_FN);
+    my $dump_hr=do ($dump_fn);
+    my %dump=(
+	$param_hr->{'NAME'} =>	$have_version
+       );
+
+
+
+    #  Check if we need not update
+    #
+    my $dump_version=$dump_hr->{$param_hr->{'NAME'}};
+    if (CPAN::Version->vcmp("v$dump_version", "v$have_version")) {
+
+	my $dump_fh=IO::File->new($dump_fn, O_WRONLY|O_TRUNC|O_CREAT) ||
+	    $self->_err("unable to open file $dump_fn, $!");
+	binmode($dump_fh);
+	$Data::Dumper::Indent=1;
+	print $dump_fh (Data::Dumper->Dump([\%dump],[]));
+	$dump_fh->close();
+	$self->_msg('git version dump complete');
+
+
+    }
+    else {
+
+
+	#  Message
+	#
+	$self->_msg('git version dump file up-to-date');
+
+
+    }
+
+
+    #  Done
+    #
+    return \undef;
+
+}
 
 
 
@@ -1474,7 +1651,7 @@ sub _ci_mtime_sync {
 
 #  Read in config file
 #
-sub _config_read {
+sub _config_read1 {
 
     return \%ExtUtils::Git::Constant::Constant;
 
@@ -1566,7 +1743,7 @@ sub _fmt {
     #
     my $self=shift();
     my $caller=$self->_caller(3) || 'unknown';
-    my $format=' @<<<<<<<<<<<<<<<< @<';
+    my $format=' @<<<<<<<<<<<<<<<<<<<<<< @<';
     my $message=sprintf(shift(), @_);
     chomp($message);
     $message=$Arg{'distname'} . ", $message" if ($Arg{'distname'});

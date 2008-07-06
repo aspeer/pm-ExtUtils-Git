@@ -42,9 +42,9 @@ git_manicheck ::
 
 #  Check all files are in CVS and up to date
 #
-ci_status :: ci_manicheck
-	@$(PERL) -M$(EXTUTILS_CVS) \
-		-e "ExtUtils::CVS->$@(@ARGV)" \
+git_status :: git_manicheck
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
 
 

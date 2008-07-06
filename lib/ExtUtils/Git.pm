@@ -499,6 +499,136 @@ sub git_manicheck {
 }
 
 
+sub git_status {
+
+
+    #  Checks that all files in the manifest are up to date with respect to
+    #  CVS/Entries file
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+    my $version_from=$param_hr->{'VERSION_FROM'} ||
+	return $self->_err('unable to get version_from');
+
+
+    #  Stat the master version file
+    #
+    my $version_from_mtime=(stat($version_from))[9] ||
+	return $self->_err("unable to stat file $version_from, $!");
+
+
+    #  Get the manifest
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Get list of modified files
+    #
+    my %git_modified=map { chomp($_); $_=>1 } split($/, qx($GIT_EXE ls-files --modified));
+
+
+    #  Ignore the ChangeLog file
+    #
+    if (-f (my $changelog_fn=$Config_hr->{'CHANGELOG_FN'})) {
+        delete $manifest_hr->{$changelog_fn};
+        delete $git_modified{$changelog_fn};
+    }
+
+
+    #  Ignore the META.yml file
+    #
+    if (-f (my $metafile_fn=$Config_hr->{'METAFILE_FN'})) {
+        delete $manifest_hr->{$metafile_fn};
+        delete $git_modified{$metafile_fn};
+    }
+
+
+    #  If any modfied file bail now
+    #
+    if (keys %git_modified)  {
+        my $err="The following files have been modified since last commit:\n";
+        $err.=Data::Dumper::Dumper([keys %git_modified]);
+        return $self->_err($err);
+    };
+
+
+    #  Array for files that may be out of date with respect to version_from file
+    #
+    my @modified_fn;
+
+
+    #  Start going through each file in the manifest and check mtime
+    #
+    foreach my $fn (keys %{$manifest_hr}) {
+
+
+	#  Get commit time
+	#
+	my $commit_time=qx($GIT_EXE log -n1 --pretty=format:"%at" $fn) ||
+	    $self->_err("unable to get commit time for file $fn");
+
+
+	#  Stat file
+	#
+	my $mtime_fn=(stat($fn))[9] ||
+	    return $self->_err("unable to stat file $fn, $!");
+
+
+
+	#  Check against version file
+	#
+	if ($mtime_fn > $version_from_mtime) {
+
+	    #  Give it one more chance
+	    #
+	    $mtime_fn=$self->_ci_mtime_sync($fn, $commit_time) ||
+		$mtime_fn;
+	    ($mtime_fn > $version_from_mtime) && do {
+		push @modified_fn, $fn;
+		next;
+	    };
+
+
+	};
+
+    }
+
+
+    #  Check for modified files, quit if found
+    #
+    if (@modified_fn)  {
+        my $err="The following files have an mtime > VERSION_FROM ($version_from) file:\n";
+        $err.=Data::Dumper::Dumper(\@modified_fn);
+        return $self->_err($err);
+    };
+
+
+    #  All looks OK
+    #
+    $self->_msg("all files up-to-date");
+
+
+    #  All OK
+    #
+    return \undef;
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -723,6 +853,8 @@ sub ci_status {
 
 
 }
+
+
 
 
 sub ci_status_bundle {
@@ -1182,6 +1314,46 @@ sub links {
 
 #  Private methods. Utility functions - use externally at own risk
 #
+
+sub _git_mtime_sync {
+
+
+    #  Sync mtime of file to commit time if not modfied
+    #
+    my ($self, $fn, $commit_time)=@_;
+
+
+    #  Is modifed ?
+    #
+    unless (system($GIT_EXE, 'diff', '--quiet', $fn) >> 8) {
+
+
+	#  No, update mtime
+	#
+	my $touch_or=File::Touch->new(
+
+	    'mtime'	=>  $commit_time,
+
+	   );
+	$touch_or->touch($fn) ||
+	    return $self->_err("error on touch of file $fn, $!");
+	$self->_msg("synced file $fn to git mtime $commit_time (%s)\n",
+		    scalar(localtime($commit_time)));
+
+	#  Return commit time
+	#
+	return $commit_time;
+
+    }
+    else {
+
+	#  Has been modfied, return undef
+	#
+	return undef;
+
+    }
+
+}
 
 
 sub _ci_mtime_sync {

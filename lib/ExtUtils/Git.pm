@@ -42,17 +42,12 @@ no  warnings qw(uninitialized);
 #
 use ExtUtils::Git::Constant;
 use IO::File;
-use IO::Dir;
 use File::Spec;
 use Tie::IxHash;
 use ExtUtils::Manifest;
 use ExtUtils::MM_Any;
 use Data::Dumper;
-use Date::Parse qw(str2time);
-use File::Find qw(find);
 use File::Touch;
-use Cwd qw(cwd);
-use CPAN;
 use Carp;
 
 
@@ -105,13 +100,6 @@ sub import {
     #
     my ($self, @import)=(shift(), @_);
     no warnings;
-
-
-    #  Read config
-    #
-    #$Config_hr=$self->_config_read() ||
-	#return $self->_err('unable to process load config file');
-
 
 
     #  Store for later use in MY::makefile section
@@ -398,7 +386,6 @@ sub metafile_target {
 #===================================================================================================
 
 
-
 sub git_import {
 
 
@@ -436,7 +423,6 @@ sub git_import {
 }
 
 
-
 sub git_manicheck {
 
 
@@ -448,28 +434,48 @@ sub git_manicheck {
 	return $self->_err('unable to get distname');
 
 
-    #  Get the manifest, jump Win32 hoops with file names
+    #  Get manifest, touch ChangeLog if it is supposed to exist - will be created/updated
+    #  at dist time
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+    if (exists($manifest_hr->{$CHANGELOG_FN}) && !(-f $CHANGELOG_FN)) {
+
+	#  Need to create it
+	#
+	touch $CHANGELOG_FN ||
+	    return $self->_err("unable to create '$CHANGELOG_FN' file");
+	$self->_msg("git touch '$CHANGELOG_FN'");
+
+    }
+
+
+    #  Check manifest
     #
     ExtUtils::Manifest::manicheck() && return $self->_err('MANIFEST manicheck error');
-    my $manifest_hr=ExtUtils::Manifest::maniread();
 
 
     #  Read in all the Git files
     #
-    my %git_ls_files=map { chomp($_); $_=>1 } split($/, qx($GIT_EXE ls-files));
+    my %git_manifest=map { chomp($_); $_=>1 } split($/, qx($GIT_EXE ls-files));
+
+
+    #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
+    #  is not tracked by Git
+    #
+    delete $manifest_hr->{$CHANGELOG_FN};
 
 
     #  Check for files in Git, but not in the manifest, or vica versa
     #
     my $fail;
     my %test0=%{$manifest_hr};
-    map { delete $test0{$_} } keys %git_ls_files;
+    map { delete $test0{$_} } keys %git_manifest;
     if (keys %test0) {
 	$self->_msg("the following files are in the manifest, but not in git: \n\n%s\n",
 	       join("\n", keys %test0));
 	$fail++;
     }
-    my %test1=%git_ls_files;
+    my %test1=%git_manifest;
     map { delete $test1{$_} } keys %{$manifest_hr};
     if (keys %test1) {
 	$self->_msg("the following files are in git, but not in the manifest: \n\n%s\n\n",
@@ -527,20 +533,10 @@ sub git_status {
     my %git_modified=map { chomp($_); $_=>1 } split($/, qx($GIT_EXE ls-files --modified));
 
 
-    #  Ignore the ChangeLog file
+    #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
+    #  is not tracked by Git
     #
-    if (-f (my $changelog_fn=$CHANGELOG_FN)) {
-        delete $manifest_hr->{$changelog_fn};
-        delete $git_modified{$changelog_fn};
-    }
-
-
-    #  Ignore the META.yml file
-    #
-    if (-f (my $metafile_fn=$METAFILE_FN)) {
-        delete $manifest_hr->{$metafile_fn};
-        delete $git_modified{$metafile_fn};
-    }
+    delete $manifest_hr->{$CHANGELOG_FN};
 
 
     #  If any modfied file bail now
@@ -614,7 +610,6 @@ sub git_status {
 }
 
 
-
 sub git_version_increment {
 
 
@@ -685,13 +680,12 @@ sub git_tag {
     #
     my $version=$self->git_version(@_) ||
         return $self->_err('unable to get version number');
-    #$version_git=~s/\./-/g;
 
 
     #  Add distname
     #
     my $tag=join('_', $distname, $version);
-    $self->_msg(qq[tagging as "$tag"]);
+    $self->_msg(qq[git tagging as "$tag"]);
 
 
     #  Run cvs program to update
@@ -755,7 +749,7 @@ sub git_version_dump {
     #  Get location of Dumper file, load up module, version info
     #  that we are processing, save again
     #
-    my $dump_fn=File::Spec->catfile(cwd(), $DUMPER_FN);
+    my $dump_fn=File::Spec->catfile($DUMPER_FN);
     my $dump_hr=do ($dump_fn);
     my %dump=(
 	$param_hr->{'NAME'} =>	$have_version
@@ -766,7 +760,7 @@ sub git_version_dump {
     #  Check if we need not update
     #
     my $dump_version=$dump_hr->{$param_hr->{'NAME'}};
-    if (CPAN::Version->vcmp("v$dump_version", "v$have_version")) {
+    if ("v$dump_version" ne "v$have_version") {
 
 	my $dump_fh=IO::File->new($dump_fn, O_WRONLY|O_TRUNC|O_CREAT) ||
 	    $self->_err("unable to open file $dump_fn, $!");
@@ -795,696 +789,6 @@ sub git_version_dump {
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#  Public methods. Each one of the routines below corresponds with a Makefile target, eg
-#
-#  'make ci_tag' will tag the current cvs files
-#
-sub ci_tag {
-
-
-    #  Build unique tag for checked in files
-    #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
-    my $distname=$param_hr->{'DISTNAME'} ||
-	return $self->_err('unable to get distname');
-
-
-    #  Get cvs binary name
-    #
-    my $bin_cvs=$Config_hr->{'CVS'} ||
-        return $self->_err('unable to determine cvs binary name');
-
-
-    #  Read in version number, convers .'s to -
-    #
-    my $version_cvs=$self->ci_version(@_) ||
-        return $self->_err('unable to get version number');
-    $version_cvs=~s/\./-/g;
-
-
-    #  Add distname
-    #
-    my $tag=join('_', $distname, $version_cvs);
-    $self->_msg(qq[tagging as "$tag"]);
-
-
-    #  Run cvs program to update
-    #
-    system($bin_cvs, 'tag', $tag);
-
-
-}
-
-
-sub ci_status {
-
-
-    #  Checks that all files in the manifest are up to date with respect to
-    #  CVS/Entries file
-    #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
-    my $version_from=$param_hr->{'VERSION_FROM'} ||
-	return $self->_err('unable to get version_from');
-
-
-    #  Stat the master version file
-    #
-    my $version_from_mtime=(stat($version_from))[9] ||
-	return $self->_err("unable to stat file $version_from, $!");
-
-
-    #  Get the manifest
-    #
-    my $manifest_hr=ExtUtils::Manifest::maniread();
-
-
-    #  Ignore the ChangeLog file
-    #
-    if (my $changelog_fn=$Config_hr->{'CHANGELOG'}) {
-        delete $manifest_hr->{$changelog_fn};
-    }
-
-
-    #  Ignore the META.yml file
-    #
-    if (my $metafile_fn=$Config_hr->{'METAFILE'}) {
-        delete $manifest_hr->{$metafile_fn};
-    }
-
-
-    #  Work out all the directory names
-    #
-    my %manifest_dn;
-    foreach my $manifest_fn (keys %{$manifest_hr}) {
-
-
-	#  Get directory name
-	#
-	my $manifest_dn=(File::Spec->splitpath($manifest_fn))[1];
-	$manifest_dn{$manifest_dn}++;
-
-
-    }
-    #print Data::Dumper::Dumper(\%manifest_dn);
-
-
-    #  Array for files that may be out of date,
-    #
-    my @modified_fn;
-
-
-    #  Now go through, looking at files
-    #
-    foreach my $manifest_dn (sort { $a cmp $b } keys %manifest_dn) {
-
-
-	#  Get Entries FN
-	#
-	my @manifest_dn=File::Spec->splitdir($manifest_dn);
-	my $entries_fn=File::Spec->catfile(@manifest_dn, 'CVS', 'Entries');
-
-
-	#  Only open if exists
-	#
-	(-f $entries_fn) || next;
-
-
-	#  Open
-	#
-	my $entries_fh=IO::File->new($entries_fn, O_RDONLY) ||
-	    return $self->_err("unable to open $entries_fn, $!");
-
-
-
-	#  Go through
-	#
-	my @entry=sort { $a cmp $b } <$entries_fh>;
-	while (my $entry=pop @entry) {
-
-
-	    #  Split, skip unless file we want
-	    #
-	    my (undef, $fn, $version, $date)=split(/\//, $entry);
-
-
-	    #  Add cd to fn
-	    #
-	    my $entry_fn=File::Spec->catfile(@manifest_dn, $fn);
-
-
-	    #  Skip unless manifest file
-	    #
-	    exists($manifest_hr->{$entry_fn}) || next;
-
-
-	    #  Convert date to GMT
-	    #
-	    my $commit_time=str2time($date, 'GMT');
-
-
-	    #  Stat file
-	    #
-	    my $mtime_fn=(stat($entry_fn))[9] ||
-		return $self->_err("unable to stat file $entry_fn, $!");
-
-
-	    #  Compare
-	    #
-	    ($mtime_fn > $commit_time) && do {
-
-
-		#  Give it one more chance
-		#
-		$mtime_fn=$self->_ci_mtime_sync($entry_fn, $commit_time) ||
-		    $mtime_fn;
-		($mtime_fn > $commit_time) && do {
-		        push @modified_fn, $entry_fn;
-		        next;
-		};
-
-
-	    };
-
-
-	    #  Check against version
-	    #
-	    ($mtime_fn > $version_from_mtime) && do {
-
-	    	#print "mtime > version_mtime\n";
-
-		#  Give it one more chance
-		#
-		$mtime_fn=$self->_ci_mtime_sync($entry_fn, $commit_time) ||
-		    $mtime_fn;
-		($mtime_fn > $version_from_mtime) && do {
-		    push @modified_fn, $entry_fn;
-		    next;
-		};
-
-
-	    };
-
-	}
-
-
-	#  Done with entries file
-	#
-	$entries_fh->close();
-
-    }
-
-
-    #  Check for modified files, quit if found
-    #
-    (@modified_fn) && do {
-        my $err="The following files have an mtime > commit time or VERSION_FROM ($version_from) file:\n";
-        $err.=Data::Dumper::Dumper(\@modified_fn);
-        return $self->_err($err);
-    };
-
-
-    #  All looks OK
-    #
-    $self->_msg("all files up-to-date");
-
-
-    #  All OK
-    #
-    return \undef;
-
-
-}
-
-
-
-
-sub ci_status_bundle {
-
-
-    #  Checks that all files in the manifest are up to date with respect to
-    #  CVS/Entries file
-    #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
-    my $version_from=$param_hr->{'VERSION_FROM'} ||
-	return $self->_err('unable to get version_from');
-
-
-    #  Stat the master version file
-    #
-    my $version_from_mtime=(stat($version_from))[9] ||
-	return $self->_err("unable to stat file $version_from, $!");
-
-
-    #  Get cwd
-    #
-    my $cwd=cwd();
-    $cwd=File::Spec->rel2abs($cwd);
-
-
-    #  Find all the CVS/Entries files
-    #
-    my @entries;
-    my $wanted_cr=sub {
-
-
-	#  Is this a CVS entries file ? If so, add to hash
-	#
-	($File::Find::name=~/CVS\/Entries$/) &&
-	    push @entries, $File::Find::name;
-
-
-    };
-    find($wanted_cr, $cwd);
-
-
-    # Go through each Entries file, build up our own manifest
-    #
-    foreach my $entries_fn (@entries) {
-
-
-	#  Work out complete path
-	#
-	my $entries_dn=(File::Spec->splitpath($entries_fn))[1];
-	my @entries_dn=File::Spec->splitdir($entries_dn);
-
-
-	#  Check that this is in the module we are interested
-	#  Get rid of 'CVS'
-	#
-	until ( pop @entries_dn ) {}
-
-
-	#  Open
-	#
-	my $entries_fh=IO::File->new($entries_fn, O_RDONLY) ||
-	    return $self->_err("unable to open file $entries_fn, $!");
-
-
-	#  Parse
-	#
-	my @entry=sort { $a cmp $b } <$entries_fh>;
-	while (my $entry=pop @entry) {
-
-
-	    #  Split, skip non plain files
-	    #
-	    my ($fn_type, $fn, $version, $date)=split(/\//, $entry);
-	    $fn_type && next;
-
-
-	    #  Skip changelog, metafile
-	    #
-	    if ($fn eq $Config_hr->{'CHANGELOG'}) { next }
-	    if ($fn eq $Config_hr->{'METAFILE'}) { next }
-
-
-	    #  Rebuild
-	    #
-	    my $entry_fn=File::Spec->catfile(
-		@entries_dn,
-		$fn
-	       );
-	    $entry_fn=File::Spec->rel2abs($entry_fn);
-	    my $entry_rel_fn=File::Spec->abs2rel($entry_fn, cwd());
-
-
-	    #  Get mtime
-	    #
-	    my $mtime_fn=(stat($entry_fn))[9];
-
-
-	    #  Check against version
-	    #
-	    ($mtime_fn > $version_from_mtime) && do {
-
-
-		#  Give it one more chance
-		#
-		$mtime_fn=$self->_ci_mtime_sync($entry_fn, $mtime_fn) ||
-		    $mtime_fn;
-		($mtime_fn > $version_from_mtime) &&
-		    return
-			$self->_err("file $entry_rel_fn has mtime greater than $version_from, cvs commit may be required.");
-
-	    };
-
-
-	    #  Convert date to GMT
-	    #
-	    my $commit_time=str2time($date, 'GMT');
-
-
-	    #  Compare
-	    #
-	    ($mtime_fn > $commit_time) && do {
-
-		$mtime_fn=$self->_ci_mtime_sync($entry_fn, $mtime_fn) ||
-		    $mtime_fn;
-		($mtime_fn > $commit_time) &&
-		    return
-			$self->_err("file $entry_rel_fn has mtime greater commit time, cvs commit may be required.");
-
-	    };
-	}
-    }
-
-
-    #  All looks OK
-    #
-    $self->_msg('all files up-to-date');
-
-
-    #  All OK
-    #
-    return \undef;
-
-
-}
-
-
-sub ci_manicheck {
-
-
-    #  Checks that all files in the manifest are checked in to cvs
-    #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
-    my $distname=$param_hr->{'DISTNAME'} ||
-	return $self->_err('unable to get distname');
-
-
-    #  Get cwd, dance around Win32 formatting
-    #
-    my $cwd=cwd();
-    $cwd=(File::Spec->splitpath($cwd,1))[1];
-    $cwd=File::Spec->rel2abs($cwd);
-
-
-    #  Get the manifest, jump Win32 hoops with file names
-    #
-    ExtUtils::Manifest::manicheck() && return $self->_err('MANIFEST manicheck error');
-    my $manifest_hr=ExtUtils::Manifest::maniread();
-    foreach my $fn (keys %{$manifest_hr}) {
-        delete $manifest_hr->{$fn};
-        $manifest_hr->{File::Spec->canonpath($fn)}=undef;
-    }
-    my %manifest;
-
-
-    #  Find all the CVS/Entries files
-    #
-    my @entries;
-    my $wanted_cr=sub {
-
-	#  Is this a CVS entries file ? If so, add to hash
-	#
-	($File::Find::name=~/CVS\/Entries$/) &&
-	    push @entries, $File::Find::name;
-
-
-    };
-    find($wanted_cr, $cwd);
-
-
-    # Go through each Entries file, build up our own manifest
-    #
-    foreach my $entries_fn (@entries) {
-
-
-	#  Work out complete path
-	#
-	my $entries_dn=(File::Spec->splitpath($entries_fn))[1];
-	my @entries_dn=File::Spec->splitdir($entries_dn);
-
-
-	#  Check that this is in the module we are interested
-	#  in, start by opening CVS/Repository file
-	#
-	my $repository_fn=File::Spec->catfile(@entries_dn, 'Repository');
-	my $repository_fh=IO::File->new($repository_fn, O_RDONLY) ||
-	    return $self->_err("unable to open file $repository_fn, $!");
-	my $repository_dn=<$repository_fh>; chomp($repository_dn);
-
-
-	#  Get top level
-	#
-	my $repository=(File::Spec->splitdir($repository_dn))[0];
-	next unless ($repository eq $distname);
-
-
-	#  Get rid of empty directories
-	#
-	until ( pop @entries_dn ) {}
-
-
-	#  Open
-	#
-	my $entries_fh=IO::File->new($entries_fn, O_RDONLY) ||
-	    return $self->_err("unable to open file $entries_fn, $!");
-
-
-	#  Parse
-	#
-	foreach my $entry (<$entries_fh>) {
-
-
-	    #  Split, skip non plain files
-	    #
-	    my ($fn_type, $fn, $version, $date)=split(/\//, $entry);
-	    $fn_type && next;
-
-
-	    #  Negative version means sched for removal
-	    #
-	    ($version=~/^-/) && next;
-
-
-	    #  Rebuild
-	    #
-	    my $manifest_fn=File::Spec->catfile(
-		@entries_dn,
-		$fn
-	       );
-	    $manifest_fn=File::Spec->rel2abs($manifest_fn);
-
-
-	    #  Get rid of cwd, leading slash
-	    #
-	    $manifest_fn=~s/^\Q$cwd\E\/?//;
-	    $manifest_fn=~s/^\\//;
-
-
-	    #  Add to manifest
-	    #
-	    $manifest{$manifest_fn}++;
-
-	}
-    }
-
-
-    #  Check for files in CVS, but not in the manifest, or vica versa
-    #
-    my $fail;
-    my %test0=%{$manifest_hr};
-    map { delete $test0{$_} } keys %manifest;
-    if (keys %test0) {
-	$self->_msg("the following files are in the manifest, but not in CVS: \n\n%s\n",
-	       join("\n", keys %test0));
-	$fail++;
-    }
-    my %test1=%manifest;
-    map { delete $test1{$_} } keys %{$manifest_hr};
-    if (keys %test1) {
-	$self->_msg("the following files are in CVS, but not in the manifest: \n\n%s\n\n",
-	       join("\n", keys %test1));
-	$fail++;
-    }
-
-
-    #  Now look for a patch dir
-    #
-    if (-d (my $dn=File::Spec->catdir($cwd, 'patch'))) {
-
-
-	#  Yes, must check files in that dir also. Process dir to get just file entries.
-	#
-	tie (my %fn_raw, 'IO::Dir', $dn) ||
-	    return $self->_err("unable to tie IO::Dir to $dn, $!");
-	my %fn=%fn_raw;
-	map { delete $fn{$_} unless (-f File::Spec->catfile($cwd,'patch',$_)) } keys %fn;
-
-
-	#  Now test for files in patch dir. not in manifest
-	#
-	my %test0=%fn;
-	map { delete $test0{(File::Spec->splitpath($_))[2]}} keys %{$manifest_hr};
-	if (keys %test0) {
-	    $self->_msg("the following files are in the patch dir, but not in the manifest: \n\n%s\n",
-		   join("\n", keys %test0));
-	    $fail++;
-	}
-
-
-	#  And files in patch dir, not in CVS
-	#
-	my %test1=%fn;
-	map { delete $test1{(File::Spec->splitpath($_))[2]}} keys %manifest;
-	if (keys %test1) {
-	    $self->_msg("the following files are in the patch dir, but not in the CVS: \n\n%s\n",
-		   join("\n", keys %test1));
-	    $fail++;
-	}
-
-    }
-
-
-    #  Die if there was an error, otherwise print OK text
-    #
-    if ($fail) {
-	my $yesno=ExtUtils::MakeMaker::prompt(
-	    'Do you wish to continue [yes|no] ?','yes');
-	if ($yesno=~/^n|no$/i) {
-	    return $self->_err('bundle build aborted by user !')
-	}
-    }
-    else {
-	$self->_msg('manifest and cvs in sync');
-    }
-
-
-    #  All done
-    #
-    return \undef;
-
-}
-
-
-sub ci_version_dump {
-
-
-    #  Get self ref
-    #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
-
-
-    #  Get version we are saving
-    #
-    my $have_version=$self->ci_version(@_);
-
-
-    #  Get location of Dumper file, load up module, version info
-    #  that we are processing, save again
-    #
-    my $dump_fn=File::Spec->catfile(cwd(), $Config_hr->{'DUMPER_FN'});
-    my $dump_hr=do ($dump_fn);
-    my %dump=(
-	$param_hr->{'NAME'} =>	$have_version
-       );
-
-
-
-    #  Check if we need not update
-    #
-    my $dump_version=$dump_hr->{'VERSION'};
-    if (CPAN::Version->vcmp("v$dump_version", "v$have_version")) {
-
-	my $dump_fh=IO::File->new($dump_fn, O_WRONLY|O_TRUNC|O_CREAT) ||
-	    $self->_err("unable to open file $dump_fn, $!");
-	binmode($dump_fh);
-	$Data::Dumper::Indent=1;
-	print $dump_fh (Data::Dumper->Dump([\%dump],[]));
-	$dump_fh->close();
-	$self->_msg('cvs version dump complete');
-
-
-    }
-    else {
-
-
-	#  Message
-	#
-	$self->_msg('cvs version dump file up-to-date');
-
-
-    }
-
-
-    #  Done
-    #
-    return \undef;
-
-}
-
-
-sub ci_version {
-
-
-    #  Print current version from version_from file
-    #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
-    my $version_from=$param_hr->{'VERSION_FROM'} ||
-	return $self->_err('unable to get version_from');
-
-
-    #  Get version from version_from file
-    #
-    my $version_cvs=do(File::Spec->rel2abs($version_from)) ||
-	return $self->_err("unable to read version info from version_from file $version_from, $!");
-
-
-    #  Display
-    #
-    $self->_msg("cvs version: $version_cvs");
-
-
-    #  Done
-    #
-    return $version_cvs;
-
-}
-
-
-sub links {
-
-
-    #  Create soft links in top level dir to files under 'lib' - makes
-    #  editing easier
-    #
-    my (undef, $name, @to_inst_pm)=@_;
-    require File::Spec;
-    foreach my $to_inst_pm (@to_inst_pm) {
-	my @name=('lib', split(/::/, $name)); 
-	pop @name;
-	my (undef,$dn,$fn)=File::Spec->splitpath($to_inst_pm);
-	my @dn=File::Spec->splitdir($dn);
-	while (@dn && ($dn[0] eq $name[0])) { shift @dn; shift @name }
-	my $link_fn=join('_', grep {$_} @dn, $fn);
-	next if (-f $link_fn);
-	print $_="ln -s $to_inst_pm $link_fn\n";
-	system($_);
-	#link $to_inst_pm, $link_fn || die $!;
-    }
-
-}
 
 
 #===================================================================================================
@@ -1530,185 +834,6 @@ sub _git_mtime_sync {
 	return undef;
 
     }
-
-}
-
-
-sub _ci_mtime_sync {
-
-
-    #  Last resort to ensure file mtime is correct based on what CVS thinks
-    #
-    my ($self, $fn, $mtime_fn)=@_;
-
-
-    #  Turn abs filenames into relative, cvs does not seem to like it
-    #
-    $fn=File::Spec->abs2rel($fn);
-
-
-    #  Get timezone offset from GMT
-    #
-    my $time=time();
-    #my $tz_offset=($time-timelocal(gmtime($time))) || 0;
-    #print "tz_offset $tz_offset\n";
-
-
-    #  Get cvs binary name
-    #
-    my $bin_cvs=$Config_hr->{'CVS'} ||
-        return $self->_err('unable to determine cvs binary name');
-
-
-    #  Run cvs status on file, suck into array
-    #
-    my $system_fh=IO::File->new("$bin_cvs status $fn|") ||
-        return $self->_err("unable to get handle for cvs status command");
-    my @system=<$system_fh>;
-    $system_fh->close();
-
-
-    #  Look for uptodate flag
-    #
-    my $uptodate;
-    for (@system) {
-	/Status:\s+Up-to-date/i && do { $uptodate++; last } };
-
-
-    #  And var to hold mtime
-    #
-    my $mtime=(stat($fn))[9] ||
-	return $self->_err("unable to stat file $fn, $!");
-
-
-    #  If uptodate, we need to sync mtime with CVS mtime
-    #
-    if ($uptodate) {
-
-
-	#  Get working rev
-	#
-	my $ver_working;
-	for (@system) {
-	    /Working revision:\s+(\S+)/ && do { $ver_working=$1; last } };
-
-
-	#  Looks OK, search for date
-	#
-	my $system_fh=IO::File->new("$bin_cvs log $fn|") ||
-	    return $self->_err("unable to get handle for cvs log command");
-	my @system=<$system_fh>;
-	$system_fh->close();
-
-
-	#  Get line with date
-	#
-	my $line_date;
-	for (0.. $#system) {
-	    $system[$_]=~/revision\s+\Q$ver_working\E\s+/ &&
-		do { $line_date=$system[++$_]; last };
-	};
-
-
-	#  Parse it out
-	#
-	if ($line_date && $line_date=~/^date:\s+(\S+)\s+(\S+)\;/) {
-
-
-	    #  Convert string time
-	    #
-	    $mtime=str2time("$1 $2", 'GMT') ||
-		return $self->_err("unable to parse date string $1 $2");
-
-
-            #  Use oldest
-            #
-            $mtime=($mtime_fn < $mtime) ? $mtime_fn : $mtime;
-
-	    #  Touch it
-	    #
-	    my $touch_or=File::Touch->new(
-
-		'mtime'	=>  $mtime,
-
-	       );
-	    $touch_or->touch($fn) ||
-		return $self->_err("error on touch of file $fn, $!");
-	    $self->_msg("synced file $fn to cvs mtime $mtime (%s)\n",
-		   scalar(localtime($mtime)));
-
-	}
-
-    }
-
-
-    #  return the mtime
-    #
-    return $mtime;
-
-
-}
-
-
-#  Read in config file
-#
-sub _config_read1 {
-
-    return \%ExtUtils::Git::Constant::Constant;
-
-}
-
-sub _config_read0 {
-
-
-    #  Get our dir
-    #
-    my $self=shift();
-    (my $config_dn=$INC{'ExtUtils/Git.pm'})=~s/\.pm$//;
-
-
-    #  Unless absolute, add cwd
-    #
-    $config_dn=File::Spec->rel2abs($config_dn);
-
-
-    #  And now file name
-    #
-    my $config_fn=File::Spec->catfile($config_dn, 'Config.pm');
-
-
-    #  Read and return
-    #
-    my $config_hr=do($config_fn) || return $self->_err($!);
-
-
-    #  Read any local config file. Only present for local customisation
-    #
-    my $local_hr=eval { do { File::Spec->catfile($config_dn, 'Local.pm') } };
-
-
-    #  Local overrides global
-    #
-    map { $config_hr->{$_}=$local_hr->{$_} } keys %{$local_hr};
-
-
-    #  Return
-    #
-    return $config_hr;
-
-
-}
-
-
-sub _repository0 {
-
-
-    #  Modify repository
-    #
-    my ($self, $repository)=@_;
-    $Config_hr->{'CVSROOT'}=$repository;
-    return \$repository;
-
 
 }
 

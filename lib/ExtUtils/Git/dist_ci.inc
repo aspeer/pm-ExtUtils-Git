@@ -1,30 +1,7 @@
 
 
-#  Check in files to CVS if needed, assuming MANIFEST checks out and files are not already
-#  uptodate (as determined by ci_status test)
-#
-ci :: ci_manicheck
-	@$(CVS) status $(DEV_NULL)
-	@$(PERL) -M$(EXTUTILS_CVS) \
-	-e "$(EXTUTILS_CVS)->ci_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
-		$(CVS) status $(DEV_NULL)							&&	\
-		$(CVS) commit 									&&	\
-		$(CVS) commit -m "$(DISTNAME) version increment" -f "$(VERSION_FROM)" 	        && 	\
-		$(CVS2CL) $(CVS2CL_ARG) 							&&	\
-		$(MAKE) Makefile_PL                                                             &&	\
-		$(MAKE) metafile 								&&	\
-		$(CVS) commit -m "" $(CHANGELOG) $(METAFILE)                                    &&      \
-        	$(PERL) -M$(EXTUTILS_CVS) 								\
-			-e  "$(EXTUTILS_CVS)->ci_tag(@ARGV)"   						\
-			--  $(EXTUTILS_ARGV)   							&&	\
-		$(PERL) -M$(EXTUTILS_CVS) 								\
-			-e "$(EXTUTILS_CVS)->ci_version_dump(@ARGV)"					\
-			-- $(EXTUTILS_ARGV)							        \
-	)
-
-
-#  Check in files to CVS if needed, assuming MANIFEST checks out and files are not already
-#  uptodate (as determined by ci_status test)
+#  Check in files to Git if needed, assuming MANIFEST checks out and files are not already
+#  uptodate (as determined by git_status test)
 #
 git_ci :: git_manicheck
 	@$(PERL) -M$(EXTUTILS_GIT) \
@@ -32,7 +9,6 @@ git_ci :: git_manicheck
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_version_increment(@ARGV)"				\
 			-- $(EXTUTILS_ARGV)							&&	\
-		#$(MAKE) Makefile_PL                                                             	\
 		$(MAKE) metafile 								&&	\
 		$(GIT_EXE) commit -a								&&	\
 		$(GIT_EXE) rev-list  --all --pretty > $(CHANGELOG_FN)				&&	\
@@ -46,13 +22,22 @@ git_ci :: git_manicheck
 
 
 
-#  Make clean distribution and import into CVS
+#  Build distribution
+#
+git_dist :: git_ci
+	$(GIT_EXE) rev-list  --all --pretty > $(CHANGELOG_FN)
+	$(MAKE) tardist		
+
+
+#  Make new repository and import files into Git
 #
 git_import ::
-	@$(GIT_EXE) init -q && \
+	$(GIT_EXE) init -q && \
 	$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
+		-- $(EXTUTILS_ARGV) && \
+	$(GIT_EXE) remote add origin $(GIT_REPO)/$(DISTNAME)
+
 
 #  Check manifest matches git
 #
@@ -65,14 +50,6 @@ git_manicheck ::
 #  Check all files are in git and up to date
 #
 git_status :: git_manicheck
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Check in all files
-#
-git_ci2 :: git_manicheck
 	@$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
@@ -102,7 +79,7 @@ git_tag ::
 		-- $(EXTUTILS_ARGV)
 
 
-#  Dump current git version to Dumper.pm file, can be picked up later
+#  Dump current git version to Dumper.pm file, can be picked by packaging tool later
 #
 git_version_dump ::
 	@$(PERL) -M$(EXTUTILS_GIT) \
@@ -110,34 +87,3 @@ git_version_dump ::
 		-- $(EXTUTILS_ARGV)
 
 
-
-#  Print out current CVS version
-#
-ci_version ::
-	@$(PERL) -M$(EXTUTILS_CVS) \
-		-e "ExtUtils::CVS->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Dump current CVS version to Dumper.pm file, can be picked up later
-#
-ci_version_dump ::
-	@$(PERL) -M$(EXTUTILS_CVS) \
-		-e "ExtUtils::CVS->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Tag all files with current CVS version
-#
-ci_tag ::
-	@$(PERL) -M$(EXTUTILS_CVS) \
-		-e "ExtUtils::CVS->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Create links
-#
-links ::
-	@$(PERL) -M$(EXTUTILS_CVS) \
-		-e "ExtUtils::CVS->$@(@ARGV)" \
-		-- $(NAME) $(TO_INST_PM)

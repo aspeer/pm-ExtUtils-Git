@@ -138,7 +138,11 @@ unless (%Constant = %{do($cache_fn)}) {
 	EXTUTILS_ARGV		 =>  q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ].
 	    q["$(VERSION_SYM)" "$(VERSION_FROM)"],
 
-	EXTUTILS_GIT		 =>  'ExtUtils::Git'
+	EXTUTILS_GIT		 =>  'ExtUtils::Git',
+
+	DIST_DEFAULT		 =>  'git_dist',
+
+	GIT_REPO		 =>  'ssh://copper.isolutions.com.au/home/cvs/git/'
 
        );
 

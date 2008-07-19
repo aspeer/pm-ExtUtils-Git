@@ -20,7 +20,6 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: CVS.pm,v 1.40 2007/07/08 07:54:20 aspeer Exp $
 #
 
 
@@ -345,11 +344,6 @@ sub makefile {
 	$match;
 
 
-    #  For rebuilding Makefile.PL without error, used after ci
-    #
-    #push @makefile, 'Makefile_PL :';
-
-
     #  Done, return result
     #
     return join($/, @makefile);	
@@ -404,6 +398,12 @@ sub git_import {
     #  Get the manifest
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
+    #  is not tracked by Git
+    #
+    delete $manifest_hr->{$CHANGELOG_FN};
 
 
     #  Build import command
@@ -534,9 +534,10 @@ sub git_status {
 
 
     #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
-    #  is not tracked by Git
+    #  is not tracked by Git, same with META.yml
     #
     delete $manifest_hr->{$CHANGELOG_FN};
+    delete $manifest_hr->{$METAFILE_FN};
 
 
     #  If any modfied file bail now
@@ -684,14 +685,51 @@ sub git_tag {
 
     #  Add distname
     #
-    my $tag=join('_', $distname, $version);
+    my $tag="${distname}_${version}";
     $self->_msg(qq[git tagging as "$tag"]);
 
 
-    #  Run cvs program to update
+    #  Run git program to update
     #
     unless (system($GIT_EXE, 'tag', $tag) == 0) {
 	return $self->_err("error on git tag, $?");
+    }
+
+
+    #  All done
+    #
+    return \undef;
+
+
+}
+
+
+sub git_commit {
+
+
+    #  Commit modified file
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+    my $distname=$param_hr->{'DISTNAME'} ||
+	return $self->_err('unable to get distname');
+
+
+    #  Read in version number, convers .'s to -
+    #
+    my $version=$self->git_version(@_) ||
+        return $self->_err('unable to get version number');
+
+
+    #  Add distname
+    #
+    my $tag="${distname}_${version}";
+
+
+    #  Run git program to update
+    #
+    unless (system($GIT_EXE, 'commit', qw(-a -e -m), qq[Tag: $tag]) == 0) {
+	return $self->_err("error on git commit, $?");
     }
 
 
@@ -910,30 +948,31 @@ __END__
 
 =head1 NAME
 
-ExtUtils::CVS - Class to add cvs related targets to Makefile generated from perl Makefile.PL
+ExtUtils::Git - Class to add git related targets to Makefile generated from perl Makefile.PL
 
 =head1 SYNOPSIS
 
-    perl -MExtUtils::CVS=:all Makefile.PL
-    make import
-    make ci_manicheck
-    make ci
-    make ci_status
+    perl -MExtUtils::Git=:all Makefile.PL
+    make git_import
+    make git_manicheck
+    make git_ci
+    make git_status
 
 =head1 DESCRIPTION
 
-ExtUtils::CVS is a class that extends ExtUtils::MakeMaker to add cvs related
+ExtUtils::Git is a class that extends ExtUtils::MakeMaker to add git related
 targets to the Makefile generated from Makefile.PL.
 
-ExtUtils::CVS will enforce various rules during modules distribution, such as not
-building a dist for a module before all components are checked in to CVS. It will
-also not build a dist if the MANIFEST and CVS ideas of what are in the module are
+ExtUtils::Git will enforce various rules during module distribution, such as not
+building a dist for a module before all components are checked in to Git. It will
+also not build a dist if the MANIFEST and Git ideas of what are in the module are
 out of sync.
+
 
 =head1 OVERVIEW
 
 Create a normal module using h2xs (see L<h2xs>). Either put ExtUtils::MakeMaker into
-an eval'd BEGIN block in your Makefile.PL, or build the Makefile.PL with ExtUtils::CVS
+an eval'd BEGIN block in your Makefile.PL, or build the Makefile.PL with ExtUtils::Git
 as an included module.
 
 =over 4
@@ -952,95 +991,85 @@ A sample Makefile.PL may look like this:
 
         );
 
-        sub BEGIN {  eval('use ExtUtils::CVS') }
+        sub BEGIN {  eval('use ExtUtils::Git') }
 
 eval'ing ExtUtils::CVS within a BEGIN block allows user to build your module even if they
-do not have a local copy of ExtUtils::CVS.
+do not have a local copy of ExtUtils::Git.
 
 =item Using as a module when running Makefile.PL
 
 If you do not want any reference to ExtUtils::CVS within your Makefile.PL, you can
 build the Makefile with the following command:
 
-        perl -MExtUtils::CVS=:all Makefile.PL
+        perl -MExtUtils::Git=:all Makefile.PL
 
 This will build a Makefile with all the ExtUtils::CVS targets.
 
 =back
 
-=head1 IMPORTING INTO CVS
+=head1 IMPORTING INTO GIT
 
 Once you have created the first draft of your module, and included ExtUtils::CVS into the
 Makefile.PL file in one of the above ways, you can import the module into CVS. Simply do a
 
-        make import
+        make git_import
 
-in the working directory. All files in the MANIFEST will be imported into CVS. This does B<not>
-create a CVS working directory in the current location.
-
-You should move to a clean directory location and do a
-
-        cvs co Acme-Froogle
-
-Note the translation of '::' characters in the module name to '-' characters in CVS.
+in the working directory. All files in the MANIFEST will be imported into Git and a new Git repository will be created in the current working directory.
 
 =head1 ADDING OR REMOVING FILES WITHIN THE PROJECT
 
 Once checked out you can work on your files as per normal. If you add or remove a file from your
-module project you need to undertake the corresponding action in cvs with a
+module project you need to undertake the corresponding action in git with a
 
-        cvs add myfile.pm OR
-        cvs del myfile.pm
+        git add myfile.pm OR
+        git remove myfile.pm
 
-You must remember to add or remove the file from the MANIFEST, or ExtUtils::CVS will generate a
+You must remember to add or remove the file from the MANIFEST, or ExtUtils::Git will generate a
 error when you try to build the dist. This is by design - the contents of the MANIFEST file should
-mirror the active CVS files.
+mirror the active Git files.
 
 =head1 CHECKING IN MODIFICATIONS
 
 Periodically you will want to check modifications into the CVS repository. If you are not planning to make
 a distribution at this time a normal
 
-        cvs ci
+        git commit
 
-will still work. As this is a stardard cvs checkin, no checking of the MANIFEST etc will be performed. 
+will still work. As this is a stardard git check in, no checking of the MANIFEST etc will be performed.
 
-If you wish to build a distribution from the current project working directory you should do a 
+If you wish to build a distribution from the current project working directory you should do a
 
-        make ci
+        make git_ci
 
-Doing a 'make ci' will undertake a check to ensure that the MANIFEST and CVS are in sync. It will
-check modified files in to CVS, incrementing the current module version. In addition, it will then
-tag the repository with the new version in the form 'Acme-Froogle_1-26'. Thus at any time you can
-checkout an earlier version of your module with a cvs command in the form of
+Doing a 'make git_ci' will undertake a check to ensure that the MANIFEST and Git are in sync. It will
+check modified files into Git, incrementing the current module version. In addition, it will then
+tag the repository with the new version in the form 'Acme-Froogle_1.26'. Thus at any time you can
+checkout an earlier version of your module with a git command in the form of
 
-        cvs co -r Acme-Froogle_1-10 Acme-Froogle
-
-The checked out version will be 'sticky' (see L<cvs> for details), you will not be able to check
-changes back into the repository without branching your project.
+        git checkout Acme-Froogle_1.26
 
 
 =head1 OTHER MAKEFILE TARGETS
 
-As well as 'make import' and 'make ci', the following other targets are supported. Many
-of these targets are called by the 'make ci' process, but can be run standalone also
+As well as 'make git_import' and 'make git_ci', the following other targets are supported. Many
+of these targets are called by the 'make git_ci' process, but can be run standalone also
 
 =over 4
 
-=item make ci_manicheck
+=item make git_manicheck
 
-Will check that MANIFEST and CVS agree on files included in the project
+Will check that MANIFEST and Git agree on files included in the project
 
-=item make ci_status
+=item make git_status
 
 Will check that no project files have been modified since last checked in to the 
 repository.
 
-=item make ci_version
+=item make git_version
 
 Will show the current version of the project in the working directory
 
-=item make ci_tag
+=item make git_tag
 
 Will tag files with current version. Not recommended for manual use
 
@@ -1048,6 +1077,6 @@ Will tag files with current version. Not recommended for manual use
 
 =head1 COPYRIGHT
 
-Copyright (c) 2003 Andrew Speer <andrew.speer@isolutions.com.au>. All
+Copyright (c) 2008 Andrew Speer <andrew.speer@isolutions.com.au>. All
 rights reserved.
 

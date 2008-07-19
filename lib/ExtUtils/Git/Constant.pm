@@ -142,7 +142,7 @@ unless (%Constant = %{do($cache_fn)}) {
 
 	DIST_DEFAULT		 =>  'git_dist',
 
-	GIT_REPO		 =>  'ssh://copper.isolutions.com.au/home/cvs/git/'
+	GIT_REPO		 =>  'ssh://git@copper.isolutions.com.au/home/git'
 
        );
 

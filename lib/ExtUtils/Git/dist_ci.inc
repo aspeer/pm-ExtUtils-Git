@@ -10,16 +10,25 @@ git_ci :: git_manicheck
 			-e "$(EXTUTILS_GIT)->git_version_increment(@ARGV)"				\
 			-- $(EXTUTILS_ARGV)							&&	\
 		$(MAKE) metafile 								&&	\
-		$(GIT_EXE) commit -a								&&	\
-		$(GIT_EXE) rev-list  --all --pretty > $(CHANGELOG_FN)				&&	\
+		$(PERL) -M$(EXTUTILS_GIT)								\
+			-e "$(EXTUTILS_GIT)->git_commit(@ARGV)"						\
+			-- $(EXTUTILS_ARGV)							&&	\
+		$(GIT_EXE) log -M --name-status > $(CHANGELOG_FN)				&&	\
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_tag(@ARGV)"						\
 			-- $(EXTUTILS_ARGV)							&&	\
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_version_dump(@ARGV)"					\
-			-- $(EXTUTILS_ARGV)								\
+			-- $(EXTUTILS_ARGV)							&&	\
+		$(GIT_EXE) push	origin master								\
 	)
 
+
+
+#  Push
+#
+git_push ::
+	$(GIT_EXE) push origin master
 
 
 #  Build distribution

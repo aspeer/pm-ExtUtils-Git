@@ -32,7 +32,7 @@ package ExtUtils::Git;
 #
 sub BEGIN   { $^W=0 };
 use strict  qw(vars);
-use vars    qw($VERSION $REVISION);
+use vars    qw($VERSION);
 use warnings;
 no  warnings qw(uninitialized);
 
@@ -42,23 +42,18 @@ no  warnings qw(uninitialized);
 use ExtUtils::Git::Constant;
 use IO::File;
 use File::Spec;
-use Tie::IxHash;
 use ExtUtils::Manifest;
 use ExtUtils::MM_Any;
 use Data::Dumper;
 use File::Touch;
 use Carp;
+use File::Grep qw(fdo);
 
 
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
 $VERSION = eval { require ExtUtils::Git::VERSION; do $INC{'ExtUtils/Git/VERSION.pm'}};
-
-
-#  Revision information, auto maintained by CVS
-#
-$REVISION=(qw$Revision: 1.40 $)[1];
 
 
 #  Load up our config file
@@ -827,6 +822,48 @@ sub git_version_dump {
 
 }
 
+
+sub git_lint {
+
+
+    #  Check for old CVS references (RCS keywords etc)
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+
+
+    #  Get the manifest
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Iterate over file list
+    #
+    my @match;
+    foreach my $fn (keys %{$manifest_hr}) {
+	fdo {
+	    my (undef, $pos, $line)=@_;
+	    if ($line=/(\$Author|\$Date|\$Header|\$Id|\$Locker|\$Log|\$Name|\$RCSfile|\$Revision|\$Source|\$State|\$REVISION)/) {
+		push @match, "found RCS keyword '$1' in file '$fn' at line $pos";
+	    }
+	} $fn
+    }
+
+
+    #  If any matches found error out
+    #
+    if (@match) {
+
+	return $self->_err(join($/, @match));
+
+    }
+
+
+    #  Done
+    #
+    return \undef;
+
+}
 
 
 #===================================================================================================

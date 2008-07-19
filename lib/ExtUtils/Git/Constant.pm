@@ -20,8 +20,6 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  $Id: Config.pm,v 1.18 2007/07/01 09:46:09 aspeer Exp $
-#
 
 
 #  This package finds, then stores in a cache the full path to various

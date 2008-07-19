@@ -3,7 +3,7 @@
 #  Check in files to Git if needed, assuming MANIFEST checks out and files are not already
 #  uptodate (as determined by git_status test)
 #
-git_ci :: git_manicheck
+git_ci : git_manicheck
 	@$(PERL) -M$(EXTUTILS_GIT) \
 	-e "$(EXTUTILS_GIT)->git_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
 		$(PERL) -M$(EXTUTILS_GIT)								\
@@ -27,20 +27,20 @@ git_ci :: git_manicheck
 
 #  Push
 #
-git_push ::
+git_push :
 	$(GIT_EXE) push origin master
 
 
 #  Build distribution
 #
-git_dist :: git_ci
+git_dist : git_ci
 	$(GIT_EXE) rev-list  --all --pretty > $(CHANGELOG_FN)
 	$(MAKE) tardist		
 
 
 #  Make new repository and import files into Git
 #
-git_import ::
+git_import :
 	$(GIT_EXE) init -q && \
 	$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
@@ -48,9 +48,17 @@ git_import ::
 	$(GIT_EXE) remote add origin $(GIT_REPO)/$(DISTNAME)
 
 
+#  Commit
+#
+git_commit :
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
+
+
 #  Check manifest matches git
 #
-git_manicheck ::
+git_manicheck :
 	@$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
@@ -58,7 +66,7 @@ git_manicheck ::
 
 #  Check all files are in git and up to date
 #
-git_status :: git_manicheck
+git_status : git_manicheck
 	@$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
@@ -66,7 +74,7 @@ git_status :: git_manicheck
 
 #  Increment version_from file
 #
-git_version_increment ::
+git_version_increment :
 	@$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
@@ -74,7 +82,7 @@ git_version_increment ::
 
 #  Print current version
 #
-git_version ::
+git_version :
 	@$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
@@ -82,17 +90,30 @@ git_version ::
 
 #  Tag current version
 #
-git_tag ::
+git_tag :
 	@$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
 
+
+#  Lint the files for old RCS/CVS keywords
+#
+git_lint :
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
 
 #  Dump current git version to Dumper.pm file, can be picked by packaging tool later
 #
-git_version_dump ::
+git_version_dump :
 	@$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV)
 
 
+#  perl -c -w check of all files
+#
+cw : all
+	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm/} @ARGV)' -- $(TO_INST_PM)`; \
+		do $(PERL) -I$(INST_LIB) -c -w $$d; done
+	@for d in $(EXE_FILES); do $(PERL) -I$(INST_LIB) -c -w $$d; done

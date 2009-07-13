@@ -83,7 +83,7 @@ my %Arg;
 
 #  Manage activation of const_config and dist_ci targets via import tags. Import tags are
 #
-#  use ExtUtils::CVS qw(const_config) to just replace the macros section of the Makefile
+#  use ExtUtils::Git qw(const_config) to just replace the macros section of the Makefile
 #  .. qw(dist_ci) to replace standard MakeMaker targets with our own
 #  .. qw(:all) to get both of the above, usual usage
 #
@@ -843,7 +843,7 @@ sub git_lint {
     foreach my $fn (keys %{$manifest_hr}) {
 	fdo {
 	    my (undef, $pos, $line)=@_;
-	    if ($line=/(\$Author|\$Date|\$Header|\$Id|\$Locker|\$Log|\$Name|\$RCSfile|\$Revision|\$Source|\$State|\$REVISION)/) {
+	    if ($line=/(\$A{1}uthor|\$D{1}ate|\$H{1}eader|\$I{1}d|\$L{1}ocker|\$L{1}og|\$N{1}ame|\$R{1}CSfile|\$R{1}evision|\$S{1}ource|\$S{1}tate|\$R{1}EVISION)/) {
 		push @match, "found RCS keyword '$1' in file '$fn' at line $pos";
 	    }
 	} $fn
@@ -1000,17 +1000,17 @@ ExtUtils::Git - Class to add git related targets to Makefile generated from perl
 ExtUtils::Git is a class that extends ExtUtils::MakeMaker to add git related
 targets to the Makefile generated from Makefile.PL.
 
-ExtUtils::Git will enforce various rules during module distribution, such as not
-building a dist for a module before all components are checked in to Git. It will
-also not build a dist if the MANIFEST and Git ideas of what are in the module are
-out of sync.
+ExtUtils::Git will enforce various rules during module distribution, such as
+not building a dist for a module before all components are checked in to
+Git.  It will also not build a dist if the MANIFEST and Git ideas of what
+are in the module are out of sync.
 
 
 =head1 OVERVIEW
 
-Create a normal module using h2xs (see L<h2xs>). Either put ExtUtils::MakeMaker into
-an eval'd BEGIN block in your Makefile.PL, or build the Makefile.PL with ExtUtils::Git
-as an included module.
+Create a normal module using h2xs (see L<h2xs>). Either put ExtUtils::Git
+into an eval'd BEGIN block in your Makefile.PL, or build the Makefile.PL
+with ExtUtils::Git as an included module.
 
 =over 4
 
@@ -1030,57 +1030,65 @@ A sample Makefile.PL may look like this:
 
         sub BEGIN {  eval('use ExtUtils::Git') }
 
-eval'ing ExtUtils::CVS within a BEGIN block allows user to build your module even if they
-do not have a local copy of ExtUtils::Git.
+eval'ing ExtUtils::Git within a BEGIN block allows user to build your module
+even if they do not have a local copy of ExtUtils::Git.
 
 =item Using as a module when running Makefile.PL
 
-If you do not want any reference to ExtUtils::CVS within your Makefile.PL, you can
-build the Makefile with the following command:
+If you do not want any reference to ExtUtils::Git within your Makefile.PL,
+you can build the Makefile with the following command:
 
         perl -MExtUtils::Git=:all Makefile.PL
 
-This will build a Makefile with all the ExtUtils::CVS targets.
+This will build a Makefile with all the ExtUtils::Git targets.
 
 =back
 
 =head1 IMPORTING INTO GIT
 
-Once you have created the first draft of your module, and included ExtUtils::CVS into the
-Makefile.PL file in one of the above ways, you can import the module into CVS. Simply do a
+Once you have created the first draft of your module, and included
+ExtUtils::Git into the Makefile.PL file in one of the above ways, you can
+import the module into Git.  Simply do a
 
         make git_import
 
-in the working directory. All files in the MANIFEST will be imported into Git and a new Git repository will be created in the current working directory.
+in the working directory. All files in the MANIFEST will be imported into
+Git and a new Git repository will be created in the current working
+directory.
 
 =head1 ADDING OR REMOVING FILES WITHIN THE PROJECT
 
-Once checked out you can work on your files as per normal. If you add or remove a file from your
-module project you need to undertake the corresponding action in git with a
+Once checked out you can work on your files as per normal. If you add or
+remove a file from your module project you need to undertake the
+corresponding action in git with a
 
         git add myfile.pm OR
         git remove myfile.pm
 
-You must remember to add or remove the file from the MANIFEST, or ExtUtils::Git will generate a
-error when you try to build the dist. This is by design - the contents of the MANIFEST file should
-mirror the active Git files.
+You must remember to add or remove the file from the MANIFEST, or
+ExtUtils::Git will generate a error when you try to build the dist.  This is
+by design - the contents of the MANIFEST file should mirror the active Git
+files.
 
 =head1 CHECKING IN MODIFICATIONS
 
-Periodically you will want to check modifications into the CVS repository. If you are not planning to make
-a distribution at this time a normal
+Periodically you will want to check modifications into the Git repository.
+If you are not planning to make a distribution at this time a normal
 
         git commit
 
-will still work. As this is a stardard git check in, no checking of the MANIFEST etc will be performed.
+will still work. As this is a stardard git check in, no checking of the
+MANIFEST etc will be performed.
 
-If you wish to build a distribution from the current project working directory you should do a
+If you wish to build a distribution from the current project working
+directory you should do a
 
         make git_ci
 
-Doing a 'make git_ci' will undertake a check to ensure that the MANIFEST and Git are in sync. It will
-check modified files into Git, incrementing the current module version. In addition, it will then
-tag the repository with the new version in the form 'Acme-Froogle_1.26'. Thus at any time you can
+Doing a 'make git_ci' will undertake a check to ensure that the MANIFEST and
+Git are in sync.  It will check modified files into Git, incrementing the
+current module version.  In addition, it will then tag the repository with
+the new version in the form 'Acme-Froogle_1.26'.  Thus at any time you can
 checkout an earlier version of your module with a git command in the form of
 
         git checkout Acme-Froogle_1.26
@@ -1088,8 +1096,9 @@ checkout an earlier version of your module with a git command in the form of
 
 =head1 OTHER MAKEFILE TARGETS
 
-As well as 'make git_import' and 'make git_ci', the following other targets are supported. Many
-of these targets are called by the 'make git_ci' process, but can be run standalone also
+As well as 'make git_import' and 'make git_ci', the following other targets
+are supported.  Many of these targets are called by the 'make git_ci'
+process, but can be run standalone also
 
 =over 4
 
@@ -1099,8 +1108,8 @@ Will check that MANIFEST and Git agree on files included in the project
 
 =item make git_status
 
-Will check that no project files have been modified since last checked in to the 
-repository.
+Will check that no project files have been modified since last checked in to
+the repository.
 
 =item make git_version
 
@@ -1114,6 +1123,6 @@ Will tag files with current version. Not recommended for manual use
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008 Andrew Speer <andrew.speer@isolutions.com.au>. All
-rights reserved.
+Copyright (c) 2008 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
+reserved.
 

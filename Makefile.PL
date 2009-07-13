@@ -18,6 +18,13 @@ use ExtUtils::MakeMaker;
 #------------------------------------------------------------------------------
 
 
+#  Get MakeMaker args
+#
+my %arg;
+&ExtUtils::MakeMaker::parse_args(\%arg, @ARGV);
+my $prereq_hr;
+
+
 #  Create the Makefile
 #
 WriteMakefile(
@@ -32,6 +39,21 @@ WriteMakefile(
 	'VERSION.pm'
 
        ),
+
+
+    PREREQ_PM				    	  =>	do { $prereq_hr={
+
+	'File::Touch'			    	  =>  undef,
+	'File::Grep'			    	  =>  undef
+
+       }; ($ENV{'PREREQ_PM'} eq '0') ? {} : $prereq_hr },
+
+
+    CONFIGURE                               	  =>  sub { {
+
+	PREREQ_PM			    	  =>  $prereq_hr
+
+    } },
 
 
     PM						  =>  {

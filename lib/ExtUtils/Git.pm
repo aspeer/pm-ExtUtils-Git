@@ -148,7 +148,7 @@ sub import {
 
     #  Run appropriate
     #
-    foreach my $import (@import) {
+    foreach my $import (@import ? @import : ':all') {
 	$import{$import} && ($import{$import}->());
     };
 
@@ -171,7 +171,7 @@ sub import {
 
     #  And call any other import routine needed
     #
-    return $self->SUPER::import(@_);
+    return $self->SUPER::import(@_ ? @_ : ':all');
 
 }
 
@@ -341,7 +341,7 @@ sub makefile {
 
     #  Done, return result
     #
-    return join($/, @makefile);	
+    return join($/, @makefile);
 
 }
 
@@ -843,6 +843,7 @@ sub git_lint {
     foreach my $fn (keys %{$manifest_hr}) {
 	fdo {
 	    my (undef, $pos, $line)=@_;
+	    # Obfuscate RCS keyworks so ExtUtils::Git does not warn when run on itself
 	    if ($line=/(\$A{1}uthor|\$D{1}ate|\$H{1}eader|\$I{1}d|\$L{1}ocker|\$L{1}og|\$N{1}ame|\$R{1}CSfile|\$R{1}evision|\$S{1}ource|\$S{1}tate|\$R{1}EVISION)/) {
 		push @match, "found RCS keyword '$1' in file '$fn' at line $pos";
 	    }
@@ -1021,7 +1022,7 @@ A sample Makefile.PL may look like this:
         use strict;
         use ExtUtils::MakeMaker;
 
-        WriteMakeFile ( 
+        WriteMakeFile (
 
                 NAME    =>  'Acme::Froogle'
                 ... MakeMaker options here
@@ -1125,4 +1126,3 @@ Will tag files with current version. Not recommended for manual use
 
 Copyright (c) 2008 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
 reserved.
-

@@ -1,6 +1,6 @@
 #
 #
-#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights 
+#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
 #  reserved.
 #
 #  This file is part of ExtUtils::Git.
@@ -74,19 +74,23 @@ my $bin_find_cr=sub {
     #  convert.
     #
     (ref($bin_ar) eq 'ARRAY') || do { $bin_ar=[$bin_ar] };
-    my $wanted_cr=sub {
-	foreach my $bin (@{$bin_ar}) {
-	    ($File::Find::name=~/\/\Q$bin\E$/) && ($bin_fn=$File::Find::name);
-	    last if $bin_fn;
-	}
-    };
     my @dir=grep { -d $_ } split(/:|;/, $ENV{'PATH'});
-    find($wanted_cr, @dir);
+    my %dir=map { $_=> 1} @dir;
+    DIR: foreach my $dir (@dir) {
+	next unless delete $dir{$dir};
+	next unless -d $dir;
+	foreach my $bin (@{$bin_ar}) {
+	    if (-f File::Spec->catfile($dir, $bin)) {
+		$bin_fn=File::Spec->catfile($dir, $bin);
+		last DIR;
+	    }
+	}
+    }
 
 
     #  Normalize fn
     #
-    $bin_fn=File::Spec->canonpath($bin_fn);
+    $bin_fn=File::Spec->canonpath($bin_fn) if $bin_fn;
 
 
     #  Return
@@ -110,14 +114,15 @@ if (-e $cache_fn && ((stat($cache_fn))[9] < (time() - (1 * 60)))) {
     #  Cache is stale, delete. Not fatal if fails, just blank out so
     #  we do not use;
     #
-    unlink $cache_fn || ($cache_fn=undef);
+    unlink $cache_fn;
+    $cache_fn=undef;
 
 }
 
 
 #  Try to read in cache details, or search disk for binaries if needed
 #
-unless (%Constant = %{do($cache_fn)}) {
+unless (%Constant = %{$cache_fn && do($cache_fn)}) {
 
 
     #  Could not find cache file, create hash. Should probably put this stuff into a
@@ -140,7 +145,9 @@ unless (%Constant = %{do($cache_fn)}) {
 
 	DIST_DEFAULT		 =>  'git_dist',
 
-	GIT_REPO		 =>  'ssh://git@copper.isolutions.com.au/home/git'
+	GIT_REPO		 =>  '/opt/git',
+
+	GIT_GROUP		 =>  'git',
 
        );
 

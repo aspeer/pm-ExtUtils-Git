@@ -1,0 +1,11 @@
+
+ExtUtils::Git is a class that extends ExtUtils::MakeMaker to add git related
+targets to the Makefile generated from Makefile.PL.
+
+ExtUtils::Git will enforce various rules during module distribution build,
+such as not building a dist for a module before all components are checked
+in to Git.  It will also not build a dist if the MANIFEST and Git ideas of
+what are in the module are out of sync.
+
+ExtUtils::Git will take care of incrementing the version number of modules
+before a dist is built and other such mundane details.

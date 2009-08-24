@@ -35,17 +35,28 @@ git_push :
 #
 git_dist : git_ci
 	$(GIT_EXE) rev-list  --all --pretty > $(CHANGELOG_FN)
-	$(MAKE) tardist		
+	$(MAKE) tardist
 
 
 #  Make new repository and import files into Git
 #
 git_import :
-	$(GIT_EXE) init -q && \
+	$(MAKE) metafile
+	$(MAKE) git_init && \
 	$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV) && \
-	$(GIT_EXE) remote add origin $(GIT_REPO)/$(DISTNAME)
+	$(GIT_EXE) commit -m "MANIFEST Import"
+	$(GIT_EXE) push origin master
+
+
+#  Init local git repo
+#
+git_init :
+	@if [ ! -d .git ]; then \
+	    $(GIT_EXE) init -q || exit 1; \
+	    $(GIT_EXE) remote add origin $(GIT_REPO)/$(DISTNAME); \
+	fi
 
 
 #  Commit

@@ -6,3 +6,5 @@ lib/ExtUtils/Git/Constant.pm
 lib/ExtUtils/Git/VERSION.pm
 lib/ExtUtils/Git/dist_ci.inc
 LICENSE
+INSTALL
+README

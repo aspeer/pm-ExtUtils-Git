@@ -20,4 +20,5 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-$VERSION='1.74';
+package ExtUtils::Git::VERSION;
+$VERSION='1.075';

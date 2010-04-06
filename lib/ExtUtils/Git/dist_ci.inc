@@ -9,6 +9,9 @@ git_ci : git_manicheck
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_version_increment(@ARGV)"				\
 			-- $(EXTUTILS_ARGV)							&&	\
+		$(PERL) -M$(EXTUTILS_GIT)								\
+			-e "$(EXTUTILS_GIT)->git_version_increment_files(@ARGV)"			\
+			-- $(EXTUTILS_ARGV)							&&	\
 		$(MAKE) metafile 								&&	\
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_commit(@ARGV)"						\
@@ -28,7 +31,7 @@ git_ci : git_manicheck
 #  Push
 #
 git_push :
-	$(GIT_EXE) push origin master
+	$(GIT_EXE) push --mirror origin
 
 
 #  Build distribution
@@ -91,6 +94,14 @@ git_version_increment :
 		-- $(EXTUTILS_ARGV)
 
 
+#  Increment VERSION in any files that have changed
+#
+git_version_increment_files :
+	@$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
+
+
 #  Print current version
 #
 git_version :
@@ -126,5 +137,5 @@ git_version_dump :
 #
 cw : all
 	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm/} @ARGV)' -- $(TO_INST_PM)`; \
-		do $(PERL) -I$(INST_LIB) -c -w $$d; done
-	@for d in $(EXE_FILES); do $(PERL) -I$(INST_LIB) -c -w $$d; done
+		do PERL5INC=$(INST_LIB) $(PERL) -I$(INST_LIB) -c -w $$d; done
+	@for d in $(EXE_FILES); do PERL5INC=$(INST_LIB) $(PERL) -I$(INST_LIB) -c -w $$d; done

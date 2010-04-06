@@ -53,7 +53,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = eval { require ExtUtils::Git::VERSION; do $INC{'ExtUtils/Git/VERSION.pm'}};
+$VERSION = '1.013';
 
 
 #  Load up our config file
@@ -623,6 +623,7 @@ sub git_version_increment {
 	return $self->_err("unable to get existing version from $version_from_fn");
     my @version=split(/\./, $version);
     $version[-1]++;
+    $version[-1]=sprintf('%03d', $version[-1]);
     my $version_new=join('.', @version);
 
 
@@ -655,6 +656,98 @@ sub git_version_increment {
 
 
     #  Done
+    #
+    return \undef;
+
+}
+
+
+sub git_version_increment_files {
+
+
+    #  Check for files that have changed and edit to update version numvers
+    #
+    my $self=shift();
+    my $param_hr=$self->_arg(@_);
+    my $version_from_fn=$param_hr->{'VERSION_FROM'} ||
+	return $self->_err('unable to get version_from file name');
+
+
+    #  Get manifest.
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+    use File::Temp;
+    use File::Copy;
+    
+    # Iterate through
+    #
+    foreach my $fn (keys %{$manifest_hr}) {
+	
+	
+	#  Skip VERSION.pm file
+	#
+	#print "fn $fn, $version_from_fn\n"; 
+	next if ($fn eq $version_from_fn);
+	
+	#  Get number of git checkins
+	#
+	my $git_rev_list=qx($GIT_EXE rev-list HEAD $fn);
+	my $revision=(my @revisoion=split($/, $git_rev_list));
+	
+	
+	#  Add one to take into account ci we are just about to do
+	#
+	$revision++;
+	$revision=sprintf('%03d', $revision);
+	#print "$fn, $revision\n";
+	
+	my $temp_fh=File::Temp->new() ||
+	    return $self->_err("unable to open tempfile, $!");
+	my $temp_fn=$temp_fh->filename() ||
+	    return $self->_err("unable to obtain tempfile name from fh $temp_fh");
+	my $fh=IO::File->new($fn) ||
+	    return $self->_err("unable to open file $fn for readm $!");
+	my ($update_fg, $version_seen_fg);
+	while (my $line=<$fh>) {
+	    if ($line=~/^\$VERSION\s*=\s*'(\d+)\.(\d+)'/ && !$version_seen_fg) {
+		$version_seen_fg++;
+		my $release=$1 || 1;
+		if ($2 < $revision) {
+		    $line=~s/^(\$VERSION\s*=\s*)'(\d+)\.(\d+)'(.*)$/$1'$release.$revision'$4/;
+		    print "updating $fn version from $2.$3 to $release.$revision\n";
+		    #print "$line";
+		    $update_fg++;
+		}
+		elsif ($2 > $revision) {
+		    return $self->_err("error - existing version $1.$2 > proposed version $1.$revision !");
+		}
+		elsif ($2 == $revision) {
+		    print "skipping update of $fn, version $1.$2 identical to proposed rev $1.$revision\n";
+		}
+	    }
+	    elsif ($line=~/^\$VERSION\s*=/ && !$version_seen_fg) {
+		$version_seen_fg++;
+		my $release=1;
+		print "changing $fn version format to $release.$revision\n";
+		$line="\$VERSION='$release.$revision';";
+		$update_fg++;
+	    }
+	    print $temp_fh $line;
+	}
+	$fh->close();
+	$temp_fh->close();
+	if ($update_fg) {
+	    #print "Would update fn $fn\n";
+	    File::Copy::move($temp_fn, $fn) ||
+		return $self->_err("error moving file $temp_fn=>$fn, $!")
+	}
+	else {
+	    #print "no \$VERSION match on file $fn\n";
+	}	
+    }
+
+
+    #  All done
     #
     return \undef;
 

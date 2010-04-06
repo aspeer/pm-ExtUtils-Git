@@ -693,12 +693,11 @@ sub git_version_increment_files {
 	#
 	my $git_rev_list=qx($GIT_EXE rev-list HEAD $fn);
 	my $revision=(my @revisoion=split($/, $git_rev_list));
-	
-	
-	#  Add one to take into account ci we are just about to do
-	#
-	$revision++;
 	$revision=sprintf('%03d', $revision);
+	if ($revision > 998) {
+	    return $self->_err("revision too high ($revision) - update release ?");
+	}
+	
 	#print "$fn, $revision\n";
 	
 	my $temp_fh=File::Temp->new() ||
@@ -713,6 +712,8 @@ sub git_version_increment_files {
 		$version_seen_fg++;
 		my $release=$1 || 1;
 		if ($2 < $revision) {
+		    #  Update revision in anticipation of checkin
+		    $revision++;
 		    $line=~s/^(\$VERSION\s*=\s*)'(\d+)\.(\d+)'(.*)$/$1'$release.$revision'$4/;
 		    print "updating $fn version from $2.$3 to $release.$revision\n";
 		    #print "$line";
@@ -728,6 +729,8 @@ sub git_version_increment_files {
 	    elsif ($line=~/^\$VERSION\s*=/ && !$version_seen_fg) {
 		$version_seen_fg++;
 		my $release=1;
+		#  Update revision in anticipation of checkin
+		$revision++;
 		print "changing $fn version format to $release.$revision\n";
 		$line="\$VERSION='$release.$revision';";
 		$update_fg++;

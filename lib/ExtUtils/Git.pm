@@ -1,5 +1,4 @@
 #
-#
 #  Copyright (c) 2003,2004 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
 #  reserved.
 #
@@ -53,7 +52,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.019';
+$VERSION = '1.020';
 
 
 #  Load up our config file

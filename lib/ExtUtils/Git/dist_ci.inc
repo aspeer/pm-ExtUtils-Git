@@ -23,7 +23,7 @@ git_ci : git_manicheck
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_version_dump(@ARGV)"					\
 			-- $(EXTUTILS_ARGV)							&&	\
-		$(GIT_EXE) push	origin master								\
+		$(GIT_EXE) push	--mirror origin								\
 	)
 
 
@@ -50,7 +50,7 @@ git_import :
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
 		-- $(EXTUTILS_ARGV) && \
 	$(GIT_EXE) commit -m "MANIFEST Import"
-	$(GIT_EXE) push origin master
+	$(GIT_EXE) push --mirror origin
 
 
 #  Init local git repo

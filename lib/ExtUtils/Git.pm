@@ -1,6 +1,6 @@
 #
 #
-#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
+#  Copyright (c) 2003,2004 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
 #  reserved.
 #
 #  This file is part of ExtUtils::Git.
@@ -53,7 +53,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.013';
+$VERSION = '1.015';
 
 
 #  Load up our config file
@@ -678,6 +678,12 @@ sub git_version_increment_files {
     my $manifest_hr=ExtUtils::Manifest::maniread();
     use File::Temp;
     use File::Copy;
+
+
+    #  Get list of modified files
+    #
+    my %git_modified=map { chomp($_); $_=>1 } split($/, qx($GIT_EXE ls-files --modified));
+
     
     # Iterate through
     #
@@ -689,16 +695,17 @@ sub git_version_increment_files {
 	#print "fn $fn, $version_from_fn\n"; 
 	next if ($fn eq $version_from_fn);
 	
+	
 	#  Get number of git checkins
 	#
 	my $git_rev_list=qx($GIT_EXE rev-list HEAD $fn);
-	my $revision=(my @revisoion=split($/, $git_rev_list));
-	$revision=sprintf('%03d', $revision);
+	my $revision=(my @revision=split($/, $git_rev_list));
+        $revision=sprintf('%03d', $revision);
 	if ($revision > 998) {
 	    return $self->_err("revision too high ($revision) - update release ?");
 	}
 	
-	#print "$fn, $revision\n";
+	print "$fn, $revision\n";
 	
 	my $temp_fh=File::Temp->new() ||
 	    return $self->_err("unable to open tempfile, $!");
@@ -708,31 +715,33 @@ sub git_version_increment_files {
 	    return $self->_err("unable to open file $fn for readm $!");
 	my ($update_fg, $version_seen_fg);
 	while (my $line=<$fh>) {
-	    if ($line=~/^\$VERSION\s*=\s*'(\d+)\.(\d+)'/ && !$version_seen_fg) {
+	    if ($line=~/^\$VERSION\s*=\s*'(\d+)\.(\d+)'/ && !$version_seen_fg && $git_modified{$fn}) {
 		$version_seen_fg++;
 		my $release=$1 || 1;
+		print "found rev $2 vs git rec $revision\n";
 		if ($2 < $revision) {
 		    #  Update revision in anticipation of checkin
-		    $revision++;
+                    $revision=sprintf('%03d', $revision);
 		    $line=~s/^(\$VERSION\s*=\s*)'(\d+)\.(\d+)'(.*)$/$1'$release.$revision'$4/;
 		    print "updating $fn version from $2.$3 to $release.$revision\n";
 		    #print "$line";
 		    $update_fg++;
 		}
-		elsif ($2 > $revision) {
-		    return $self->_err("error - existing version $1.$2 > proposed version $1.$revision !");
+		elsif ($2 > ($revision+1)) {
+		    return $self->_err("error - $fn existing version $1.$2 > proposed version $1.$revision !");
 		}
 		elsif ($2 == $revision) {
 		    print "skipping update of $fn, version $1.$2 identical to proposed rev $1.$revision\n";
 		}
 	    }
-	    elsif ($line=~/^\$VERSION\s*=/ && !$version_seen_fg) {
+	    elsif ($line=~/^\$VERSION/ && $line!~/^\$VERSION\s*=\s*'(\d+)\.(\d+)'/ && !$version_seen_fg) {
 		$version_seen_fg++;
 		my $release=1;
 		#  Update revision in anticipation of checkin
 		$revision++;
+                $revision=sprintf('%03d', $revision);
 		print "changing $fn version format to $release.$revision\n";
-		$line="\$VERSION='$release.$revision';";
+		$line="\$VERSION='$release.$revision';\n";
 		$update_fg++;
 	    }
 	    print $temp_fh $line;
@@ -932,19 +941,48 @@ sub git_lint {
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
 
+    #  Get list of modified files
+    #
+    my %git_modified_fn=map { chomp($_); $_=>1 } split($/, qx($GIT_EXE ls-files --modified));
 
-    #  Iterate over file list
+
+    #  Iterate over file list looking for problems.
     #
     my @match;
     foreach my $fn (keys %{$manifest_hr}) {
+	#print "fn $fn\n";
 	fdo {
 	    my (undef, $pos, $line)=@_;
+	    #print "line $line\n";
+	    my $match="in $fn at line $pos";
 	    # Obfuscate RCS keyworks so ExtUtils::Git does not warn when run on itself
-	    if ($line=/(\$A{1}uthor|\$D{1}ate|\$H{1}eader|\$I{1}d|\$L{1}ocker|\$L{1}og|\$N{1}ame|\$R{1}CSfile|\$R{1}evision|\$S{1}ource|\$S{1}tate|\$R{1}EVISION)/) {
-		push @match, "found RCS keyword '$1' in file '$fn' at line $pos";
+	    if ($line=~/(\$A{1}uthor|\$D{1}ate|\$H{1}eader|\$I{1}d|\$L{1}ocker|\$L{1}og|\$N{1}ame|\$R{1}CSfile|\$R{1}evision|\$S{1}ource|\$S{1}tate|\$R{1}EVISION)/) {
+		push @match, "found RCS keyword '$1' $match";
+	    }
+	    if ($line=~/REVISION/) {
+		push @match, "found obsolete REVISION keyword $match";
+	    }
+	    #if ($line=~/copyright.*?(\d{4})*\s*(,|-)*\s*(\d{4})/i && ($fn!~/LICENSE/)) {
+	    if ($line=~/copyright/i && (my @year=($line=~/\d{4}/g)) && ($fn!~/LICENSE/)) {
+		my $copyyear=$year[-1];
+		my $thisyear=(localtime())[5]+1900;
+		#print "cr match $copyyear\n";
+		if (($copyyear < $thisyear)) {
+		    push @match, "found old copyright notice ($copyyear) $match";
+		}		
+	    }
+	    if ($line=~/copyright\s+\(/i && ($line=~/andrew/i) &&  $line!~/Copyright \(C\) \d{4}-\d{4} Andrew Speer.*?(\<andrew\@webdyne\.org>)?/ && ($fn!~/LICENSE$/) && ($fn!~/ChangeLog$/)) {
+	        push @match, "inconsistant copyright format $match";
+            }
+	    if ($line=~/\s+(.*?)\@isolutions\.com\.au/ && ($fn!~/ChangeLog$/i)) {
+		push @match, "found isolutions email address $2\@isolutions.com.au $match";
+	    }
+	    if ($line=~/\s+andrew\.speer\@/ && ($fn!~/ChangeLog$/i)) {
+		push @match, "found andrew.speer@ email address $2\@isolutions.com.au $match";
 	    }
 	} $fn
     }
+    
 
 
     #  If any matches found error out

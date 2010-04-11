@@ -137,5 +137,5 @@ git_version_dump :
 #
 cw : all
 	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm/} @ARGV)' -- $(TO_INST_PM)`; \
-		do PERL5INC=$(INST_LIB) $(PERL) -I$(INST_LIB) -c -w $$d; done
-	@for d in $(EXE_FILES); do PERL5INC=$(INST_LIB) $(PERL) -I$(INST_LIB) -c -w $$d; done
+		do PERL5INC=$(INST_LIB) $(PERL) -I$(INST_LIB) $(MAKEFILELIB) -c -w $$d; done
+	@for d in $(EXE_FILES); do PERL5INC=$(INST_LIB) $(PERL) -I$(INST_LIB) $(MAKEFILELIB) -c -w $$d; done

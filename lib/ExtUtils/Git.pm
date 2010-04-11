@@ -53,7 +53,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.018';
+$VERSION = '1.019';
 
 
 #  Load up our config file
@@ -64,7 +64,7 @@ our $Config_hr;
 #  Vars to hold chained soubroutines, if needed (loaded by import). Must be
 #  global (our) vars. Also need to remember import param
 #
-our ($Const_config_chain_cr, $Dist_ci_chain_cr, $Makefile_chain_cr, $Metafile_target_chain_cr);
+our ($Const_config_chain_cr, $Dist_ci_chain_cr, $Makefile_chain_cr, $Metafile_target_chain_cr, $Platform_constants_cr);
 
 
 #  Intercepts method arguments, holds some info across method calls to be used
@@ -132,17 +132,25 @@ sub import {
 	0 && ExtUtils::MM_Any::metafile_target();
 
     };
+    my $platform_constants_cr=sub {
+
+	$Platform_constants_cr=UNIVERSAL::can('MY', 'platform_constants');
+	*MY::platform_constants=sub { &platform_constants(@_) };
+	0 && MY::platform_constants();
+
+    };
 
 
     #  Put into hash
     #
     my %import=(
 
-	const_config	=>  $const_config_cr,
-	dist_ci		=>  $dist_ci_cr,
-	makefile        =>  $makefile_cr,
-	metafile_target =>  $metafile_target_cr,
-	':all'		=>  sub { $const_config_cr->(); $dist_ci_cr->(); $makefile_cr->(); $metafile_target_cr->() },
+	const_config		=>  $const_config_cr,
+	dist_ci			=>  $dist_ci_cr,
+	makefile        	=>  $makefile_cr,
+	metafile_target 	=>  $metafile_target_cr,
+	platform_constants	=>  $platform_constants_cr,
+	':all'			=>  sub { $const_config_cr->(); $dist_ci_cr->(); $makefile_cr->(); $metafile_target_cr->(); $platform_constants_cr->() },
 
        );
 
@@ -352,6 +360,54 @@ sub makefile {
     #  Done, return result
     #
     return join($/, @makefile);
+
+}
+
+
+sub platform_constants {
+
+
+    #  Change package
+    #
+    my $class=__PACKAGE__;
+    package MY;
+
+
+    #  Get self ref
+    #
+    my $self=shift();
+
+
+    #  Get original constants
+    #
+    my $constants=$Platform_constants_cr->($self);
+    
+    
+    #  Get INC
+    #
+    my $makefile_inc;
+    if (my @inc=@{$MY::Import_inc}) {
+        $makefile_inc=join(' ', map { qq("-I$_") } @inc);
+    }
+    
+    
+    #  Update fullperlrun, used by test
+    #
+    $constants.=join("\n", 
+    
+        undef,
+    
+        "FULLPERLRUN = \$(FULLPERL) $makefile_inc",
+        "MAKEFILELIB = $makefile_inc",
+        
+        undef
+    );
+    
+
+    #  Done
+    #
+    $constants;
+    
 
 }
 

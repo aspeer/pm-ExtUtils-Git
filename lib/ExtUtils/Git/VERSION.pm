@@ -21,4 +21,4 @@
 #
 #
 package ExtUtils::Git::VERSION;
-$VERSION='1.081';
+$VERSION='1.082';

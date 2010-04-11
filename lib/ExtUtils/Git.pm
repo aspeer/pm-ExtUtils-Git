@@ -53,7 +53,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.017';
+$VERSION = '1.018';
 
 
 #  Load up our config file
@@ -305,7 +305,7 @@ sub makefile {
     #
     my $makefile_inc;
     if (my @inc=@{$MY::Import_inc}) {
-        $makefile_inc=join(' ', map { qq("-I=$_") } @inc);
+        $makefile_inc=join(' ', map { qq("-I$_") } @inc);
     }
 
     

@@ -53,7 +53,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.016';
+$VERSION = '1.017';
 
 
 #  Load up our config file
@@ -99,6 +99,7 @@ sub import {
     #  Store for later use in MY::makefile section
     #
     $MY::Import_class{$self}=\@import;
+    $MY::Import_inc=\@INC;
 
 
     #  Code ref for params
@@ -165,6 +166,7 @@ sub import {
     *ExtUtils::Git::import=sub {
     	my $self=shift();
     	$MY::Import_class{$self}=\@import;
+    	$MY::Import_inc=\@INC;
 	$self->SUPER::import(@_)
     };
 
@@ -290,23 +292,31 @@ sub makefile {
     #
     my $makefile_module;
     while (my ($class, $param_ar)=each %MY::Import_class) {
-	if ($param_ar) {
-	    $makefile_module.=" -M$class=".join(',', @{$param_ar});
+	if (@{$param_ar}) {
+	    $makefile_module.=qq("-M$class=").join(',', @{$param_ar});
 	}
 	else {
-	    $makefile_module.=" -M$class";
+	    $makefile_module.=qq("-M$class");
 	}
     }
+    
+    
+    #  Get the INC files
+    #
+    my $makefile_inc;
+    if (my @inc=@{$MY::Import_inc}) {
+        $makefile_inc=join(' ', map { qq("-I=$_") } @inc);
+    }
 
-
+    
     #  Target line to replace. Will need to change here if ExtUtils::MakeMaker ever
     #  changes format of this line
     #
     my @find=(q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" Makefile.PL],
 	      q[$(PERLRUN) Makefile.PL]);
     my $rplc=
-        sprintf(q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" %s Makefile.PL],
-                $makefile_module);
+        sprintf(q[$(PERL) %s "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" %s Makefile.PL],
+                $makefile_inc, $makefile_module);
     my $match;
 
 

@@ -1,6 +1,6 @@
 #
 #
-#  Copyright (c) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights 
+#  Copyright (C) 2003 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights 
 #  reserved.
 #
 #  This file is part of ExtUtils::CVS.
@@ -21,4 +21,4 @@
 #
 #
 package ExtUtils::Git::VERSION;
-$VERSION='1.085';
+$VERSION='1.086';

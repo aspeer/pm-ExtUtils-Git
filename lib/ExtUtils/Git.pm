@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2003,2004 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
+#  Copyright (C) 2003,2004 Andrew W. Speer <andrew.speer@isolutions.com.au>. All rights
 #  reserved.
 #
 #  This file is part of ExtUtils::Git.
@@ -52,7 +52,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.020';
+$VERSION = '1.021';
 
 
 #  Load up our config file
@@ -1323,5 +1323,5 @@ Will tag files with current version. Not recommended for manual use
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
+Copyright (C) 2008 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
 reserved.

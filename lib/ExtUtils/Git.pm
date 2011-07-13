@@ -52,7 +52,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.022';
+$VERSION = '1.023';
 
 
 #  Load up our config file
@@ -311,8 +311,14 @@ sub makefile {
     #  Get the INC files
     #
     my $makefile_inc;
+    use Data::Dumper;
     if (my @inc=@{$MY::Import_inc}) {
-        $makefile_inc=join(' ', map { qq("-I$_") } @inc);
+        my %inc;
+        foreach my $inc (@inc) {
+            $makefile_inc.=qq( "-I$inc") unless $inc{$inc}++;
+        }
+        #$makefile_inc=join(' ', map { qq("-I$_") } @inc);
+        #print Dumper(\@inc, $makefile_inc);
     }
 
     
@@ -770,7 +776,7 @@ sub git_version_increment_files {
 	    return $self->_err("revision too high ($revision) - update release ?");
 	}
 	
-	print "$fn, $revision\n";
+	#print "$fn, $revision\n";
 	
 	my $temp_fh=File::Temp->new() ||
 	    return $self->_err("unable to open tempfile, $!");

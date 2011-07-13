@@ -52,7 +52,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.023';
+$VERSION = '1.024';
 
 
 #  Load up our config file
@@ -763,7 +763,7 @@ sub git_version_increment_files {
 	
 	#  Skip VERSION.pm file
 	#
-	#print "fn $fn, $version_from_fn\n"; 
+	#print "fn $fn, vfrom $version_from_fn\n"; 
 	next if ($fn eq $version_from_fn);
 	
 	
@@ -789,7 +789,7 @@ sub git_version_increment_files {
 	    if ($line=~/^\$VERSION\s*=\s*'(\d+)\.(\d+)'/ && !$version_seen_fg && $git_modified{$fn}) {
 		$version_seen_fg++;
 		my $release=$1 || 1;
-		print "found rev $2 vs git rec $revision\n";
+		print "found rev $2 vs git rev $revision\n";
 		if ($2 < $revision) {
 		    #  Update revision in anticipation of checkin
                     $revision=sprintf('%03d', $revision);

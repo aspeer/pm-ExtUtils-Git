@@ -12,7 +12,8 @@ git_ci : git_manicheck
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_version_increment_files(@ARGV)"			\
 			-- $(EXTUTILS_ARGV)							&&	\
-		$(MAKE) metafile 								&&	\
+		$(MAKE) -n 									||	\
+		$(MAKE) -n metafile 								&&	\
 		$(PERL) -M$(EXTUTILS_GIT)								\
 			-e "$(EXTUTILS_GIT)->git_commit(@ARGV)"						\
 			-- $(EXTUTILS_ARGV)							&&	\

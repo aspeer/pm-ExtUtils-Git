@@ -52,7 +52,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.141';
+$VERSION = '1.142';
 
 
 #  Load up our config file
@@ -1252,7 +1252,7 @@ even if they do not have a local copy of ExtUtils::Git.
 If you do not want any reference to ExtUtils::Git within your Makefile.PL,
 you can build the Makefile with the following command:
 
-        perl -MExtUtils::Git=:all Makefile.PL
+        perl -MExtUtils::Git Makefile.PL
 
 This will build a Makefile with all the ExtUtils::Git targets.
 

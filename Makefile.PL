@@ -36,9 +36,8 @@ WriteMakefile(
 
 	'lib',
 	split(/::/, __PACKAGE__),
-	'VERSION.pm'
 
-       ),
+       ).'.pm',
 
 
     PREREQ_PM				    	  =>	do { $prereq_hr={

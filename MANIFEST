@@ -3,7 +3,6 @@ MANIFEST
 Makefile.PL
 lib/ExtUtils/Git.pm
 lib/ExtUtils/Git/Constant.pm
-lib/ExtUtils/Git/VERSION.pm
 lib/ExtUtils/Git/dist_ci.inc
 t/00-load.t
 LICENSE

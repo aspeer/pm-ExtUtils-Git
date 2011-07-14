@@ -52,7 +52,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION = '1.024';
+$VERSION = '1.025';
 
 
 #  Load up our config file
@@ -466,10 +466,11 @@ sub git_import {
     my $manifest_hr=ExtUtils::Manifest::maniread();
 
 
-    #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
+    #  Remove the ChangeLog, META.yml from the manifest - they are generated at distribution time, and
     #  is not tracked by Git
     #
-    delete $manifest_hr->{$CHANGELOG_FN};
+    delete @{$manifest_hr}{$CHANGELOG_FN, $METAFILE_FN};
+    #delete $manifest_hr->{$METAFILE_FN};
 
 
     #  Build import command
@@ -500,17 +501,21 @@ sub git_manicheck {
 	return $self->_err('unable to get distname');
 
 
-    #  Get manifest, touch ChangeLog if it is supposed to exist - will be created/updated
+    #  Get manifest, touch ChangeLog, META.yml if it is supposed to exist - will be created/updated
     #  at dist time
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
-    if (exists($manifest_hr->{$CHANGELOG_FN}) && !(-f $CHANGELOG_FN)) {
+    foreach my $fn ($CHANGELOG_FN, $METAFILE_FN) {
+    
+            if (exists($manifest_hr->{$fn}) && !(-f $fn)) {
 
-	#  Need to create it
-	#
-	touch $CHANGELOG_FN ||
-	    return $self->_err("unable to create '$CHANGELOG_FN' file");
-	$self->_msg("git touch '$CHANGELOG_FN'");
+                #  Need to create it
+                #
+                touch $fn ||
+                    return $self->_err("unable to create '$fn' file");
+                $self->_msg("git touch '$fn'");
+
+            }
 
     }
 
@@ -528,7 +533,8 @@ sub git_manicheck {
     #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
     #  is not tracked by Git
     #
-    delete $manifest_hr->{$CHANGELOG_FN};
+    delete @{$manifest_hr}{$CHANGELOG_FN, $METAFILE_FN};
+    #delete $manifest_hr->{$CHANGELOG_FN};
 
 
     #  Check for files in Git, but not in the manifest, or vica versa
@@ -602,8 +608,9 @@ sub git_status {
     #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
     #  is not tracked by Git, same with META.yml
     #
-    delete $manifest_hr->{$CHANGELOG_FN};
-    delete $manifest_hr->{$METAFILE_FN};
+    delete @{$manifest_hr}{$CHANGELOG_FN, $METAFILE_FN};
+    #delete $manifest_hr->{$CHANGELOG_FN};
+    #delete $manifest_hr->{$METAFILE_FN};
 
 
     #  If any modfied file bail now
@@ -925,7 +932,8 @@ sub git_version {
 
     #  Get version from version_from file
     #
-    my $version_git=do(File::Spec->rel2abs($version_from)) ||
+    #my $version_git=do(File::Spec->rel2abs($version_from)) ||
+    my $version_git=eval {MM->parse_version(File::Spec->rel2abs($version_from)) } ||
 	return $self->_err("unable to read version info from version_from file $version_from, $!");
 
 

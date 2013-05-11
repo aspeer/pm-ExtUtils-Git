@@ -52,7 +52,7 @@ use File::Grep qw(fdo);
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.144';
+$VERSION='1.145';
 
 
 #  Load up our config file
@@ -442,6 +442,7 @@ sub metafile_target {
     $metafile=~s/\$\(DISTVNAME\)\/META.yml/META.yml/;
     $metafile=~s/^metafile\s*:\s*create_distdir/metafile :/;
 
+
     #  Done, return modified version
     #
     return $metafile;
@@ -476,8 +477,6 @@ sub git_import {
     #  is not tracked by Git
     #
     delete @{$manifest_hr}{$CHANGELOG_FN, $METAFILE_FN};
-
-    #delete $manifest_hr->{$METAFILE_FN};
 
 
     #  Build import command
@@ -541,8 +540,6 @@ sub git_manicheck {
     #  is not tracked by Git
     #
     delete @{$manifest_hr}{$CHANGELOG_FN, $METAFILE_FN};
-
-    #delete $manifest_hr->{$CHANGELOG_FN};
 
 
     #  Check for files in Git, but not in the manifest, or vica versa
@@ -613,7 +610,28 @@ sub git_status {
 
     #  Get list of modified files
     #
-    my %git_modified=map {chomp($_); $_ => 1} split($/, qx($GIT_EXE ls-files --modified));
+    my $git_modified_hr=$self->_git_modified();
+
+    #foreach my $status (split($/, qx($GIT_EXE status --porcelain))) {
+    #    my ($flags, $fn)=($status=~/^(.{2})\s+(.*)/);
+    #    $flags=~s/^\s*//;
+    #    $flags=~s/\s*$//;
+    #    next if $flags eq '??';
+    #    $git_modified{$fn}=$flags;
+    #}
+
+
+    #  Older techniques
+    #
+    #foreach my $fn (split($/, qx($GIT_EXE ls-files --modified))) {
+    #    chomp($fn);
+    #    $git_modified{$fn}++ if $fn;
+    #}
+    #foreach my $fn (split($/, qx($GIT_EXE diff --cached --name-only))) {
+    #    chomp($fn);
+    #    $git_modified{$fn}++ if $fn;
+    #}
+    #my %git_modified=map {chomp($_); $_ => 1} split($/, qx($GIT_EXE diff --cached --name-only));
 
 
     #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
@@ -621,15 +639,14 @@ sub git_status {
     #
     delete @{$manifest_hr}{$CHANGELOG_FN, $METAFILE_FN};
 
-    #delete $manifest_hr->{$CHANGELOG_FN};
-    #delete $manifest_hr->{$METAFILE_FN};
-
 
     #  If any modfied file bail now
     #
-    if (keys %git_modified) {
+    if (keys %{$git_modified_hr}) {
         my $err="The following files have been modified since last commit:\n";
-        $err.=Data::Dumper::Dumper([keys %git_modified]);
+
+        #$err.=Data::Dumper::Dumper([keys %git_modified]);
+        $err.=Data::Dumper::Dumper($git_modified_hr);
         return $self->_err($err);
     }
 
@@ -772,7 +789,8 @@ sub git_version_increment_files {
 
     #  Get list of modified files
     #
-    my %git_modified=map {chomp($_); $_ => 1} split($/, qx($GIT_EXE ls-files --modified));
+    #my %git_modified=map {chomp($_); $_ => 1} split($/, qx($GIT_EXE ls-files --modified));
+    my $git_modified_hr=$self->_git_modified();
 
 
     # Iterate through
@@ -806,7 +824,7 @@ sub git_version_increment_files {
         my ($update_fg, $version_seen_fg);
         while (my $line=<$fh>) {
 
-            if ($line=~/^\$VERSION\s*=\s*'(\d+)\.(\d+)'/ && !$version_seen_fg && $git_modified{$fn}) {
+            if ($line=~/^\$VERSION\s*=\s*'(\d+)\.(\d+)'/ && !$version_seen_fg && $git_modified_hr->{$fn}) {
                 $version_seen_fg++;
                 my $release=$1 || 1;
                 print "found rev $2 vs git rev $revision\n";
@@ -1036,10 +1054,6 @@ sub git_lint {
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
 
-    #  Get list of modified files
-    #
-    my %git_modified_fn=map {chomp($_); $_ => 1} split($/, qx($GIT_EXE ls-files --modified));
-
 
     #  Iterate over file list looking for problems.
     #
@@ -1146,6 +1160,25 @@ sub _git_mtime_sync {
         return undef;
 
     }
+
+}
+
+
+sub _git_modified {
+
+
+    #  Return a hash of modified files
+    #
+    my %git_modified;
+    foreach my $status (split($/, qx($GIT_EXE status --porcelain))) {
+        my ($flags, $fn)=($status=~/^(.{2})\s+(.*)/);
+        $flags=~s/^\s*//;
+        $flags=~s/\s*$//;
+        next if $flags eq '??';
+        $git_modified{$fn}=$flags;
+    }
+    return \%git_modified;
+
 
 }
 

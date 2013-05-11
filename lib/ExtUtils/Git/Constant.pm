@@ -40,11 +40,11 @@ package ExtUtils::Git::Constant;
 
 #  Compiler Pragma
 #
-sub BEGIN   { $^W=0 };
-use strict  qw(vars);
+sub BEGIN {$^W=0}
+use strict qw(vars);
 use vars qw($VERSION @ISA %EXPORT_TAGS @EXPORT_OK @EXPORT %Constant);
 use warnings;
-no  warnings qw(uninitialized);
+no warnings qw(uninitialized);
 
 
 #  Need File::Find, other File utils
@@ -73,18 +73,18 @@ my $bin_find_cr=sub {
     #  Find the bin file/files if given array ref. If not supplied as array ref
     #  convert.
     #
-    (ref($bin_ar) eq 'ARRAY') || do { $bin_ar=[$bin_ar] };
-    my @dir=grep { -d $_ } split(/:|;/, $ENV{'PATH'});
-    my %dir=map { $_=> 1} @dir;
+    (ref($bin_ar) eq 'ARRAY') || do {$bin_ar=[$bin_ar]};
+    my @dir=grep {-d $_} split(/:|;/, $ENV{'PATH'});
+    my %dir=map {$_ => 1} @dir;
     DIR: foreach my $dir (@dir) {
-	next unless delete $dir{$dir};
-	next unless -d $dir;
-	foreach my $bin (@{$bin_ar}) {
-	    if (-f File::Spec->catfile($dir, $bin)) {
-		$bin_fn=File::Spec->catfile($dir, $bin);
-		last DIR;
-	    }
-	}
+        next unless delete $dir{$dir};
+        next unless -d $dir;
+        foreach my $bin (@{$bin_ar}) {
+            if (-f File::Spec->catfile($dir, $bin)) {
+                $bin_fn=File::Spec->catfile($dir, $bin);
+                last DIR;
+            }
+        }
     }
 
 
@@ -103,12 +103,12 @@ my $bin_find_cr=sub {
 #  Get cache file name
 #
 my $cache_fn=$INC{'ExtUtils/Git/Constant.pm'} || File::Spec->rel2abs(__FILE__);
-$cache_fn .= '.cache';
+$cache_fn.='.cache';
 
 
 #  Cache can only be 60 sec old
 #
-if (-e $cache_fn && ((stat($cache_fn))[9] < (time() - (1 * 60)))) {
+if (-e $cache_fn && ((stat($cache_fn))[9] < (time()-(1*60)))) {
 
 
     #  Cache is stale, delete. Not fatal if fails, just blank out so
@@ -122,39 +122,40 @@ if (-e $cache_fn && ((stat($cache_fn))[9] < (time() - (1 * 60)))) {
 
 #  Try to read in cache details, or search disk for binaries if needed
 #
-unless (%Constant = %{$cache_fn && do($cache_fn)}) {
+unless (%Constant=%{$cache_fn && do($cache_fn)}) {
 
 
     #  Could not find cache file, create hash. Should probably put this stuff into a
     #  support/const.inc file later as a template, as contains some constants
-    #
-    %Constant= (
+    #<<<
+    %Constant=(
 
-	GIT_EXE			 =>  $bin_find_cr->([qw(git git.exe)]),
+        GIT_EXE       => $bin_find_cr->([qw(git git.exe)]),
 
-	CHANGELOG_FN		 =>  'ChangeLog',
+        CHANGELOG_FN  => 'ChangeLog',
 
-	METAFILE_FN		 =>  'META.yml',
+        METAFILE_FN   => 'META.yml',
 
-	DUMPER_FN	         =>  '.dumper.cache',
+        DUMPER_FN     => '.dumper.cache',
 
-	EXTUTILS_ARGV		 =>  q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ].
-	    q["$(VERSION_SYM)" "$(VERSION_FROM)"],
+        EXTUTILS_ARGV => q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ] .
+            q["$(VERSION_SYM)" "$(VERSION_FROM)"],
 
-	EXTUTILS_GIT		 =>  'ExtUtils::Git',
+        EXTUTILS_GIT  => 'ExtUtils::Git',
 
-	DIST_DEFAULT		 =>  'git_dist',
+        DIST_DEFAULT  => 'git_dist',
 
-	GIT_REPO		 =>  '/opt/git',
+        GIT_REPO      => '/opt/git',
 
-	GIT_GROUP		 =>  'git',
+        GIT_GROUP     => 'git',
 
-       );
+    );
+    #>>>
 
 
     #  Store in cache file. Does not matter if not writeable
     #
-    if (my $fh=IO::File->new($cache_fn, O_WRONLY|O_CREAT|O_TRUNC)) {
+    if (my $fh=IO::File->new($cache_fn, O_WRONLY | O_CREAT | O_TRUNC)) {
         print $fh &Data::Dumper::Dumper(\%Constant)
     }
 
@@ -166,9 +167,9 @@ unless (%Constant = %{$cache_fn && do($cache_fn)}) {
 #
 require Exporter;
 @ISA=qw(Exporter);
-eval { require WebDyne::Constant; &WebDyne::Constant::local_constant_load(__PACKAGE__,\%Constant) };
-foreach (keys %Constant) { ${$_}=$Constant{$_} }
-@EXPORT=map { '$'.$_ } keys %Constant;
+eval {require WebDyne::Constant; &WebDyne::Constant::local_constant_load(__PACKAGE__, \%Constant)};
+foreach (keys %Constant) {${$_}=$Constant{$_}}
+@EXPORT=map {'$' . $_} keys %Constant;
 @EXPORT_OK=@EXPORT;
 %EXPORT_TAGS=(all => [@EXPORT_OK]);
 $_=\%Constant;

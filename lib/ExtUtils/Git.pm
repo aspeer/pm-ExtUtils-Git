@@ -29,11 +29,11 @@ package ExtUtils::Git;
 
 #  Compiler Pragma
 #
-sub BEGIN {$^W=0}
 use strict qw(vars);
 use vars qw($VERSION);
 use warnings;
-no warnings qw(uninitialized);
+#no warnings qw(uninitialized);
+sub BEGIN {local $^W=0}
 
 
 #  External Packages
@@ -417,7 +417,7 @@ sub platform_constants {
 
     #  Done
     #
-    $constants;
+    return $constants;
 
 
 }
@@ -533,7 +533,7 @@ sub git_manicheck {
 
     #  Read in all the Git files
     #
-    my %git_manifest=map {chomp($_); $_ => 1} split($/, qx($GIT_EXE ls-files));
+    my %git_manifest=map {chomp(my $fn=$_); $fn => 1} split($/, qx($GIT_EXE ls-files));
 
 
     #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
@@ -845,7 +845,7 @@ sub git_version_increment_files {
                     print "skipping update of $fn, version $1.$2 identical to proposed rev $1.$revision\n";
                 }
             }
-            elsif ($line=~/^\$VERSION/ && $line !~ /^\$VERSION\s*=\s*'(\d+)\.(\d+)'/ && !$version_seen_fg) {
+            elsif ($line=~/^\$VERSION/ && $line !~ /^\$VERSION\s*=\s*'\d+\.\d+'/ && !$version_seen_fg) {
                 $version_seen_fg++;
                 my $release=1;
 
@@ -1157,7 +1157,7 @@ sub _git_mtime_sync {
         #  Has been modfied, return undef
         #
         $self->_msg("file $fn changed, kept mtime");
-        return undef;
+        return;
 
     }
 
@@ -1203,6 +1203,7 @@ sub _msg {
     my $self=shift();
     my $message=$self->_fmt(@_);
     CORE::print $message, "\n";
+    return;
 
 }
 
@@ -1250,6 +1251,7 @@ sub _caller {
 }
 
 
+1;
 __END__
 
 

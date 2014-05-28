@@ -3,7 +3,7 @@
 #  Check in files to Git if needed, assuming MANIFEST checks out and files are not already
 #  uptodate (as determined by git_status test)
 #
-git_ci : git_manicheck
+git_ci0 : git_manicheck
 	@$(PERL) -M$(EXTUTILS_GIT) \
 	-e "$(EXTUTILS_GIT)->git_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
 		$(PERL) -M$(EXTUTILS_GIT)								\
@@ -28,11 +28,22 @@ git_ci : git_manicheck
 	)
 
 
+git_ci : git_manicheck
+	@$(PERL) -M$(EXTUTILS_GIT) \
+	-e "$(EXTUTILS_GIT)->git_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
+		$(PERL) -M$(EXTUTILS_GIT)								\
+			-e "$(EXTUTILS_GIT)->git_commit(@ARGV)"						\
+			-- $(EXTUTILS_ARGV)							&&	\
+		$(GIT_EXE) push	origin								        \
+	)
+
+
 
 #  Push
 #
 git_push :
-	$(GIT_EXE) push --mirror origin
+	$(GIT_EXE) push origin
+	$(GIT_EXE) push origin --tags
 
 
 #  Build distribution
@@ -40,6 +51,8 @@ git_push :
 git_dist : git_ci
 	$(GIT_EXE) rev-list  --all --pretty > $(CHANGELOG_FN)
 	$(MAKE) tardist
+
+		$(MAKE) -n metafile 								&&	\
 
 
 #  Make new repository and import files into Git
@@ -148,3 +161,11 @@ perltidy : all
 	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm$$/} @ARGV)' -- $(TO_INST_PM)`; \
 		do perltidy -se -b $$d; done
 	@for d in $(EXE_FILES); do perltidy -x -b $$d; done
+
+
+#  perlcritic of all files
+#
+perlcritic : all
+	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm$$/} @ARGV)' -- $(TO_INST_PM)`; \
+		do perlcritic $$d; done
+	@for d in $(EXE_FILES); do perlcritic $$d; done

@@ -40,11 +40,11 @@ package ExtUtils::Git::Constant;
 
 #  Compiler Pragma
 #
-sub BEGIN {$^W=0}
 use strict qw(vars);
 use vars qw($VERSION @ISA %EXPORT_TAGS @EXPORT_OK @EXPORT %Constant);
 use warnings;
 no warnings qw(uninitialized);
+local $^W=0;
 
 
 #  Need File::Find, other File utils
@@ -53,6 +53,7 @@ use File::Find;
 use File::Spec;
 use IO::File;
 use Data::Dumper;
+use Git::Wrapper;
 
 
 #===================================================================================================

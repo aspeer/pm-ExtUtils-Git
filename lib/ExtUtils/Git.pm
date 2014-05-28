@@ -32,7 +32,7 @@ package ExtUtils::Git;
 use strict qw(vars);
 use vars qw($VERSION);
 use warnings;
-#no warnings qw(uninitialized);
+no warnings qw(uninitialized);
 sub BEGIN {local $^W=0}
 
 
@@ -47,12 +47,14 @@ use Data::Dumper;
 use File::Touch;
 use Carp;
 use File::Grep qw(fdo);
+use Git::Wrapper;
+use Cwd;
 
 
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.145';
+$VERSION='1.149';
 
 
 #  Load up our config file
@@ -533,7 +535,9 @@ sub git_manicheck {
 
     #  Read in all the Git files
     #
-    my %git_manifest=map {chomp(my $fn=$_); $fn => 1} split($/, qx($GIT_EXE ls-files));
+    #my %git_manifest=map {chomp(my $fn=$_); $fn => 1} split($/, qx($GIT_EXE ls-files));
+    #my $git_manifest_ar=[$self->_git->ls_files];
+    my %git_manifest=map { $_=>1 } $self->_git->ls_files;
 
 
     #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
@@ -642,6 +646,7 @@ sub git_status {
 
     #  If any modfied file bail now
     #
+    #if (0) {
     if (keys %{$git_modified_hr}) {
         my $err="The following files have been modified since last commit:\n";
 
@@ -663,7 +668,9 @@ sub git_status {
 
         #  Get commit time
         #
-        my $commit_time=qx($GIT_EXE log -n1 --pretty=format:"%at" $fn) ||
+        #my $commit_time=qx($GIT_EXE log -n1 --pretty=format:"%at" $fn) ||
+        my $commit_time_ar=$self->_git_run('log', '-n1', '--pretty=format:"%at"', $fn);
+        my $commit_time=$commit_time_ar->[0] ||
             $self->_err("unable to get commit time for file $fn");
 
 
@@ -904,7 +911,7 @@ sub git_tag {
 
     #  Run git program to update
     #
-    unless (system($GIT_EXE, 'tag', $tag) == 0) {
+    unless (system($GIT_EXE, 'tag', '-a', '-m', $tag, $tag) == 0) {
         return $self->_err("error on git tag, $?");
     }
 
@@ -917,7 +924,7 @@ sub git_tag {
 }
 
 
-sub git_commit {
+sub git_commit0 {
 
 
     #  Commit modified file
@@ -942,6 +949,29 @@ sub git_commit {
     #  Run git program to update
     #
     unless (system($GIT_EXE, 'commit', qw(-a -e -m), qq[Tag: $tag]) == 0) {
+        return $self->_err("error on git commit, $?");
+    }
+
+
+    #  All done
+    #
+    return \undef;
+
+
+}
+
+
+sub git_commit {
+
+
+    #  Commit modified file
+    #
+    my $self=shift();
+    
+    
+    #  Do it
+    #
+    unless (system($GIT_EXE, 'commit', '-a') == 0) {
         return $self->_err("error on git commit, $?");
     }
 
@@ -1164,7 +1194,7 @@ sub _git_mtime_sync {
 }
 
 
-sub _git_modified {
+sub _git_modified0 {
 
 
     #  Return a hash of modified files
@@ -1180,6 +1210,42 @@ sub _git_modified {
     return \%git_modified;
 
 
+}
+
+
+sub _git_modified {
+
+
+    #  Return a hash of modified files
+    #
+    my $self=shift();
+    my $git_or=$self->_git();
+    my %git_modified;
+    if (my $statuses_or=$git_or->status()) {
+        foreach my $status_or ($statuses_or->get('changed')) {
+            my $fn=$status_or->to() || $status_or->from();
+            my $mode=$status_or->mode();
+            $git_modified{$fn}=$mode;
+        }
+    }
+    return \%git_modified;
+
+}
+
+
+sub _git {
+
+    my $git_or=Git::Wrapper->new(cwd(), 'git_binary'=> $GIT_EXE );
+    
+}
+
+
+sub _git_run {
+
+    my $self=shift();
+    my $git_or=$self->_git();
+    return [$git_or->RUN(@_)];
+    
 }
 
 

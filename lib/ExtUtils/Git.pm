@@ -38,6 +38,7 @@ sub BEGIN {local $^W=0}
 
 #  External Packages
 #
+use ExtUtils::Git::Util;
 use ExtUtils::Git::Constant;
 use IO::File;
 use File::Spec;
@@ -45,7 +46,6 @@ use ExtUtils::Manifest;
 use ExtUtils::MM_Any;
 use Data::Dumper;
 use File::Touch;
-use Carp;
 use File::Grep qw(fdo);
 use Git::Wrapper;
 use Cwd;
@@ -54,24 +54,7 @@ use Cwd;
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.149';
-
-
-#  Load up our config file
-#
-our $Config_hr;
-
-
-#  Vars to hold chained soubroutines, if needed (loaded by import). Must be
-#  global (our) vars. Also need to remember import param
-#
-our ($Const_config_chain_cr, $Dist_ci_chain_cr, $Makefile_chain_cr, $Metafile_target_chain_cr, $Platform_constants_cr);
-
-
-#  Intercepts method arguments, holds some info across method calls to be used
-#  my message routines
-#
-my %Arg;
+$VERSION='1.158_164338529';
 
 
 #  All done, init finished
@@ -82,392 +65,19 @@ my %Arg;
 #===================================================================================================
 
 
-#  Manage activation of const_config and dist_ci targets via import tags. Import tags are
-#
-#  use ExtUtils::Git qw(const_config) to just replace the macros section of the Makefile
-#  .. qw(dist_ci) to replace standard MakeMaker targets with our own
-#  .. qw(:all) to get both of the above, usual usage
-#
-sub import {
-
-
-    #  Get params
-    #
-    my ($self, @import)=(shift(), @_);
-    no warnings;
-
-
-    #  Store for later use in MY::makefile section
-    #
-    $MY::Import_class{$self}=\@import;
-    $MY::Import_inc=\@INC;
-
-
-    #  Code ref for params
-    #
-    my $const_config_cr=sub {
-
-        $Const_config_chain_cr=UNIVERSAL::can('MY', 'const_config');
-        *MY::const_config=sub {&const_config(@_)};
-        0 && MY::const_config();
-
-    };
-    my $dist_ci_cr=sub {
-
-        $Dist_ci_chain_cr=UNIVERSAL::can('MY', 'dist_ci');
-        *MY::dist_ci=sub {&dist_ci(@_)};
-        0 && MY::dist_ci();
-
-    };
-    my $makefile_cr=sub {
-
-        $Makefile_chain_cr=UNIVERSAL::can('MY', 'makefile');
-        *MY::makefile=sub {&makefile(@_)};
-        0 && MY::makefile();
-
-    };
-    my $metafile_target_cr=sub {
-
-        $Metafile_target_chain_cr=UNIVERSAL::can('MY', 'metafile_target');
-        *ExtUtils::MM_Any::metafile_target=sub {&metafile_target(@_)};
-        0 && ExtUtils::MM_Any::metafile_target();
-
-    };
-    my $platform_constants_cr=sub {
-
-        $Platform_constants_cr=UNIVERSAL::can('MY', 'platform_constants');
-        *MY::platform_constants=sub {&platform_constants(@_)};
-        0 && MY::platform_constants();
-
-    };
-
-
-    #  Put into hash
-    #
-    my %import=(
-
-        const_config       => $const_config_cr,
-        dist_ci            => $dist_ci_cr,
-        makefile           => $makefile_cr,
-        metafile_target    => $metafile_target_cr,
-        platform_constants => $platform_constants_cr,
-        ':all'             => sub {$const_config_cr->(); $dist_ci_cr->(); $makefile_cr->(); $metafile_target_cr->(); $platform_constants_cr->()},
-
-    );
-
-
-    #  Run appropriate
-    #
-    foreach my $import (@import ? @import : ':all') {
-        $import{$import} && ($import{$import}->());
-    }
-
-
-    #  Also include utilities into the MY address space
-    #
-    foreach my $sr (qw(_err)) {
-        *{"MY::${sr}"}=\&{$sr};
-    }
-
-
-    #  Done. Replace with stub so not run again
-    #
-    *ExtUtils::Git::import=sub {
-        my $self=shift();
-        $MY::Import_class{$self}=\@import;
-        $MY::Import_inc=\@INC;
-        $self->SUPER::import(@_)
-    };
-
-
-    #  And call any other import routine needed
-    #
-    return $self->SUPER::import(@_ ? @_ : ':all');
-
-}
-
-
-#  MakeMaker::MY replacement const_config section
-#
-sub const_config {
-
-
-    #  Change packages so SUPER works OK
-    #
-    package MY;
-
-
-    #  Get self ref
-    #
-    my $self=shift();
-
-
-    #  Import Constants into macros
-    #
-    while (my ($key, $value)=each %ExtUtils::Git::Constant::Constant) {
-
-
-        #  Update macros with our config
-        #
-        $self->{'macro'}{$key}=$value;
-
-    }
-
-
-    #  Return whatever our parent does
-    #
-    return $Const_config_chain_cr->($self);
-
-
-}
-
-
-#  MakeMaker::MY update ci section to include a "git_import" and other functions
-#
-sub dist_ci {
-
-
-    #  Change package
-    #
-    package MY;
-
-
-    #  Get self ref
-    #
-    my $self=shift();
-
-
-    #  Found it, open our patch file. Get dir first
-    #
-    (my $patch_dn=$INC{'ExtUtils/Git.pm'})=~s/\.pm$//;
-
-
-    #  And now file name
-    #
-    my $patch_fn=File::Spec->catfile($patch_dn, 'dist_ci.inc');
-
-
-    #  Open it
-    #
-    my $patch_fh=IO::File->new($patch_fn, &ExtUtils::Git::O_RDONLY) ||
-        return ExtUtils::Git->_err("unable to open $patch_fn, $!");
-
-
-    #  Add in. We are replacing dist_ci entirely, so do not
-    #  worry about chaining.
-    #
-    my @dist_ci=map {chomp; $_} <$patch_fh>;
-
-
-    #  Close
-    #
-    $patch_fh->close();
-
-
-    #  All done, return result
-    #
-    return join($/, @dist_ci);
-
-}
-
-
-#  MakeMaker::MY replacement Makefile section
-#
-sub makefile {
-
-
-    #  Change package
-    #
-    my $class=__PACKAGE__;
-    package MY;
-
-
-    #  Get self ref
-    #
-    my $self=shift();
-
-
-    #  Get original makefile text
-    #
-    my $makefile=$Makefile_chain_cr->($self);
-
-
-    #  Array to hold result
-    #
-    my @makefile;
-
-
-    #  Build the  makefile -M line
-    #
-    my $makefile_module;
-    while (my ($class, $param_ar)=each %MY::Import_class) {
-        if (@{$param_ar}) {
-            $makefile_module.=qq("-M$class=") . join(',', @{$param_ar});
-        }
-        else {
-            $makefile_module.=qq("-M$class");
-        }
-    }
-
-
-    #  Get the INC files
-    #
-    my $makefile_inc;
-    use Data::Dumper;
-    if (my @inc=@{$MY::Import_inc}) {
-        my %inc;
-        foreach my $inc (@inc) {
-            $makefile_inc.=qq( "-I$inc") unless $inc{$inc}++;
-        }
-
-        #$makefile_inc=join(' ', map { qq("-I$_") } @inc);
-        #print Dumper(\@inc, $makefile_inc);
-    }
-
-
-    #  Target line to replace. Will need to change here if ExtUtils::MakeMaker ever
-    #  changes format of this line
-    #
-    my @find=(
-        q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" Makefile.PL],
-        q[$(PERLRUN) Makefile.PL]
-    );
-    my $rplc=
-        sprintf(
-        q[$(PERL) %s "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" %s Makefile.PL],
-        $makefile_inc, $makefile_module
-        );
-    my $match;
-
-
-    #  Go through line by line
-    #
-    foreach my $line (split(/^/m, $makefile)) {
-
-
-        #  Chomp
-        #
-        chomp $line;
-
-
-        #  Check for target line
-        #
-        for (@find) {$line=~s/\Q$_\E/$rplc/i && ($match=$line)}
-
-
-        #  Also look for 'false' at end, erase
-        #
-        next if $line=~/^\s*false/;
-        push @makefile, $line;
-
-
-    }
-
-    #  Warn if line not found
-    #
-    $class->_msg('warning! ExtUtils::Makemaker makefile section replacement not successful') unless
-        $match;
-
-
-    #  Done, return result
-    #
-    return join($/, @makefile);
-
-}
-
-
-sub platform_constants {
-
-
-    #  Change package
-    #
-    my $class=__PACKAGE__;
-    package MY;
-
-
-    #  Get self ref
-    #
-    my $self=shift();
-
-
-    #  Get original constants
-    #
-    my $constants=$Platform_constants_cr->($self);
-
-
-    #  Get INC
-    #
-    my $makefile_inc;
-    if (my @inc=@{$MY::Import_inc}) {
-        $makefile_inc=join(' ', map {qq("-I$_")} @inc);
-    }
-
-
-    #  Update fullperlrun, used by test
-    #
-    $constants.=join(
-        "\n",
-
-        undef,
-
-        "FULLPERLRUN = \$(FULLPERL) $makefile_inc",
-        "MAKEFILELIB = $makefile_inc",
-
-        undef
-    );
-
-
-    #  Done
-    #
-    return $constants;
-
-
-}
-
-
-sub metafile_target {
-
-
-    #  Change package
-    #
-    package MY;
-
-
-    #  Get self ref
-    #
-    my $self=shift();
-
-
-    #  Get original makefile text
-    #
-    my $metafile=$Metafile_target_chain_cr->($self);
-    $metafile=~s/\$\(DISTVNAME\)\/META.yml/META.yml/;
-    $metafile=~s/^metafile\s*:\s*create_distdir/metafile :/;
-
-
-    #  Done, return modified version
-    #
-    return $metafile;
-
-}
-
-
-#===================================================================================================
-
 
 sub git_import {
 
 
     #  Import all files in MANIFEST into Git.
     #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my ($self, $param_hr)=(shift(), arg(@_));
 
 
     #  Check all files present
     #
     ExtUtils::Manifest::manicheck() &&
-        return $self->_err('MANIFEST manicheck error');
+        return err('MANIFEST manicheck error');
 
 
     #  Get the manifest
@@ -475,23 +85,24 @@ sub git_import {
     my $manifest_hr=ExtUtils::Manifest::maniread();
 
 
-    #  Remove the ChangeLog, META.yml from the manifest - they are generated at distribution time, and
+    #  Remove the ChangeLog, META.yml etc. from the manifest - they are generated at distribution time, and
     #  is not tracked by Git
     #
-    delete @{$manifest_hr}{$CHANGELOG_FN, $METAFILE_FN};
+    foreach my $fn (@{$GIT_IGNORE_AR}) {
+        delete $manifest_hr->{$fn};
+    } 
 
 
-    #  Build import command
+    #  Add remaining files from manfest
     #
-    my @system=($GIT_EXE, 'add', keys %{$manifest_hr});
-    unless (system(@system) == 0) {
-        return $self->_err("failed to execute git import: $?")
-    }
+    #}
+    my $git_or=$self->_git();
+    $git_or->add(keys %{$manifest_hr});
 
 
     #  All OK
     #
-    $self->_msg('git import successful');
+    msg('git import successful');
     return \undef;
 
 
@@ -503,47 +114,26 @@ sub git_manicheck {
 
     #  Checks that all files in the manifest are checked in to Git
     #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
-        return $self->_err('unable to get distname');
+        return err('unable to get distname');
 
 
     #  Get manifest, touch ChangeLog, META.yml if it is supposed to exist - will be created/updated
     #  at dist time
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
-    foreach my $fn ($CHANGELOG_FN, $METAFILE_FN) {
-
-        if (exists($manifest_hr->{$fn}) && !(-f $fn)) {
-
-            #  Need to create it
-            #
-            touch $fn ||
-                return $self->_err("unable to create '$fn' file");
-            $self->_msg("git touch '$fn'");
-
-        }
-
-    }
-
 
     #  Check manifest
     #
-    ExtUtils::Manifest::manicheck() && return $self->_err('MANIFEST manicheck error');
+    ExtUtils::Manifest::manicheck() && 
+        return err('MANIFEST manicheck error');
 
 
-    #  Read in all the Git files
+    #  Read in all the Git files skipping any in MANIFEST.SKIP
     #
-    #my %git_manifest=map {chomp(my $fn=$_); $fn => 1} split($/, qx($GIT_EXE ls-files));
-    #my $git_manifest_ar=[$self->_git->ls_files];
-    my %git_manifest=map { $_=>1 } $self->_git->ls_files;
-
-
-    #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
-    #  is not tracked by Git
-    #
-    delete @{$manifest_hr}{$CHANGELOG_FN, $METAFILE_FN};
+    my $maniskip_or=ExtUtils::Manifest::maniskip();
+    my %git_manifest=map { $_=>1 } grep { !$maniskip_or->($_) } $self->_git->ls_files;
 
 
     #  Check for files in Git, but not in the manifest, or vica versa
@@ -552,7 +142,7 @@ sub git_manicheck {
     my %test0=%{$manifest_hr};
     map {delete $test0{$_}} keys %git_manifest;
     if (keys %test0) {
-        $self->_msg(
+        msg(
             "the following files are in the manifest, but not in git: \n\n%s\n",
             join("\n", keys %test0));
         $fail++;
@@ -560,7 +150,7 @@ sub git_manicheck {
     my %test1=%git_manifest;
     map {delete $test1{$_}} keys %{$manifest_hr};
     if (keys %test1) {
-        $self->_msg(
+        msg(
             "the following files are in git, but not in the manifest: \n\n%s\n\n",
             join("\n", keys %test1));
         $fail++;
@@ -574,11 +164,11 @@ sub git_manicheck {
             'Do you wish to continue [yes|no] ?', 'yes'
         );
         if ($yesno=~/^n|no$/i) {
-            return $self->_err('bundle build aborted by user !')
+            return err('bundle build aborted by user !')
         }
     }
     else {
-        $self->_msg('git and manifest in sync');
+        msg('git and manifest in sync');
     }
 
 
@@ -596,15 +186,15 @@ sub git_status {
     #  newer than the VERSION_FROM file.
     #
     my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my $param_hr=arg(@_);
     my $version_from=$param_hr->{'VERSION_FROM'} ||
-        return $self->_err('unable to get version_from');
+        return err('unable to get version_from');
 
 
     #  Stat the master version file
     #
     my $version_from_mtime=(stat($version_from))[9] ||
-        return $self->_err("unable to stat file $version_from, $!");
+        return err("unable to stat file $version_from, $!");
 
 
     #  Get the manifest
@@ -616,43 +206,13 @@ sub git_status {
     #
     my $git_modified_hr=$self->_git_modified();
 
-    #foreach my $status (split($/, qx($GIT_EXE status --porcelain))) {
-    #    my ($flags, $fn)=($status=~/^(.{2})\s+(.*)/);
-    #    $flags=~s/^\s*//;
-    #    $flags=~s/\s*$//;
-    #    next if $flags eq '??';
-    #    $git_modified{$fn}=$flags;
-    #}
-
-
-    #  Older techniques
-    #
-    #foreach my $fn (split($/, qx($GIT_EXE ls-files --modified))) {
-    #    chomp($fn);
-    #    $git_modified{$fn}++ if $fn;
-    #}
-    #foreach my $fn (split($/, qx($GIT_EXE diff --cached --name-only))) {
-    #    chomp($fn);
-    #    $git_modified{$fn}++ if $fn;
-    #}
-    #my %git_modified=map {chomp($_); $_ => 1} split($/, qx($GIT_EXE diff --cached --name-only));
-
-
-    #  Remove the ChangeLog from the manifest - it is generated at distribution time, and
-    #  is not tracked by Git, same with META.yml
-    #
-    delete @{$manifest_hr}{$CHANGELOG_FN, $METAFILE_FN};
-
 
     #  If any modfied file bail now
     #
-    #if (0) {
     if (keys %{$git_modified_hr}) {
         my $err="The following files have been modified since last commit:\n";
-
-        #$err.=Data::Dumper::Dumper([keys %git_modified]);
         $err.=Data::Dumper::Dumper($git_modified_hr);
-        return $self->_err($err);
+        return err($err);
     }
 
 
@@ -661,56 +221,9 @@ sub git_status {
     my @modified_fn;
 
 
-    #  Start going through each file in the manifest and check mtime
-    #
-    foreach my $fn (keys %{$manifest_hr}) {
-
-
-        #  Get commit time
-        #
-        #my $commit_time=qx($GIT_EXE log -n1 --pretty=format:"%at" $fn) ||
-        my $commit_time_ar=$self->_git_run('log', '-n1', '--pretty=format:"%at"', $fn);
-        my $commit_time=$commit_time_ar->[0] ||
-            $self->_err("unable to get commit time for file $fn");
-
-
-        #  Stat file
-        #
-        my $mtime_fn=(stat($fn))[9] ||
-            return $self->_err("unable to stat file $fn, $!");
-
-
-        #  Check against version file
-        #
-        if ($mtime_fn > $version_from_mtime) {
-
-            #  Give it one more chance
-            #
-            $mtime_fn=$self->_git_mtime_sync($fn, $commit_time) ||
-                $mtime_fn;
-            if ($mtime_fn > $version_from_mtime) {
-                push @modified_fn, $fn;
-                next;
-            }
-
-
-        }
-
-    }
-
-
-    #  Check for modified files, quit if found
-    #
-    if (@modified_fn) {
-        my $err="The following files have an mtime > VERSION_FROM ($version_from) file:\n";
-        $err.=Data::Dumper::Dumper(\@modified_fn);
-        return $self->_err($err);
-    }
-
-
     #  All looks OK
     #
-    $self->_msg("git files up-to-date");
+    msg("git files up-to-date");
 
 
     #  All OK
@@ -725,28 +238,67 @@ sub git_version_increment {
 
     #  Increment the VERSION_FROM file
     #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my ($self, $param_hr)=(shift(), arg(@_));
     my $version_from_fn=$param_hr->{'VERSION_FROM'} ||
-        return $self->_err('unable to get version_from file name');
+        return err('unable to get version_from file name');
 
 
     #  Get current version
     #
     my $version=$self->git_version(@_) ||
-        return $self->_err("unable to get existing version from $version_from_fn");
+        return err("unable to get existing version from $version_from_fn");
+    #$version=(split /_/, $version)[0];
     my @version=split(/\./, $version);
-    $version[-1]++;
-    $version[-1]=sprintf('%03d', $version[-1]);
-    my $version_new=join('.', @version);
+    $version[-1]=~s/_.*//;
+    #$version[-1]++;
+    #$version[-1]=sprintf('%03d', $version[-1]);
+    #my $version_new=join('.', @version);
+    my $version_new;
+    
+    
+    #  Check branch and make alpha if not on master
+    #
+    unless ((my $branch=$self->_git_branch) eq 'master') {
+    
+    
+        #  Get new alpha suffix
+        #
+        my $suffix=hex($self->_git_rev_parse_short());
+        
+        
+        #  Add _ to ver number
+        #
+        $version_new=join('.', @version);
+        $version_new.="_$suffix";
+        
+        
+        #  Check is different
+        #
+        if ($version_new eq $version) {
+            msg("no git changes detected - version increment *NOT* performed.");
+            return \undef;
+        }
+        
+    }
+    else {
+    
+    
+        #  On master branch
+        #
+        $version[-1]++;
+        $version[-1]=sprintf('%03d', $version[-1]);
+        $version_new=join('.', @version);
+        
+    }
+        
 
 
     #  Open file handles for read and write
     #
     my $old_fh=IO::File->new($version_from_fn, O_RDONLY) ||
-        return $self->_err("unable to open file '$version_from_fn' for read, $!");
+        return err("unable to open file '$version_from_fn' for read, $!");
     my $new_fh=IO::File->new("$version_from_fn.tmp", O_WRONLY | O_CREAT | O_TRUNC) ||
-        return $self->_err("unable to open file '$version_from_fn.tmp' for write, $!");
+        return err("unable to open file '$version_from_fn.tmp' for write, $!");
 
 
     #  Now iterate through file, increasing version number if found
@@ -761,12 +313,12 @@ sub git_version_increment {
     $old_fh->close();
     $new_fh->close();
     rename("$version_from_fn.tmp", $version_from_fn) ||
-        return $self->_err("unable to replace $version_from_fn with newer version, $!");
+        return err("unable to replace $version_from_fn with newer version, $!");
 
 
     #  All OK
     #
-    $self->_msg("updated $version_from_fn from version $version to $version_new");
+    msg("updated $version_from_fn from version $version to $version_new");
 
 
     #  Done
@@ -776,15 +328,27 @@ sub git_version_increment {
 }
 
 
+sub git_version_increment_commit {
+
+
+    #  Update commit message after version bump
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my $version=$self->git_version(@_);
+    my $git_or=$self->_git();
+    $git_or->commit('-a', '-m', "VERSION increment: $version");
+    
+}
+    
+
 sub git_version_increment_files {
 
 
     #  Check for files that have changed and edit to update version numvers
     #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my ($self, $param_hr)=(shift(), arg(@_));
     my $version_from_fn=$param_hr->{'VERSION_FROM'} ||
-        return $self->_err('unable to get version_from file name');
+        return err('unable to get version_from file name');
 
 
     #  Get manifest.
@@ -817,17 +381,17 @@ sub git_version_increment_files {
         my $revision=(my @revision=split($/, $git_rev_list));
         $revision=sprintf('%03d', $revision);
         if ($revision > 998) {
-            return $self->_err("revision too high ($revision) - update release ?");
+            return err("revision too high ($revision) - update release ?");
         }
 
         #print "$fn, $revision\n";
 
         my $temp_fh=File::Temp->new() ||
-            return $self->_err("unable to open tempfile, $!");
+            return err("unable to open tempfile, $!");
         my $temp_fn=$temp_fh->filename() ||
-            return $self->_err("unable to obtain tempfile name from fh $temp_fh");
+            return err("unable to obtain tempfile name from fh $temp_fh");
         my $fh=IO::File->new($fn) ||
-            return $self->_err("unable to open file $fn for readm $!");
+            return err("unable to open file $fn for readm $!");
         my ($update_fg, $version_seen_fg);
         while (my $line=<$fh>) {
 
@@ -846,7 +410,7 @@ sub git_version_increment_files {
                     $update_fg++;
                 }
                 elsif ($2 > ($revision+1)) {
-                    return $self->_err("error - $fn existing version $1.$2 > proposed version $1.$revision !");
+                    return err("error - $fn existing version $1.$2 > proposed version $1.$revision !");
                 }
                 elsif ($2 == $revision) {
                     print "skipping update of $fn, version $1.$2 identical to proposed rev $1.$revision\n";
@@ -871,7 +435,7 @@ sub git_version_increment_files {
 
             #print "Would update fn $fn\n";
             File::Copy::move($temp_fn, $fn) ||
-                return $self->_err("error moving file $temp_fn=>$fn, $!")
+                return err("error moving file $temp_fn=>$fn, $!")
         }
         else {
             #print "no \$VERSION match on file $fn\n";
@@ -891,29 +455,30 @@ sub git_tag {
 
     #  Build unique tag for checked in files
     #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
-        return $self->_err('unable to get distname');
+        return err('unable to get distname');
 
 
     #  Read in version number, convers .'s to -
     #
     my $version=$self->git_version(@_) ||
-        return $self->_err('unable to get version number');
+        return err('unable to get version number');
 
 
     #  Add distname
     #
     my $tag="${distname}_${version}";
-    $self->_msg(qq[git tagging as "$tag"]);
+    msg(qq[git tagging as "$tag"]);
 
 
     #  Run git program to update
     #
-    unless (system($GIT_EXE, 'tag', '-a', '-m', $tag, $tag) == 0) {
-        return $self->_err("error on git tag, $?");
-    }
+    #unless (system($GIT_EXE, 'tag', '-a', '-m', $tag, $tag) == 0) {
+    #    return err("error on git tag, $?");
+    #}
+    my $git_or=$self->_git();
+    $git_or->tag('-a', '-m', $tag, $tag);
 
 
     #  All done
@@ -929,16 +494,15 @@ sub git_commit0 {
 
     #  Commit modified file
     #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
-        return $self->_err('unable to get distname');
+        return err('unable to get distname');
 
 
     #  Read in version number, convers .'s to -
     #
     my $version=$self->git_version(@_) ||
-        return $self->_err('unable to get version number');
+        return err('unable to get version number');
 
 
     #  Add distname
@@ -949,7 +513,7 @@ sub git_commit0 {
     #  Run git program to update
     #
     unless (system($GIT_EXE, 'commit', qw(-a -e -m), qq[Tag: $tag]) == 0) {
-        return $self->_err("error on git commit, $?");
+        return err("error on git commit, $?");
     }
 
 
@@ -972,7 +536,7 @@ sub git_commit {
     #  Do it
     #
     unless (system($GIT_EXE, 'commit', '-a') == 0) {
-        return $self->_err("error on git commit, $?");
+        return err("error on git commit, $?");
     }
 
 
@@ -989,22 +553,20 @@ sub git_version {
 
     #  Print current version from version_from file
     #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my ($self, $param_hr)=(shift(), arg(@_));
     my $version_from=$param_hr->{'VERSION_FROM'} ||
-        return $self->_err('unable to get version_from');
+        return err('unable to get version_from file name');
 
 
     #  Get version from version_from file
     #
-    #my $version_git=do(File::Spec->rel2abs($version_from)) ||
     my $version_git=eval {MM->parse_version(File::Spec->rel2abs($version_from))} ||
-        return $self->_err("unable to read version info from version_from file $version_from, $!");
+        return err("unable to read version info from version_from file $version_from, $!");
 
 
     #  Display
     #
-    $self->_msg("git version $version_git");
+    msg("git version $version_git");
 
 
     #  Done
@@ -1019,8 +581,7 @@ sub git_version_dump {
 
     #  Get self ref
     #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my ($self, $param_hr)=(shift(), arg(@_));
 
 
     #  Get version we are saving
@@ -1044,12 +605,12 @@ sub git_version_dump {
     if ("v$dump_version" ne "v$have_version") {
 
         my $dump_fh=IO::File->new($dump_fn, O_WRONLY | O_TRUNC | O_CREAT) ||
-            $self->_err("unable to open file $dump_fn, $!");
+            err("unable to open file $dump_fn, $!");
         binmode($dump_fh);
         $Data::Dumper::Indent=1;
         print $dump_fh (Data::Dumper->Dump([\%dump], []));
         $dump_fh->close();
-        $self->_msg('git version dump complete');
+        msg('git version dump complete');
 
 
     }
@@ -1058,7 +619,7 @@ sub git_version_dump {
 
         #  Message
         #
-        $self->_msg('git version dump file up-to-date');
+        msg('git version dump file up-to-date');
 
 
     }
@@ -1076,8 +637,7 @@ sub git_lint {
 
     #  Check for old CVS references (RCS keywords etc)
     #
-    my $self=shift();
-    my $param_hr=$self->_arg(@_);
+    my ($self, $param_hr)=(shift(), arg(@_));
 
 
     #  Get the manifest
@@ -1133,7 +693,7 @@ sub git_lint {
     #
     if (@match) {
 
-        return $self->_err(join($/, @match));
+        return err(join($/, @match));
 
     }
 
@@ -1145,13 +705,120 @@ sub git_lint {
 }
 
 
+sub git_merge {
+
+
+    #   Merge current branch to master
+    #
+    my $self=shift();
+    my $git_or=$self->_git();
+    
+    
+    #  Get current branch
+    #
+    msg('run');
+    my $branch=$self->_git_branch() ||
+        return err('unable to get current branch');
+    unless ($branch eq 'master') {
+        msg('checkout master');
+        $git_or->checkout('master');
+        msg('checkout merger');
+        $git_or->merge($branch);
+        msg('checkout complete');
+    }
+    else {
+        return err('cant merge while on master branch');
+    }
+    
+    
+}
+
+
+sub git_ignore {
+
+
+    #  Init git repo. Most done in Makefile, just add .gitignore
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    
+    
+    #  Add files to .gitignore
+    #
+    my $fh=IO::File->new($GIT_IGNORE_FN, O_WRONLY | O_TRUNC | O_CREAT) ||
+        return err("unable to open $GIT_IGNORE_FN, $!");
+    
+    
+    #  Write them out
+    #
+    foreach my $fn (@{$GIT_IGNORE_AR}) {
+        print $fh $fn, $/;
+    }
+    
+    
+    #  Ignore dists packed/unpacked here also
+    #
+    printf $fh "/%s-*\n", $param_hr->{'DISTNAME'};
+    
+    
+    #  Add the gitignore file itself
+    #
+    my $git_or=$self->_git();
+    $git_or->add($GIT_IGNORE_FN);
+    
+}
+
+    
+
+sub git_autolicense {
+
+
+    #  Generate license file
+    #
+    my ($self, $license, $author)=@_;
+    use Software::LicenseUtils;
+    use Software::License;
+    my @license=Software::LicenseUtils->guess_license_from_meta_key($license);
+    @license || 
+        return err("unable to determine license from string $license");
+    @license > 1 && 
+        return err("ambiguous license from string $license");
+    my $license_or=(shift @license)->new({ holder=>$author });
+    my $license_fh=IO::File->new($LICENSE_FN, O_WRONLY | O_TRUNC | O_CREAT) ||
+        return err("unable to open file $LICENSE_FN, $!");
+    print $license_fh $license_or->fulltext();
+    $license_fh->close();
+    
+    
+    #  Add to manifest and git if needed
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+    unless ($manifest_hr->{$LICENSE_FN}) {
+        ExtUtils::Manifest::maniadd({$LICENSE_FN=>undef});
+        my $git_or=$self->_git();
+        $git_or->add($LICENSE_FN);
+    }
+    
+    
+}
+
+
+sub git_make {
+
+
+    #  Remake makefile
+    #
+    system($MAKE_EXE);
+    
+}
+
+
 #===================================================================================================
 
 #  Private methods. Utility functions - use externally at own risk
 #
 
 
-sub _git_mtime_sync {
+sub _git_mtime_sync0 {
 
 
     #  Sync mtime of file to commit time if not modfied
@@ -1172,8 +839,8 @@ sub _git_mtime_sync {
 
         );
         $touch_or->touch($fn) ||
-            return $self->_err("error on touch of file $fn, $!");
-        $self->_msg(
+            return err("error on touch of file $fn, $!");
+        msg(
             "synced file $fn to git commit time (%s)\n",
             scalar(localtime($commit_time)));
 
@@ -1186,7 +853,7 @@ sub _git_mtime_sync {
 
         #  Has been modfied, return undef
         #
-        $self->_msg("file $fn changed, kept mtime");
+        msg("file $fn changed, kept mtime");
         return;
 
     }
@@ -1235,7 +902,8 @@ sub _git_modified {
 
 sub _git {
 
-    my $git_or=Git::Wrapper->new(cwd(), 'git_binary'=> $GIT_EXE );
+    my $git_or=Git::Wrapper->new(cwd(), 'git_binary'=> $GIT_EXE ) ||
+        return err('unable to get Git::Wrapper object');
     
 }
 
@@ -1249,72 +917,28 @@ sub _git_run {
 }
 
 
-sub _err {
+sub _git_branch {
 
-
-    #  Quit on errors
-    #
     my $self=shift();
-    my $message=$self->_fmt("*error*\n\n" . ucfirst(shift()), @_);
-    croak $message;
-
+    my $git_or=$self->_git();
+    foreach my $branch ($git_or->branch()) {
+        if ($branch=~/^\*\s+(.*)/) {
+            return $1;
+        }
+    }
+    
 }
 
 
-sub _msg {
+sub _git_rev_parse_short {
 
-
-    #  Print message
-    #
-    my $self=shift();
-    my $message=$self->_fmt(@_);
-    CORE::print $message, "\n";
-    return;
-
+    my ($self, $rev)=@_;
+    $rev ||= 'HEAD';
+    my $git_or=$self->_git();
+    return ($git_or->rev_parse('--short', $rev))[0];
+    
 }
 
-
-sub _fmt {
-
-
-    #  Format message nicely
-    #
-    my $self=shift();
-    my $caller=$self->_caller(3) || 'unknown';
-    my $format=' @<<<<<<<<<<<<<<<<<<<<<< @<';
-    my $message=sprintf(shift(), @_);
-    chomp($message);
-    $message=$Arg{'distname'} . ", $message" if ($Arg{'distname'});
-    formline $format, $caller . ':', undef;
-    $message=$^A . $message; $^A=undef;
-    return $message;
-
-}
-
-
-sub _arg {
-
-    #  Get args, does nothing but intercept distname for messages, convert to param
-    #  hash
-    #
-    my $self=shift();
-    @Arg{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM)}=@_;
-    return wantarray ? (\%Arg, @_[7..$#_]) : \%Arg;
-
-}
-
-
-sub _caller {
-
-
-    #  Return the method name of the caller
-    #
-    my $self=shift();
-    my $caller=(split(/:/, (caller(shift() || 1))[3]))[-1];
-    $caller=~s/^_//;
-    return $caller;
-
-}
 
 
 1;

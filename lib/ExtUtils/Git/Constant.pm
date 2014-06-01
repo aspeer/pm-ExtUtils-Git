@@ -47,16 +47,20 @@ no warnings qw(uninitialized);
 local $^W=0;
 
 
-#  Need File::Find, other File utils
+#  Needed external utils
 #
-use File::Find;
 use File::Spec;
-use IO::File;
-use Data::Dumper;
-use Git::Wrapper;
+use Cwd qw(abs_path);
+     
 
 
 #===================================================================================================
+
+
+#  Get module file name and path, derive name of file to store local constants
+#
+my $module_fn=abs_path(__FILE__);
+my $local_fn="${module_fn}.local";
 
 
 #  Bin_find now anon sub to stop "subroutine redefined" type errors that
@@ -101,75 +105,68 @@ my $bin_find_cr=sub {
 };
 
 
-#  Get cache file name
-#
-my $cache_fn=$INC{'ExtUtils/Git/Constant.pm'} || File::Spec->rel2abs(__FILE__);
-$cache_fn.='.cache';
+#  Constants
+#  <<<
+%Constant=(
 
+    GIT_EXE       => $bin_find_cr->([qw(git git.exe)]) || 
+        die('unable to locate git binary in path') ,
 
-#  Cache can only be 60 sec old
-#
-if (-e $cache_fn && ((stat($cache_fn))[9] < (time()-(1*60)))) {
+    MAKE_EXE       => $bin_find_cr->([qw(make make.exe nmake.exe)]) || 
+        die('unable to locate git binary in path') ,
 
+    CHANGELOG_FN  => 'ChangeLog',
+    
+    LICENSE_FN    => 'LICENSE',
 
-    #  Cache is stale, delete. Not fatal if fails, just blank out so
-    #  we do not use;
+    METAFILE_FN   => 'META.yml',
+
+    DUMPER_FN     => '.dumper.cache',
+
+    EXTUTILS_ARGV => q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ] .
+        q["$(VERSION_SYM)" "$(VERSION_FROM)" "$(LICENSE)" "$(AUTHOR)"],
+
+    EXTUTILS_GIT  => 'ExtUtils::Git',
+
+    DIST_DEFAULT  => 'git_dist',
+
+    GIT_REPO      => '/opt/git',
+
+    GIT_GROUP     => 'git',
+    
+    GIT_BRANCH_MASTER => 'master',
+    
+    GIT_BRANCH_DEVELOPMENT => 'devlopment',
+    
+    GIT_IGNORE_FN => '.gitignore',
+    
+    GIT_IGNORE_AR => [qw(
+        ChangeLog
+        Makefile
+        Makefile.old
+        MYMETA.json
+        MYMETA.yml
+        META.yml
+        blib/*
+        pm_to_blib
+        *.bak
+        *.old
+    )],
+    
+    
+    #  Local constants override anything above
     #
-    unlink $cache_fn;
-    $cache_fn=undef;
+    %{do($local_fn)}
 
-}
-
-
-#  Try to read in cache details, or search disk for binaries if needed
-#
-unless (%Constant=%{$cache_fn && do($cache_fn)}) {
-
-
-    #  Could not find cache file, create hash. Should probably put this stuff into a
-    #  support/const.inc file later as a template, as contains some constants
-    #<<<
-    %Constant=(
-
-        GIT_EXE       => $bin_find_cr->([qw(git git.exe)]),
-
-        CHANGELOG_FN  => 'ChangeLog',
-
-        METAFILE_FN   => 'META.yml',
-
-        DUMPER_FN     => '.dumper.cache',
-
-        EXTUTILS_ARGV => q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ] .
-            q["$(VERSION_SYM)" "$(VERSION_FROM)"],
-
-        EXTUTILS_GIT  => 'ExtUtils::Git',
-
-        DIST_DEFAULT  => 'git_dist',
-
-        GIT_REPO      => '/opt/git',
-
-        GIT_GROUP     => 'git',
-
-    );
-    #>>>
-
-
-    #  Store in cache file. Does not matter if not writeable
-    #
-    if (my $fh=IO::File->new($cache_fn, O_WRONLY | O_CREAT | O_TRUNC)) {
-        print $fh &Data::Dumper::Dumper(\%Constant)
-    }
-
-
-}
+);
+#  >>>
 
 
 #  Export constants to namespace, place in export tags
 #
 require Exporter;
 @ISA=qw(Exporter);
-eval {require WebDyne::Constant; &WebDyne::Constant::local_constant_load(__PACKAGE__, \%Constant)};
-foreach (keys %Constant) {${$_}=$Constant{$_}}
+foreach (keys %Constant) { ${$_}=$ENV{$_} ? $Constant{$_}=eval ( $ENV{$_} ) : $Constant{$_} }
 @EXPORT=map {'$' . $_} keys %Constant;
 @EXPORT_OK=@EXPORT;
 %EXPORT_TAGS=(all => [@EXPORT_OK]);

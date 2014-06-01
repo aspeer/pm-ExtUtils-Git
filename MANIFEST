@@ -1,11 +1,11 @@
-ChangeLog
 MANIFEST
 Makefile.PL
 lib/ExtUtils/Git.pm
+lib/ExtUtils/Git/Util.pm
 lib/ExtUtils/Git/Constant.pm
-lib/ExtUtils/Git/dist_ci.inc
+lib/ExtUtils/Git/MM.pm
+lib/ExtUtils/Git/MM/dist_ci.inc
 t/00-load.t
 LICENSE
 INSTALL
 README
-META.yml

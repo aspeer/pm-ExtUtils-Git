@@ -38,7 +38,7 @@ sub BEGIN {local $^W=0}
 
 #  External Packages
 #
-use ExtUtils::Git::Base;
+use ExtUtils::Git::Util;
 use ExtUtils::Git::Constant;
 use Software::License;
 use Software::LicenseUtils;
@@ -88,9 +88,6 @@ sub import {
     #  Store for later use in MY::makefile section
     #
     $self{'ISA'}=\@INC;
-    #my @import;
-    #$MY::Import_class{$self}=\@import;
-    #$MY::Import_inc=\@INC;
     
     
     #  sections to replace
@@ -99,12 +96,12 @@ sub import {
         const_config
         dist_ci
         distdir
-    ); #makefile #platform_constants
+        depend
+    ); 
     {
         no warnings 'redefine';
         foreach my $section (grep {$import_tag{$_} || $import_tag{':all'}} @section) {
             $self{$section}=UNIVERSAL::can('MY', $section);
-            #*{"MY::${section}"}=\&{$section} 
             *{"MY::${section}"}=sub { &{$section}($self, @_) };
         }
     }
@@ -121,7 +118,6 @@ sub const_config {
     #  Get self ref
     #
     my ($self, $mm)=(shift(), @_);
-    print "const_config ExtUtils::MakeMaker\n";
 
 
     #  Import Constants into macros
@@ -164,36 +160,29 @@ sub const_config {
     #  Adjust PERLRUN to include @INC and this module
     #
     my $perlrun;
-    my $perlrun_inc=join(' ', map { "-I$_" } @{$self->{'ISA'}});
+    my %perlrun_inc;
+    my $perlrun_inc=join(' ', map { "-I$_" } grep { !$perlrun_inc{$_}++ } @{$self->{'ISA'}});
     my $class=ref($self);
     if (my $include_tags_ar=$self->{'include_tags'}) {
-        #$makefile_module.=qq("-M$class=") . join(',', @{$include_tags_ar});
         $perlrun=sprintf("\$(PERL) $perlrun_inc -M${class}=%s", join(',', @{$include_tags_ar}));
     }
     else {
         $perlrun="\$(PERL) $perlrun_inc -M${class}";
-        #$makefile_module.=qq("-M$class");
     }
     $mm->{'PERLRUN'}=$perlrun;
 
 
     #  Return whatever our parent does
     #
-    #return $SUPER{'const_config'}->($self);
-    return $self->{'const_config'}->(@_);
+    return $self->{'const_config'}(@_);
 
 
 }
 
 
-#  MakeMaker::MY update ci section to include a "git_import" and other functions
+#  MakeMaker::MY update dist_ci section to include a "git_import" and other functions
 #
 sub dist_ci {
-
-
-    #  Change package
-    #
-    #package MY;
 
 
     #  Get self ref
@@ -201,22 +190,14 @@ sub dist_ci {
     my $self=shift();
 
 
-    #  Found it, open our patch file. Get dir first
+    #  Get patch dir and file name
     #
-    #(my $patch_dn=$INC{'ExtUtils/Git.pm'})=~s/\.pm$//;
-    use Cwd;
     (my $patch_dn=Cwd::abs_path(__FILE__))=~s/\.pm$//;
-
-
-
-    #  And now file name
-    #
     my $patch_fn=File::Spec->catfile($patch_dn, 'dist_ci.inc');
 
 
     #  Open it
     #
-    #my $patch_fh=IO::File->new($patch_fn, &ExtUtils::Git::O_RDONLY) ||
     my $patch_fh=IO::File->new($patch_fn, O_RDONLY) ||
         return err("unable to open $patch_fn, $!");
 
@@ -239,175 +220,6 @@ sub dist_ci {
 }
     
 
-#  MakeMaker::MY replacement Makefile section
-#
-sub makefile0 {
-
-
-    #  Change package
-    #
-    #my $class=__PACKAGE__;
-    #package MY;
-
-
-    #  Get self ref
-    #
-    my $self=shift();
-    print "makefile ".Dumper($self)."\n";
-
-
-    #  Get original makefile text
-    #
-    #my $makefile=$Makefile_chain_cr->($self);
-    #my $makefile=$SUPER{'makefile'}->($self,@_);
-    my $makefile=$self->{'makefile'}(@_);
-
-
-    #  Array to hold result
-    #
-    my @makefile;
-
-
-    #  Build the  makefile -M line
-    #
-    my $makefile_module;
-    my $class=ref($self);
-    #while (my ($class, $param_ar)=each %MY::Import_class) {
-    #    if (@{$param_ar}) {
-    #        $makefile_module.=qq("-M$class=") . join(',', @{$param_ar});
-    #    }
-    #    else {
-    #        $makefile_module.=qq("-M$class");
-    #    }
-    #}
-    if (my $include_tags_ar=$self->{'include_tags'}) {
-        $makefile_module.=qq("-M$class=") . join(',', @{$include_tags_ar});
-    }
-    else {
-        $makefile_module.=qq("-M$class");
-    }
-
-    #  Get the INC files
-    #
-    my $makefile_inc;
-    use Data::Dumper;
-    #if (my @inc=@{$MY::Import_inc}) {
-    my %inc_dn;
-    foreach my $inc_dn (@{$self->{'ISA'}}) {
-        print "inc_dn $inc_dn\n";
-    #if (my @inc=@{"${class}::INC"}) {
-        #foreach my $inc (@inc) {
-            $makefile_inc.=qq( "-I$inc_dn") unless $inc_dn{$inc_dn}++;
-        #}
-
-        #$makefile_inc=join(' ', map { qq("-I$_") } @inc);
-        #print Dumper(\@inc, $makefile_inc);
-    }
-    #else {
-    #    use vars qw(@ISA);
-    #    print "class $class ".Dumper(\@{"${class}::ISA"}, \@ISA);
-    #}
-
-
-    #  Target line to replace. Will need to change here if ExtUtils::MakeMaker ever
-    #  changes format of this line
-    #
-    my @find=(
-        q[$(PERL) "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" Makefile.PL],
-        q[$(PERLRUN) Makefile.PL]
-    );
-    my $rplc=
-        sprintf(
-        q[$(PERL) %s "-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" %s Makefile.PL],
-        $makefile_inc, $makefile_module
-        );
-    my $match;
-
-
-    #  Go through line by line
-    #
-    foreach my $line (split(/^/m, $makefile)) {
-
-
-        #  Chomp
-        #
-        chomp $line;
-
-
-        #  Check for target line
-        #
-        for (@find) {$line=~s/\Q$_\E/$rplc/i && ($match=$line)}
-
-
-        #  Also look for 'false' at end, erase
-        #
-        next if $line=~/^\s*false/;
-        push @makefile, $line;
-
-
-    }
-
-    #  Warn if line not found
-    #
-    #$class->_msg('warning! ExtUtils::Makemaker makefile section replacement not successful') unless
-    #    $match;
-
-
-    #  Done, return result
-    #
-    return join($/, @makefile);
-
-}
-
-
-sub platform_constants0 {
-
-
-    #  Change package
-    #
-    #my $class=__PACKAGE__;
-    #package MY;
-
-
-    #  Get self ref
-    #
-    my $self=shift();
-
-
-    #  Get original constants
-    #
-    #my $constants=$Platform_constants_cr->($self);
-    #my $constants=$SUPER{'platform_constants'}->($self, @_);
-    my $constants=$self->{'platform_constants'}(@_);
-
-
-    #  Get INC
-    #
-    my $makefile_inc;
-    if (my @inc=@{$MY::Import_inc}) {
-        $makefile_inc=join(' ', map {qq("-I$_")} @inc);
-    }
-
-
-    #  Update fullperlrun, used by test
-    #
-    $constants.=join(
-        "\n",
-        undef,
-        "FULLPERLRUN = \$(FULLPERL) $makefile_inc",
-        "MAKEFILELIB = $makefile_inc",
-        undef
-    );
-
-
-    #  Done
-    #
-    return $constants;
-
-
-}
-
-
 sub distdir {
 
 
@@ -418,7 +230,6 @@ sub distdir {
     
     #  Get original and modify
     #
-    #my $distdir=$SUPER{'distdir'}->($self, @_);
     my $distdir=$self->{'distdir'}(@_);
     $distdir=~s/distmeta/distmeta git_distchanges/;
     return $distdir;
@@ -426,4 +237,25 @@ sub distdir {
 }
 
 
-#===================================================================================================
+sub depend {
+
+
+    #  Get self ref
+    #
+    my ($self, $mm)=(shift(), @_);
+    
+    
+    #  Get original and modify
+    #
+    my $depend=$self->{'depend'}(@_);
+    
+    
+    #  If nothing generate default
+    #
+    if (!$depend && $mm->{'VERSION_FROM'}) {
+        $depend='Makefile : $(VERSION_FROM)';
+    }
+    return $depend;
+    
+}
+    

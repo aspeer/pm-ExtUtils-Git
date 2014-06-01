@@ -75,9 +75,8 @@ sub arg {
     #  hash
     #
     my %param;
-    @param{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM)}=@_;
+    @param{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM LICENSE AUTHOR)}=@_;
     return \%param
 
 }
-
 

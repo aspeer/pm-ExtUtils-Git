@@ -1,0 +1,11 @@
+ChangeLog
+Makefile
+Makefile.old
+MYMETA.json
+MYMETA.yml
+META.yml
+blib/*
+pm_to_blib
+*.bak
+*.old
+/ExtUtils-Git-*

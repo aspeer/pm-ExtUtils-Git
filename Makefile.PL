@@ -27,10 +27,9 @@ if ($mm_ver =~ /_/) { # dev version
 #------------------------------------------------------------------------------
 
 
-#  Get MakeMaker args
+
+#  Cache vars
 #
-my %arg;
-&ExtUtils::MakeMaker::parse_args(\%arg, @ARGV);
 my ($prereq_hr, $version_from_fn);
 
 
@@ -51,7 +50,9 @@ WriteMakefile(
     PREREQ_PM                                     =>    do { $prereq_hr={
 
         'File::Touch'                             =>  0,
-        'File::Grep'                              =>  0
+        'File::Grep'                              =>  0,
+        'Git::Wrapper'                            =>  0,
+        'Software::License'                       =>  0
 
        }; ($ENV{'PREREQ_PM'} eq '0') ? {} : $prereq_hr },
 
@@ -76,11 +77,6 @@ WriteMakefile(
     },
 
 
-    'macro'                                       =>  {
-        COPYRIGHT                                 =>  'Copyright (C) 2003 Andrew Speer, All rights reserved',
-        LICENSE                                   =>  'GPL: GNU General Public License',
-    },
-
     ($] >=  5.005 ?
          (ABSTRACT_FROM                           => $version_from_fn,
           AUTHOR                                  => 'Andrew Speer <andrew.speer@isolutions.com.au>') : ()
@@ -89,18 +85,8 @@ WriteMakefile(
 
     ($mm_ver < 6.31 ? () : (
 
-        LICENSE                             =>  'gpl',
+        LICENSE                             =>  'gpl_2',
 
-    )),
-
-
-    ($mm_ver <= 6.45 ? () : (
-        
-        META_MERGE => { resources => {
-            
-            license                         =>  'http://www.gnu.org/licenses/gpl.html'
-            
-        }}
     )),
 
 
@@ -109,7 +95,6 @@ WriteMakefile(
 package MY;
 
 sub constants {
-
 
     #  Add license file, other support files here
     #

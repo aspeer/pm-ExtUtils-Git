@@ -1,58 +1,3 @@
-#  This file is part of ExtUtils::Git.
-#  
-#  This software is copyright (c) 2014 by Andrew Speer <andrew.speer@isolutions.com.au>.
-#  
-#  This is free software; you can redistribute it and/or modify it under
-#  the same terms as the Perl 5 programming language system itself.
-#  
-#  Full license text is available at:
-#  
-#  <http://dev.perl.org/licenses/>
-#  
-
-
-
-
-
-
-
-#  Check in files to Git if needed, assuming MANIFEST checks out and files are not already
-#  uptodate (as determined by git_status test)
-#
-git_ci0 : git_manicheck
-	@$(PERL) -M$(EXTUTILS_GIT) \
-	-e "$(EXTUTILS_GIT)->git_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
-		$(PERL) -M$(EXTUTILS_GIT)								\
-			-e "$(EXTUTILS_GIT)->git_version_increment(@ARGV)"				\
-			-- $(EXTUTILS_ARGV)							&&	\
-		$(PERL) -M$(EXTUTILS_GIT)								\
-			-e "$(EXTUTILS_GIT)->git_version_increment_files(@ARGV)"			\
-			-- $(EXTUTILS_ARGV)							&&	\
-		$(MAKE) -n 									||	\
-		$(MAKE) -n metafile 								&&	\
-		$(PERL) -M$(EXTUTILS_GIT)								\
-			-e "$(EXTUTILS_GIT)->git_commit(@ARGV)"						\
-			-- $(EXTUTILS_ARGV)							&&	\
-		$(GIT_EXE) log -M --name-status > $(CHANGELOG_FN)				&&	\
-		$(PERL) -M$(EXTUTILS_GIT)								\
-			-e "$(EXTUTILS_GIT)->git_tag(@ARGV)"						\
-			-- $(EXTUTILS_ARGV)							&&	\
-		$(PERL) -M$(EXTUTILS_GIT)								\
-			-e "$(EXTUTILS_GIT)->git_version_dump(@ARGV)"					\
-			-- $(EXTUTILS_ARGV)							&&	\
-		$(GIT_EXE) push	--mirror origin								\
-	)
-
-
-git_ci1 : git_manicheck autolicense
-	@$(PERL) -M$(EXTUTILS_GIT) \
-	-e "$(EXTUTILS_GIT)->git_status(@ARGV)" -- $(EXTUTILS_ARGV) 				|| (	\
-		$(PERL) -M$(EXTUTILS_GIT)								\
-			-e "$(EXTUTILS_GIT)->git_commit(@ARGV)"						\
-			-- $(EXTUTILS_ARGV)							&&	\
-		$(GIT_EXE) push	origin								        \
-	)
-
 git_ci : git_manicheck git_autolicense
 	$(GIT_EXE) commit -a
 
@@ -109,13 +54,6 @@ git_init :
 #		-- $(EXTUTILS_ARGV); \
 	fi
 
-
-#  Commit
-#
-git_commit0 :
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
 
 
 #  Check manifest matches git

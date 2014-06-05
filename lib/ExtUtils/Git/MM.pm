@@ -87,10 +87,10 @@ sub import {
     #
     my @section=qw(
         const_config
-        dist_ci
         distdir
         depend
-    ); 
+        postamble
+    ); #dist_ci
     {
         no warnings 'redefine';
         foreach my $section (grep {$import_tag{$_} || $import_tag{':all'}} @section) {
@@ -173,9 +173,10 @@ sub const_config {
 }
 
 
-#  MakeMaker::MY update dist_ci section to include a "git_import" and other functions
+
+#  MakeMaker::MY update postamble section to include a "git_import" and other functions
 #
-sub dist_ci {
+sub postamble {
 
 
     #  Get self ref
@@ -185,20 +186,19 @@ sub dist_ci {
 
     #  Get patch dir and file name
     #
-    (my $patch_dn=Cwd::abs_path(__FILE__))=~s/\.pm$//;
-    my $patch_fn=File::Spec->catfile($patch_dn, 'dist_ci.inc');
+    my $patch_fn=$TEMPLATE_POSTAMBLE_FN;
 
 
     #  Open it
     #
     my $patch_fh=IO::File->new($patch_fn, O_RDONLY) ||
         return err("unable to open $patch_fn, $!");
-
-
-    #  Add in. We are replacing dist_ci entirely, so do not
-    #  worry about chaining.
+        
+        
+    #  Get original and append
     #
-    my @dist_ci=map {chomp; $_} <$patch_fh>;
+    my $postamble=$self->{'postamble'}(@_);
+    $postamble.=join('', <$patch_fh>);
 
 
     #  Close
@@ -208,7 +208,7 @@ sub dist_ci {
 
     #  All done, return result
     #
-    return join($/, @dist_ci);
+    return $postamble;
 
 }
     

@@ -54,28 +54,26 @@ my $module_fn=abs_path(__FILE__);
 my $local_fn="${module_fn}.local";
 
 
-#  Bin_find now anon sub to stop "subroutine redefined" type errors that
-#  occur when this file is read several times
+#  Find file in path
 #
-my $bin_find_cr=sub {
+sub bin_find  {
 
 
     #  Find a binary file
     #
-    my $bin_ar=shift();
+    my @bin_fn=@_;
     my $bin_fn;
 
 
     #  Find the bin file/files if given array ref. If not supplied as array ref
     #  convert.
     #
-    (ref($bin_ar) eq 'ARRAY') || do {$bin_ar=[$bin_ar]};
     my @dir=grep {-d $_} split(/:|;/, $ENV{'PATH'});
     my %dir=map {$_ => 1} @dir;
     DIR: foreach my $dir (@dir) {
         next unless delete $dir{$dir};
         next unless -d $dir;
-        foreach my $bin (@{$bin_ar}) {
+        foreach my $bin (@bin_fn) {
             if (-f File::Spec->catfile($dir, $bin)) {
                 $bin_fn=File::Spec->catfile($dir, $bin);
                 last DIR;
@@ -96,14 +94,24 @@ my $bin_find_cr=sub {
 };
 
 
+#  Get dn for path ref and make utility function to construct abs path for a file
+#
+(my $module_dn=$module_fn)=~s/\.pm$//;
+sub fn { 
+
+    File::Spec->catfile($module_dn, @_) 
+    
+}
+
+
 #  Constants
 #  <<<
 %Constant=(
 
-    GIT_EXE       => $bin_find_cr->([qw(git git.exe)]) || 
+    GIT_EXE       => &bin_find(qw(git git.exe)) || 
         die('unable to locate git binary in path') ,
 
-    MAKE_EXE       => $bin_find_cr->([qw(make make.exe nmake.exe)]) || 
+    MAKE_EXE      => &bin_find(qw(make make.exe nmake.exe)) || 
         die('unable to locate git binary in path') ,
 
     CHANGELOG_FN  => 'ChangeLog',
@@ -144,7 +152,7 @@ my $bin_find_cr=sub {
         *.old
     )],
     
-    TEMPLATE_DIST_CI_FN => 'dist_ci.inc',
+    TEMPLATE_POSTAMBLE_FN => &fn('postamble.inc'),
     
     #  Local constants override anything above
     #

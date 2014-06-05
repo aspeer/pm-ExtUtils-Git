@@ -1,25 +1,15 @@
-#
-#  Copyright (C) 2003,2004 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
-#  reserved.
-#
 #  This file is part of ExtUtils::Git.
-#
-#  ExtUtils::Git is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-#
-#
+#  
+#  This software is copyright (c) 2014 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  
+#  This is free software; you can redistribute it and/or modify it under
+#  the same terms as the Perl 5 programming language system itself.
+#  
+#  Full license text is available at:
+#  
+#  <http://dev.perl.org/licenses/>
+#  
+
 
 
 #  Augment Perl ExtUtils::MakeMaker functions
@@ -119,15 +109,20 @@ sub git_manicheck {
         return err('unable to get distname');
 
 
-    #  Get manifest, touch ChangeLog, META.yml if it is supposed to exist - will be created/updated
-    #  at dist time
+    #  Check manifest files present on file system
+    #
+    my $fail;
+    my @missing=ExtUtils::Manifest::manicheck();
+    if (@missing) {
+        msg("the following files are in the manifest but missing from the file system: \n\n\%s\n\n", 
+            Dumper(\@missing)
+        ) 
+    };
+
+
+    #  Get manifest
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
-
-    #  Check manifest
-    #
-    ExtUtils::Manifest::manicheck() && 
-        return err('MANIFEST manicheck error');
 
 
     #  Read in all the Git files skipping any in MANIFEST.SKIP
@@ -138,43 +133,27 @@ sub git_manicheck {
 
     #  Check for files in Git, but not in the manifest, or vica versa
     #
-    my $fail;
     my %test0=%{$manifest_hr};
     map {delete $test0{$_}} keys %git_manifest;
     if (keys %test0) {
         msg(
-            "the following files are in the manifest, but not in git: \n\n%s\n",
-            join("\n", keys %test0));
+            "the following files are in the manifest but not in git: \n\n%s\n\n",
+            Dumper([keys %test0]));
         $fail++;
     }
     my %test1=%git_manifest;
     map {delete $test1{$_}} keys %{$manifest_hr};
     if (keys %test1) {
         msg(
-            "the following files are in git, but not in the manifest: \n\n%s\n\n",
-            join("\n", keys %test1));
+            "the following files are in git but not in the manifest: \n\n%s\n\n",
+            Dumer([keys %test1]));
         $fail++;
-    }
-
-
-    #  Die if there was an error, otherwise print OK text
-    #
-    if ($fail) {
-        my $yesno=ExtUtils::MakeMaker::prompt(
-            'Do you wish to continue [yes|no] ?', 'yes'
-        );
-        if ($yesno=~/^n|no$/i) {
-            return err('bundle build aborted by user !')
-        }
-    }
-    else {
-        msg('git and manifest in sync');
     }
 
 
     #  All done
     #
-    return \undef;
+    return $fail ? err('manifest check failed') : \undef;
 
 }
 

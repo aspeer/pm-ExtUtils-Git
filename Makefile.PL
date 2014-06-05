@@ -26,20 +26,13 @@ if ($mm_ver =~ /_/) { # dev version
 #
 #------------------------------------------------------------------------------
 
-
-
-#  Cache vars
-#
-my ($prereq_hr, $version_from_fn);
-
-
 #  Create the Makefile
 #
 WriteMakefile(
 
-    NAME                                          =>  __PACKAGE__,
+    NAME                                =>  __PACKAGE__,
 
-    VERSION_FROM                                  =>  $version_from_fn=File::Spec->catfile(
+    VERSION_FROM                        =>  $::version_from_fn=File::Spec->catfile(
 
         'lib',
         split(/::/, __PACKAGE__),
@@ -47,45 +40,45 @@ WriteMakefile(
        ).'.pm',
 
 
-    PREREQ_PM                                     =>    do { $prereq_hr={
+    PREREQ_PM                           =>    do { $::prereq_hr={
 
-        'File::Touch'                             =>  0,
-        'File::Grep'                              =>  0,
-        'Git::Wrapper'                            =>  0,
-        'Software::License'                       =>  0
+        'File::Touch'                   =>  0,
+        'File::Grep'                    =>  0,
+        'Git::Wrapper'                  =>  0,
+        'Software::License'             =>  0
 
-       }; ($ENV{'PREREQ_PM'} eq '0') ? {} : $prereq_hr },
+       }; ($ENV{'PREREQ_PM'} eq '0') ? {} : $::prereq_hr },
 
 
-    CONFIGURE                                     =>  sub { {
+    CONFIGURE                           =>  sub { {
 
-        PREREQ_PM                                 =>  $prereq_hr
+        PREREQ_PM                       =>  $::prereq_hr
 
     } },
 
 
-    'dist'                                        =>  {
+    'dist'                              =>  {
 
-        COMPRESS                                  =>  'gzip -9f',
-        SUFFIX                                    =>  '.gz',
+        COMPRESS                        =>  'gzip -9f',
+        SUFFIX                          =>  '.gz',
 
     },
 
 
-    'depend'                                      =>  {
-        Makefile                                  =>  '$(VERSION_FROM)',
+    'depend'                            =>  {
+        Makefile                        =>  '$(VERSION_FROM)',
     },
 
 
     ($] >=  5.005 ?
-         (ABSTRACT_FROM                           => $version_from_fn,
-          AUTHOR                                  => 'Andrew Speer <andrew.speer@isolutions.com.au>') : ()
+         (ABSTRACT_FROM                 =>  $::version_from_fn,
+          AUTHOR                        =>  'Andrew Speer <andrew.speer@isolutions.com.au>') : ()
          ),
 
 
     ($mm_ver < 6.31 ? () : (
 
-        LICENSE                             =>  'gpl_2',
+        LICENSE                         =>  'perl_5',
 
     )),
 

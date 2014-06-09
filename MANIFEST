@@ -4,6 +4,7 @@ lib/ExtUtils/Git.pm
 lib/ExtUtils/Git/Util.pm
 lib/ExtUtils/Git/Constant.pm
 lib/ExtUtils/Git/Constant/postamble.inc
+lib/ExtUtils/Git/Constant/copyright.inc
 lib/ExtUtils/Git/MM.pm
 t/00-load.t
 LICENSE

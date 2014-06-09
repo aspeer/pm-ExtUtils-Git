@@ -12,7 +12,6 @@
 
 
 
-
 #  This package finds, then stores in a cache the full path to various
 #  executables and environment vars, including:
 #
@@ -123,7 +122,7 @@ sub fn {
     DUMPER_FN     => '.dumper.cache',
 
     EXTUTILS_ARGV => q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ] .
-        q["$(VERSION_SYM)" "$(VERSION_FROM)" "$(LICENSE)" "$(AUTHOR)"],
+        q["$(VERSION_SYM)" "$(VERSION_FROM)" "$(LICENSE)" "$(AUTHOR)" "$(TO_INST_PM)"],
 
     EXTUTILS_GIT  => 'ExtUtils::Git',
 
@@ -135,7 +134,11 @@ sub fn {
     
     GIT_BRANCH_MASTER => 'master',
     
-    GIT_BRANCH_DEVELOPMENT => 'devlopment',
+    GIT_BRANCH_DEVELOPMENT => 'development',
+    
+    GIT_REMOTE_HR       =>  { 
+        origin => 'git@localhost:/%s.git', 
+    },
     
     GIT_IGNORE_FN => '.gitignore',
     
@@ -154,6 +157,16 @@ sub fn {
     
     TEMPLATE_POSTAMBLE_FN => &fn('postamble.inc'),
     
+    TEMPLATE_COPYRIGHT_FN => &fn('copyright.inc'),
+    
+    GIT_AUTOCOPYRIGHT_INCLUDE_AR => [qr/\.pl$/, qr/\.pm$/],
+
+    GIT_AUTOCOPYRIGHT_EXCLUDE_AR => [],
+    
+    COPYRIGHT_HEADER_MAX_LINES => 20,
+    
+    COPYRIGHT_KEYWORD => 'Copyright',
+    
     #  Local constants override anything above
     #
     %{do($local_fn)}
@@ -166,7 +179,7 @@ sub fn {
 #
 require Exporter;
 @ISA=qw(Exporter);
-foreach (keys %Constant) { ${$_}=$ENV{$_} ? $Constant{$_}=eval ( $ENV{$_} ) : $Constant{$_} }
+foreach (keys %Constant) { ${$_}=$ENV{$_} ? $Constant{$_}=eval ($ENV{$_}) : $Constant{$_} } ## no critic
 @EXPORT=map {'$' . $_} keys %Constant;
 @EXPORT_OK=@EXPORT;
 %EXPORT_TAGS=(all => [@EXPORT_OK]);

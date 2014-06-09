@@ -11,7 +11,6 @@
 #  
 
 
-
 #  Augment Perl ExtUtils::MakeMaker functions
 #
 package ExtUtils::Git;
@@ -38,6 +37,8 @@ use Data::Dumper;
 use File::Touch;
 use File::Grep qw(fdo);
 use Git::Wrapper;
+use Software::LicenseUtils;
+use Software::License;
 use Cwd;
 
 
@@ -146,14 +147,14 @@ sub git_manicheck {
     if (keys %test1) {
         msg(
             "the following files are in git but not in the manifest: \n\n%s\n\n",
-            Dumer([keys %test1]));
+            Dumper([keys %test1]));
         $fail++;
     }
 
 
     #  All done
     #
-    return $fail ? err('manifest check failed') : \undef;
+    return $fail ? err('MANIFEST check failed') : msg('MANIFEST and git in sync');
 
 }
 
@@ -713,6 +714,44 @@ sub git_merge {
 }
 
 
+sub git_remote {
+
+
+    #  Add default remote git repositories
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    
+    
+    #  Iterate through remote targets and add
+    #
+    my $git_or=$self->_git();
+    my @remote=$git_or->remote('-v');
+    my %remote;
+    foreach my $remote (@remote) {
+        my ($name, $repo)=split(/\s+/, $remote);
+        $remote{$name}=$repo;
+    }
+    while (my($name, $repo)=each %{$GIT_REMOTE_HR}) {
+        my $repo_location=sprintf($repo, $param_hr->{'DISTNAME'});
+        if (exists($remote{$name}) && ($remote{$name} ne $repo_location)) {
+            #  Already exists - delete
+            #
+            msg("updating remote repo $name: $repo_location");
+            $git_or->remote('remove', $name);
+            $git_or->remote('add', $name, $repo_location);
+        }
+        elsif(!$remote{$name}) {
+            msg("adding remote repo $name: $repo_location");
+            $git_or->remote('add', $name, $repo_location);
+        }
+        else {
+            msg("checking remote repo $name: $repo_location OK");
+        }
+    }
+    
+}
+    
+
 sub git_ignore {
 
 
@@ -753,19 +792,20 @@ sub git_autolicense {
 
     #  Generate license file
     #
-    my ($self, $license, $author)=@_;
-    use Software::LicenseUtils;
-    use Software::License;
-    my @license=Software::LicenseUtils->guess_license_from_meta_key($license);
-    @license || 
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my ($license, $author)=@{$param_hr}{qw(LICENSE AUTHOR)};
+    my @license_guess=Software::LicenseUtils->guess_license_from_meta_key($license);
+    @license_guess || 
         return err("unable to determine license from string $license");
-    @license > 1 && 
+    (@license_guess > 1) && 
         return err("ambiguous license from string $license");
-    my $license_or=(shift @license)->new({ holder=>$author });
+    my $license_guess=shift @license_guess;
+    my $license_or=$license_guess->new({ holder=>$author });
     my $license_fh=IO::File->new($LICENSE_FN, O_WRONLY | O_TRUNC | O_CREAT) ||
         return err("unable to open file $LICENSE_FN, $!");
     print $license_fh $license_or->fulltext();
     $license_fh->close();
+    msg("generated $license_guess LICENSE file");
     
     
     #  Add to manifest and git if needed
@@ -778,6 +818,221 @@ sub git_autolicense {
     }
     
     
+}
+
+
+sub git_autocopyright {
+
+
+    #  Make sure copyright header is added to every file
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my ($license, $author, $name, $pm_to_inst_ar)=@{$param_hr}{qw(LICENSE AUTHOR NAME TO_INST_PM_AR)};
+    
+
+    #  Get the license object
+    #
+    my @license_guess=Software::LicenseUtils->guess_license_from_meta_key($license);
+    @license_guess || 
+        return err("unable to determine license from string $license");
+    (@license_guess > 1) && 
+        return err("ambiguous license from string $license");
+    my $license_guess=shift @license_guess;
+    my $license_or=$license_guess->new({ holder=>$author });
+    
+    
+    #  Open stuff it into template
+    #
+    my $template_or=Text::Template->new(
+
+        type    =>  'FILE',
+        source  =>  $TEMPLATE_COPYRIGHT_FN,
+
+       ) || return err("unable to open template, $TEMPLATE_COPYRIGHT_FN $!");
+
+
+    #  Fill in with out self ref as a hash
+    #
+    my $copyright=$template_or->fill_in(
+
+        HASH	        =>  { 
+            name        =>  $name,
+            notice      =>  $license_or->notice(),
+            url         =>  $license_or->url()
+        },
+        DELIMITERS  =>  [ '<:', ':>' ], 
+
+       ) || return err("unable to fill in template $TEMPLATE_COPYRIGHT_FN, $Text::Template::ERROR");
+
+
+    #  Add comment fields
+    #
+    $copyright=~s/^(.*)/\#  $1/mg;
+    
+    
+    #  Get manifest - only update files listed there
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+    
+    
+    #  Iterate across files to protect
+    #
+    foreach my $fn (@{$pm_to_inst_ar}) {
+    
+    
+        #  Skip unless matches filter for files to add copyright header to
+        #
+        unless (grep { $fn=~/$_/ } @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
+            msg("skipping $fn: not in include filter");
+            next;
+        }
+        if (grep { $fn=~/$_/ } @{$GIT_AUTOCOPYRIGHT_EXCLUDE_AR}) {
+            msg("skipping $fn: matches exclude filter");
+            next;
+        }
+        unless (exists $manifest_hr->{$fn}) {
+            msg("skipping $fn: not in MANIFEST");
+            next;
+        }
+
+
+	#  Open file for read
+	#
+	my $fh=IO::File->new($fn, O_RDONLY) ||
+	    return err("unable to open file $fn, $!");
+
+
+	#  Setup keywords we are looking for
+	#
+	my $keyword=$COPYRIGHT_KEYWORD;
+	my @header;
+
+
+        #  Flag set if existing copyright notice detected
+        #
+        my $keyword_found_fg;
+
+
+	#  Turn into array, search for delims
+	#
+	my ($lineno, @line)=0;
+	while (my $line=<$fh>) {
+	    push @line, $line;
+	    push(@header, $lineno || 0) if $line=~/^#.*\Q$keyword\E/i;
+	    $lineno++;
+	}
+
+
+	#  Close
+	#
+	$fh->close();
+	
+
+	#  Only do cleanup of old copyright if copyright keyword was
+	#  found in top x lines
+	#
+	if (defined($header[0]) && ($header[0] <= $COPYRIGHT_HEADER_MAX_LINES)) {
+
+
+	    #  Valid copyright block (probably) found. Set flag
+	    #
+	    $keyword_found_fg++;
+
+
+	    #  Start looks for start and end of header
+	    #
+	    for (my $lineno_header=$header[0]; $lineno_header < @line; $lineno_header++) {
+
+
+		#  We are going backwards through the file, as soon as we
+		#  see something we quit
+		#
+		my $line_header=$line[$lineno_header];
+		last unless $line_header=~/^#/;
+		$header[1]=$lineno_header;
+
+
+	    }
+	    for (my $lineno_header=$header[0]; $lineno_header >= 0; $lineno_header--) {
+
+
+		#  We are going backwards through the file, as soon as we
+		#  see something we quit
+		#
+		my $line_header=$line[$lineno_header];
+		last if $line_header=~/^#\!/;
+		last unless ($line_header=~/^#/);
+		$header[0]=$lineno_header;
+
+
+	    }
+
+        }
+	else {
+
+
+	    #  Just make top of file, unless first line is #! (shebang) shell
+	    #  meta
+	    #
+	    if ($line[0]=~/^#\!/) { @header=(1,1) }
+	    else { @header=(0,0) }
+
+
+	}
+
+
+	#  Only do update if md5's do not match
+	#
+	my $header_copyright=join('', @line[$header[0]..$header[1]]);
+	if ($header_copyright ne $copyright) {
+
+
+	    #  Need to update. If delim found, need to splice out
+	    #
+	    msg "updating $fn\n";
+	    if ($keyword_found_fg) {
+
+
+		#  Yes, found, so splice existing notice out
+		#
+		splice(@line, $header[0], ($header[1]-$header[0]+1));
+
+
+	    }
+	    else {
+
+
+		#  Not found, add a copy of cr's to notice as a spacer this
+		#  first time in
+		#
+		$copyright  = "\n".$copyright if $header[0];
+		$copyright .= "\n";
+
+
+	    }
+
+
+	    #  Splice new notice in now
+	    #
+	    splice(@line, $header[0], 0, $copyright);
+
+
+	    #  Re-open file for write out
+	    #
+	    $fh=IO::File->new($fn, O_TRUNC|O_WRONLY) ||
+	        return err("unable to open $fn, $!");
+	    print $fh join('', @line);
+	    $fh->close();
+
+	}
+	else {
+
+	    msg "checked $fn\n";
+
+	}
+
+    }
+
 }
 
 

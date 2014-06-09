@@ -1,24 +1,34 @@
-git_ci : git_manicheck git_autolicense
+#  Generic targets that all run the same named method from the ExtUtils::Git module
+#
+GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment  \
+	git_lint git_version_dump git_version_increment_files git_autocopyright git_remote
+
+GIT_PERL_PM=$(PERL) -M$(EXTUTILS_GIT) \
+		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
+		-- $(EXTUTILS_ARGV)
+
+$(GIT_TARGETS) :
+	@$(GIT_PERL_PM)
+
+
+#  Targets that have dependencies, extra steps etc.
+#
+git_ci : git_manicheck git_autolicense git_autocopyright
 	$(GIT_EXE) commit -a
 
 
 git_merge : git_ci
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
+	@$(GIT_PERL_PM)
 
 
 git_release : 
 	$(MAKE) git_version_increment 
 	$(GIT_EXE) commit -a -m "VERSION increment"
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->git_make(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
+	@$(GIT_PERL_PM)
 	$(MAKE) git_tag
 	$(MAKE) git_dist
 
-#  Push
-#
+
 git_push :
 	$(GIT_EXE) push origin
 	$(GIT_EXE) push origin --tags
@@ -35,9 +45,7 @@ git_dist : git_status
 #  Make new repository and import files into Git
 #
 git_import : git_init git_autolicense
-	$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV) && \
+	@$(GIT_PERL_PM) && \
 	$(GIT_EXE) commit -m "MANIFEST Import"
 #	$(GIT_EXE) push --mirror origin
 
@@ -55,84 +63,15 @@ git_init :
 	fi
 
 
-
-#  Check manifest matches git
-#
-git_manicheck :
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
+git_arg :
+	@echo $(EXTUTILS_ARGV)
 
 
 #  Check all files are in git and up to date
 #
 git_status : git_manicheck
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
+	@$(GIT_PERL_PM)
 
-
-#  Increment version_from file
-#
-git_version_increment :
-	@$(PERL) -Ilib -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Increment commit
-#
-git_version_increment_commit :
-	@$(PERL) -Ilib -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Create .gitignore
-#
-git_ignore :
-	@$(PERL) -Ilib -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Increment VERSION in any files that have changed
-#
-git_version_increment_files :
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Print current version
-#
-git_version :
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Tag current version
-#
-git_tag :
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-
-#  Lint the files for old RCS/CVS keywords
-#
-git_lint :
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
-
-#  Dump current git version to Dumper.pm file, can be picked by packaging tool later
-#
-git_version_dump :
-	@$(PERL) -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
 
 
 #  perl -c -w check of all files
@@ -155,18 +94,12 @@ perltidy : all
 #
 perlcritic : all
 	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm$$/} @ARGV)' -- $(TO_INST_PM)`; \
-		do perlcritic $$d; done
+		do echo $$d; perlcritic $$d; done
 	@for d in $(EXE_FILES); do perlcritic $$d; done
 
 
-#  generate license file
+#  Crete changelog
 #
-git_autolicense :
-	@$(PERL) -Ilib -M$(EXTUTILS_GIT) \
-		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(LICENSE) "$(AUTHOR)"
-
-
 git_distchanges : create_distdir
 	$(NOECHO) cd $(DISTVNAME) && \
 	$(GIT_EXE) rev-list  --all --pretty > $(CHANGELOG_FN) && \

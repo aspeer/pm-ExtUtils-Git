@@ -87,12 +87,12 @@ WriteMakefile(
 
 package MY;
 
-sub constants {
+sub post_initialize {
 
     #  Add license file, other support files here
     #
     my $mm_or=shift();
     $mm_or->{'PM'}{'LICENSE'}='$(INST_LIBDIR)/$(BASEEXT)/LICENSE';
-    $mm_or->SUPER::constants;
+    $mm_or->SUPER::post_initialize;
 
 };

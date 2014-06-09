@@ -1,7 +1,7 @@
 #  Generic targets that all run the same named method from the ExtUtils::Git module
 #
 GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment  \
-	git_lint git_version_dump git_version_increment_files git_autocopyright git_remote
+	git_lint git_version_dump git_version_increment_files git_autocopyright git_remote git_push
 
 GIT_PERL_PM=$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
@@ -18,7 +18,8 @@ git_ci : git_manicheck git_autolicense git_autocopyright
 
 
 git_merge : git_ci
-	@$(GIT_PERL_PM)
+	@$(GIT_PERL_PM) && \
+	$(MAKE) git_version_increment
 
 
 git_release : 
@@ -28,10 +29,6 @@ git_release :
 	$(MAKE) git_tag
 	$(MAKE) git_dist
 
-
-git_push :
-	$(GIT_EXE) push origin
-	$(GIT_EXE) push origin --tags
 
 
 #  Build distribution
@@ -86,7 +83,7 @@ cw : all
 #
 perltidy : all
 	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm$$/} @ARGV)' -- $(TO_INST_PM)`; \
-		do perltidy -se -b $$d; done
+		do echo $$d; perltidy -se -b $$d; done
 	@for d in $(EXE_FILES); do perltidy -x -b $$d; done
 
 

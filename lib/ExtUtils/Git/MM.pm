@@ -1,16 +1,14 @@
 #  This file is part of ExtUtils::Git.
-#  
+#
 #  This software is copyright (c) 2014 by Andrew Speer <andrew.speer@isolutions.com.au>.
-#  
+#
 #  This is free software; you can redistribute it and/or modify it under
 #  the same terms as the Perl 5 programming language system itself.
-#  
+#
 #  Full license text is available at:
-#  
+#
 #  <http://dev.perl.org/licenses/>
-#  
-
-
+#
 #  Augment Perl ExtUtils::MakeMaker functions
 #
 package ExtUtils::Git::MM;
@@ -143,8 +141,8 @@ sub const_config {
     #
     @{$mm->{'macro'}}{qw(LICENSE AUTHOR)}=($license, $author);
     $mm->{'META_MERGE'}{'resources'}{'license'}=$license_or->url();
-
-
+    
+    
     #  Adjust PERLRUN to include @INC and this module
     #
     my $perlrun;

@@ -56,7 +56,6 @@ $VERSION='1.158_106129258';
 #===================================================================================================
 
 
-
 sub git_import {
 
 
@@ -68,7 +67,7 @@ sub git_import {
     #  Check all files present
     #
     ExtUtils::Manifest::manicheck() &&
-        return err('MANIFEST manicheck error');
+        return err ('MANIFEST manicheck error');
 
 
     #  Get the manifest
@@ -81,7 +80,7 @@ sub git_import {
     #
     foreach my $fn (@{$GIT_IGNORE_AR}) {
         delete $manifest_hr->{$fn};
-    } 
+    }
 
 
     #  Add remaining files from manfest
@@ -107,7 +106,7 @@ sub git_manicheck {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
-        return err('unable to get distname');
+        return err ('unable to get distname');
 
 
     #  Check manifest files present on file system
@@ -115,10 +114,11 @@ sub git_manicheck {
     my $fail;
     my @missing=ExtUtils::Manifest::manicheck();
     if (@missing) {
-        msg("the following files are in the manifest but missing from the file system: \n\n\%s\n\n", 
+        msg(
+            "the following files are in the manifest but missing from the file system: \n\n\%s\n\n",
             Dumper(\@missing)
-        ) 
-    };
+            )
+    }
 
 
     #  Get manifest
@@ -129,7 +129,7 @@ sub git_manicheck {
     #  Read in all the Git files skipping any in MANIFEST.SKIP
     #
     my $maniskip_or=ExtUtils::Manifest::maniskip();
-    my %git_manifest=map { $_=>1 } grep { !$maniskip_or->($_) } $self->_git->ls_files;
+    my %git_manifest=map {$_ => 1} grep {!$maniskip_or->($_)} $self->_git->ls_files;
 
 
     #  Check for files in Git, but not in the manifest, or vica versa
@@ -154,7 +154,7 @@ sub git_manicheck {
 
     #  All done
     #
-    return $fail ? err('MANIFEST check failed') : msg('MANIFEST and git in sync');
+    return $fail ? err ('MANIFEST check failed') : msg('MANIFEST and git in sync');
 
 }
 
@@ -168,13 +168,13 @@ sub git_status {
     my $self=shift();
     my $param_hr=arg(@_);
     my $version_from=$param_hr->{'VERSION_FROM'} ||
-        return err('unable to get version_from');
+        return err ('unable to get version_from');
 
 
     #  Stat the master version file
     #
     my $version_from_mtime=(stat($version_from))[9] ||
-        return err("unable to stat file $version_from, $!");
+        return err ("unable to stat file $version_from, $!");
 
 
     #  Get the manifest
@@ -192,7 +192,7 @@ sub git_status {
     if (keys %{$git_modified_hr}) {
         my $err="The following files have been modified since last commit:\n";
         $err.=Data::Dumper::Dumper($git_modified_hr);
-        return err($err);
+        return err ($err);
     }
 
 
@@ -220,65 +220,66 @@ sub git_version_increment {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $version_from_fn=$param_hr->{'VERSION_FROM'} ||
-        return err('unable to get version_from file name');
+        return err ('unable to get version_from file name');
 
 
     #  Get current version
     #
     my $version=$self->git_version(@_) ||
-        return err("unable to get existing version from $version_from_fn");
+        return err ("unable to get existing version from $version_from_fn");
+
     #$version=(split /_/, $version)[0];
     my @version=split(/\./, $version);
     $version[-1]=~s/_.*//;
+
     #$version[-1]++;
     #$version[-1]=sprintf('%03d', $version[-1]);
     #my $version_new=join('.', @version);
     my $version_new;
-    
-    
+
+
     #  Check branch and make alpha if not on master
     #
     unless ((my $branch=$self->_git_branch) eq 'master') {
-    
-    
+
+
         #  Get new alpha suffix
         #
         my $suffix=hex($self->_git_rev_parse_short());
-        
-        
+
+
         #  Add _ to ver number
         #
         $version_new=join('.', @version);
         $version_new.="_$suffix";
-        
-        
+
+
         #  Check is different
         #
         if ($version_new eq $version) {
             msg("no git changes detected - version increment *NOT* performed.");
             return \undef;
         }
-        
+
     }
     else {
-    
-    
+
+
         #  On master branch
         #
         $version[-1]++;
         $version[-1]=sprintf('%03d', $version[-1]);
         $version_new=join('.', @version);
-        
+
     }
-        
 
 
     #  Open file handles for read and write
     #
     my $old_fh=IO::File->new($version_from_fn, O_RDONLY) ||
-        return err("unable to open file '$version_from_fn' for read, $!");
+        return err ("unable to open file '$version_from_fn' for read, $!");
     my $new_fh=IO::File->new("$version_from_fn.tmp", O_WRONLY | O_CREAT | O_TRUNC) ||
-        return err("unable to open file '$version_from_fn.tmp' for write, $!");
+        return err ("unable to open file '$version_from_fn.tmp' for write, $!");
 
 
     #  Now iterate through file, increasing version number if found
@@ -293,7 +294,7 @@ sub git_version_increment {
     $old_fh->close();
     $new_fh->close();
     rename("$version_from_fn.tmp", $version_from_fn) ||
-        return err("unable to replace $version_from_fn with newer version, $!");
+        return err ("unable to replace $version_from_fn with newer version, $!");
 
 
     #  All OK
@@ -317,9 +318,9 @@ sub git_version_increment_commit {
     my $version=$self->git_version(@_);
     my $git_or=$self->_git();
     $git_or->commit('-a', '-m', "VERSION increment: $version");
-    
+
 }
-    
+
 
 sub git_version_increment_files {
 
@@ -328,7 +329,7 @@ sub git_version_increment_files {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $version_from_fn=$param_hr->{'VERSION_FROM'} ||
-        return err('unable to get version_from file name');
+        return err ('unable to get version_from file name');
 
 
     #  Get manifest.
@@ -361,17 +362,17 @@ sub git_version_increment_files {
         my $revision=(my @revision=split($/, $git_rev_list));
         $revision=sprintf('%03d', $revision);
         if ($revision > 998) {
-            return err("revision too high ($revision) - update release ?");
+            return err ("revision too high ($revision) - update release ?");
         }
 
         #print "$fn, $revision\n";
 
         my $temp_fh=File::Temp->new() ||
-            return err("unable to open tempfile, $!");
+            return err ("unable to open tempfile, $!");
         my $temp_fn=$temp_fh->filename() ||
-            return err("unable to obtain tempfile name from fh $temp_fh");
+            return err ("unable to obtain tempfile name from fh $temp_fh");
         my $fh=IO::File->new($fn) ||
-            return err("unable to open file $fn for readm $!");
+            return err ("unable to open file $fn for readm $!");
         my ($update_fg, $version_seen_fg);
         while (my $line=<$fh>) {
 
@@ -390,7 +391,7 @@ sub git_version_increment_files {
                     $update_fg++;
                 }
                 elsif ($2 > ($revision+1)) {
-                    return err("error - $fn existing version $1.$2 > proposed version $1.$revision !");
+                    return err ("error - $fn existing version $1.$2 > proposed version $1.$revision !");
                 }
                 elsif ($2 == $revision) {
                     print "skipping update of $fn, version $1.$2 identical to proposed rev $1.$revision\n";
@@ -415,7 +416,7 @@ sub git_version_increment_files {
 
             #print "Would update fn $fn\n";
             File::Copy::move($temp_fn, $fn) ||
-                return err("error moving file $temp_fn=>$fn, $!")
+                return err ("error moving file $temp_fn=>$fn, $!")
         }
         else {
             #print "no \$VERSION match on file $fn\n";
@@ -437,13 +438,13 @@ sub git_tag {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
-        return err('unable to get distname');
+        return err ('unable to get distname');
 
 
     #  Read in version number, convers .'s to -
     #
     my $version=$self->git_version(@_) ||
-        return err('unable to get version number');
+        return err ('unable to get version number');
 
 
     #  Add distname
@@ -476,13 +477,13 @@ sub git_commit0 {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
-        return err('unable to get distname');
+        return err ('unable to get distname');
 
 
     #  Read in version number, convers .'s to -
     #
     my $version=$self->git_version(@_) ||
-        return err('unable to get version number');
+        return err ('unable to get version number');
 
 
     #  Add distname
@@ -493,7 +494,7 @@ sub git_commit0 {
     #  Run git program to update
     #
     unless (system($GIT_EXE, 'commit', qw(-a -e -m), qq[Tag: $tag]) == 0) {
-        return err("error on git commit, $?");
+        return err ("error on git commit, $?");
     }
 
 
@@ -511,12 +512,12 @@ sub git_commit {
     #  Commit modified file
     #
     my $self=shift();
-    
-    
+
+
     #  Do it
     #
     unless (system($GIT_EXE, 'commit', '-a') == 0) {
-        return err("error on git commit, $?");
+        return err ("error on git commit, $?");
     }
 
 
@@ -535,13 +536,13 @@ sub git_version {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $version_from=$param_hr->{'VERSION_FROM'} ||
-        return err('unable to get version_from file name');
+        return err ('unable to get version_from file name');
 
 
     #  Get version from version_from file
     #
     my $version_git=eval {MM->parse_version(File::Spec->rel2abs($version_from))} ||
-        return err("unable to read version info from version_from file $version_from, $!");
+        return err ("unable to read version info from version_from file $version_from, $!");
 
 
     #  Display
@@ -585,7 +586,7 @@ sub git_version_dump {
     if ("v$dump_version" ne "v$have_version") {
 
         my $dump_fh=IO::File->new($dump_fn, O_WRONLY | O_TRUNC | O_CREAT) ||
-            err("unable to open file $dump_fn, $!");
+            err ("unable to open file $dump_fn, $!");
         binmode($dump_fh);
         $Data::Dumper::Indent=1;
         print $dump_fh (Data::Dumper->Dump([\%dump], []));
@@ -673,7 +674,7 @@ sub git_lint {
     #
     if (@match) {
 
-        return err(join($/, @match));
+        return err (join($/, @match));
 
     }
 
@@ -692,13 +693,13 @@ sub git_merge {
     #
     my $self=shift();
     my $git_or=$self->_git();
-    
-    
+
+
     #  Get current branch
     #
     msg('run');
     my $branch=$self->_git_branch() ||
-        return err('unable to get current branch');
+        return err ('unable to get current branch');
     unless ($branch eq 'master') {
         msg('checkout master');
         $git_or->checkout('master');
@@ -707,10 +708,10 @@ sub git_merge {
         msg('checkout complete');
     }
     else {
-        return err('cant merge while on master branch');
+        return err ('cant merge while on master branch');
     }
-    
-    
+
+
 }
 
 
@@ -720,8 +721,8 @@ sub git_remote {
     #  Add default remote git repositories
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    
-    
+
+
     #  Iterate through remote targets and add
     #
     my $git_or=$self->_git();
@@ -731,16 +732,17 @@ sub git_remote {
         my ($name, $repo)=split(/\s+/, $remote);
         $remote{$name}=$repo;
     }
-    while (my($name, $repo)=each %{$GIT_REMOTE_HR}) {
+    while (my ($name, $repo)=each %{$GIT_REMOTE_HR}) {
         my $repo_location=sprintf($repo, $param_hr->{'DISTNAME'});
         if (exists($remote{$name}) && ($remote{$name} ne $repo_location)) {
+
             #  Already exists - delete
             #
             msg("updating remote repo $name: $repo_location");
             $git_or->remote('remove', $name);
             $git_or->remote('add', $name, $repo_location);
         }
-        elsif(!$remote{$name}) {
+        elsif (!$remote{$name}) {
             msg("adding remote repo $name: $repo_location");
             $git_or->remote('add', $name, $repo_location);
         }
@@ -748,9 +750,9 @@ sub git_remote {
             msg("checking remote repo $name: $repo_location OK");
         }
     }
-    
+
 }
-    
+
 
 sub git_ignore {
 
@@ -758,34 +760,33 @@ sub git_ignore {
     #  Init git repo. Most done in Makefile, just add .gitignore
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    
-    
+
+
     #  Add files to .gitignore
     #
     my $fh=IO::File->new($GIT_IGNORE_FN, O_WRONLY | O_TRUNC | O_CREAT) ||
-        return err("unable to open $GIT_IGNORE_FN, $!");
-    
-    
+        return err ("unable to open $GIT_IGNORE_FN, $!");
+
+
     #  Write them out
     #
     foreach my $fn (@{$GIT_IGNORE_AR}) {
         print $fh $fn, $/;
     }
-    
-    
+
+
     #  Ignore dists packed/unpacked here also
     #
     printf $fh "/%s-*\n", $param_hr->{'DISTNAME'};
-    
-    
+
+
     #  Add the gitignore file itself
     #
     my $git_or=$self->_git();
     $git_or->add($GIT_IGNORE_FN);
-    
+
 }
 
-    
 
 sub git_autolicense {
 
@@ -795,29 +796,29 @@ sub git_autolicense {
     my ($self, $param_hr)=(shift(), arg(@_));
     my ($license, $author)=@{$param_hr}{qw(LICENSE AUTHOR)};
     my @license_guess=Software::LicenseUtils->guess_license_from_meta_key($license);
-    @license_guess || 
-        return err("unable to determine license from string $license");
-    (@license_guess > 1) && 
-        return err("ambiguous license from string $license");
+    @license_guess ||
+        return err ("unable to determine license from string $license");
+    (@license_guess > 1) &&
+        return err ("ambiguous license from string $license");
     my $license_guess=shift @license_guess;
-    my $license_or=$license_guess->new({ holder=>$author });
+    my $license_or=$license_guess->new({holder => $author});
     my $license_fh=IO::File->new($LICENSE_FN, O_WRONLY | O_TRUNC | O_CREAT) ||
-        return err("unable to open file $LICENSE_FN, $!");
+        return err ("unable to open file $LICENSE_FN, $!");
     print $license_fh $license_or->fulltext();
     $license_fh->close();
     msg("generated $license_guess LICENSE file");
-    
-    
+
+
     #  Add to manifest and git if needed
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
     unless ($manifest_hr->{$LICENSE_FN}) {
-        ExtUtils::Manifest::maniadd({$LICENSE_FN=>undef});
+        ExtUtils::Manifest::maniadd({$LICENSE_FN => undef});
         my $git_or=$self->_git();
         $git_or->add($LICENSE_FN);
     }
-    
-    
+
+
 }
 
 
@@ -828,65 +829,65 @@ sub git_autocopyright {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my ($license, $author, $name, $pm_to_inst_ar)=@{$param_hr}{qw(LICENSE AUTHOR NAME TO_INST_PM_AR)};
-    
+
 
     #  Get the license object
     #
     my @license_guess=Software::LicenseUtils->guess_license_from_meta_key($license);
-    @license_guess || 
-        return err("unable to determine license from string $license");
-    (@license_guess > 1) && 
-        return err("ambiguous license from string $license");
+    @license_guess ||
+        return err ("unable to determine license from string $license");
+    (@license_guess > 1) &&
+        return err ("ambiguous license from string $license");
     my $license_guess=shift @license_guess;
-    my $license_or=$license_guess->new({ holder=>$author });
-    
-    
+    my $license_or=$license_guess->new({holder => $author});
+
+
     #  Open stuff it into template
     #
     my $template_or=Text::Template->new(
 
-        type    =>  'FILE',
-        source  =>  $TEMPLATE_COPYRIGHT_FN,
+        type   => 'FILE',
+        source => $TEMPLATE_COPYRIGHT_FN,
 
-       ) || return err("unable to open template, $TEMPLATE_COPYRIGHT_FN $!");
+    ) || return err ("unable to open template, $TEMPLATE_COPYRIGHT_FN $!");
 
 
     #  Fill in with out self ref as a hash
     #
     my $copyright=$template_or->fill_in(
 
-        HASH	        =>  { 
-            name        =>  $name,
-            notice      =>  $license_or->notice(),
-            url         =>  $license_or->url()
+        HASH => {
+            name   => $name,
+            notice => $license_or->notice(),
+            url    => $license_or->url()
         },
-        DELIMITERS  =>  [ '<:', ':>' ], 
+        DELIMITERS => ['<:', ':>'],
 
-       ) || return err("unable to fill in template $TEMPLATE_COPYRIGHT_FN, $Text::Template::ERROR");
+    ) || return err ("unable to fill in template $TEMPLATE_COPYRIGHT_FN, $Text::Template::ERROR");
 
 
     #  Add comment fields
     #
     $copyright=~s/^(.*)/\#  $1/mg;
-    
-    
+
+
     #  Get manifest - only update files listed there
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
-    
-    
+
+
     #  Iterate across files to protect
     #
     foreach my $fn (@{$pm_to_inst_ar}) {
-    
-    
+
+
         #  Skip unless matches filter for files to add copyright header to
         #
-        unless (grep { $fn=~/$_/ } @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
+        unless (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
             msg("skipping $fn: not in include filter");
             next;
         }
-        if (grep { $fn=~/$_/ } @{$GIT_AUTOCOPYRIGHT_EXCLUDE_AR}) {
+        if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_AR}) {
             msg("skipping $fn: matches exclude filter");
             next;
         }
@@ -896,16 +897,16 @@ sub git_autocopyright {
         }
 
 
-	#  Open file for read
-	#
-	my $fh=IO::File->new($fn, O_RDONLY) ||
-	    return err("unable to open file $fn, $!");
+        #  Open file for read
+        #
+        my $fh=IO::File->new($fn, O_RDONLY) ||
+            return err ("unable to open file $fn, $!");
 
 
-	#  Setup keywords we are looking for
-	#
-	my $keyword=$COPYRIGHT_KEYWORD;
-	my @header;
+        #  Setup keywords we are looking for
+        #
+        my $keyword=$COPYRIGHT_KEYWORD;
+        my @header;
 
 
         #  Flag set if existing copyright notice detected
@@ -913,123 +914,123 @@ sub git_autocopyright {
         my $keyword_found_fg;
 
 
-	#  Turn into array, search for delims
-	#
-	my ($lineno, @line)=0;
-	while (my $line=<$fh>) {
-	    push @line, $line;
-	    push(@header, $lineno || 0) if $line=~/^#.*\Q$keyword\E/i;
-	    $lineno++;
-	}
+        #  Turn into array, search for delims
+        #
+        my ($lineno, @line)=0;
+        while (my $line=<$fh>) {
+            push @line, $line;
+            push(@header, $lineno || 0) if $line=~/^#.*\Q$keyword\E/i;
+            $lineno++;
+        }
 
 
-	#  Close
-	#
-	$fh->close();
-	
-
-	#  Only do cleanup of old copyright if copyright keyword was
-	#  found in top x lines
-	#
-	if (defined($header[0]) && ($header[0] <= $COPYRIGHT_HEADER_MAX_LINES)) {
+        #  Close
+        #
+        $fh->close();
 
 
-	    #  Valid copyright block (probably) found. Set flag
-	    #
-	    $keyword_found_fg++;
+        #  Only do cleanup of old copyright if copyright keyword was
+        #  found in top x lines
+        #
+        if (defined($header[0]) && ($header[0] <= $COPYRIGHT_HEADER_MAX_LINES)) {
 
 
-	    #  Start looks for start and end of header
-	    #
-	    for (my $lineno_header=$header[0]; $lineno_header < @line; $lineno_header++) {
+            #  Valid copyright block (probably) found. Set flag
+            #
+            $keyword_found_fg++;
 
 
-		#  We are going backwards through the file, as soon as we
-		#  see something we quit
-		#
-		my $line_header=$line[$lineno_header];
-		last unless $line_header=~/^#/;
-		$header[1]=$lineno_header;
+            #  Start looks for start and end of header
+            #
+            for (my $lineno_header=$header[0]; $lineno_header < @line; $lineno_header++) {
 
 
-	    }
-	    for (my $lineno_header=$header[0]; $lineno_header >= 0; $lineno_header--) {
+                #  We are going backwards through the file, as soon as we
+                #  see something we quit
+                #
+                my $line_header=$line[$lineno_header];
+                last unless $line_header=~/^#/;
+                $header[1]=$lineno_header;
 
 
-		#  We are going backwards through the file, as soon as we
-		#  see something we quit
-		#
-		my $line_header=$line[$lineno_header];
-		last if $line_header=~/^#\!/;
-		last unless ($line_header=~/^#/);
-		$header[0]=$lineno_header;
+            }
+            for (my $lineno_header=$header[0]; $lineno_header >= 0; $lineno_header--) {
 
 
-	    }
+                #  We are going backwards through the file, as soon as we
+                #  see something we quit
+                #
+                my $line_header=$line[$lineno_header];
+                last if $line_header=~/^#\!/;
+                last unless ($line_header=~/^#/);
+                $header[0]=$lineno_header;
+
+
+            }
 
         }
-	else {
+        else {
 
 
-	    #  Just make top of file, unless first line is #! (shebang) shell
-	    #  meta
-	    #
-	    if ($line[0]=~/^#\!/) { @header=(1,1) }
-	    else { @header=(0,0) }
+            #  Just make top of file, unless first line is #! (shebang) shell
+            #  meta
+            #
+            if   ($line[0]=~/^#\!/) {@header=(1, 1)}
+            else                    {@header=(0, 0)}
 
 
-	}
+        }
 
 
-	#  Only do update if md5's do not match
-	#
-	my $header_copyright=join('', @line[$header[0]..$header[1]]);
-	if ($header_copyright ne $copyright) {
+        #  Only do update if md5's do not match
+        #
+        my $header_copyright=join('', @line[$header[0]..$header[1]]);
+        if ($header_copyright ne $copyright) {
 
 
-	    #  Need to update. If delim found, need to splice out
-	    #
-	    msg "updating $fn\n";
-	    if ($keyword_found_fg) {
+            #  Need to update. If delim found, need to splice out
+            #
+            msg "updating $fn\n";
+            if ($keyword_found_fg) {
 
 
-		#  Yes, found, so splice existing notice out
-		#
-		splice(@line, $header[0], ($header[1]-$header[0]+1));
+                #  Yes, found, so splice existing notice out
+                #
+                splice(@line, $header[0], ($header[1]-$header[0]+1));
 
 
-	    }
-	    else {
+            }
+            else {
 
 
-		#  Not found, add a copy of cr's to notice as a spacer this
-		#  first time in
-		#
-		$copyright  = "\n".$copyright if $header[0];
-		$copyright .= "\n";
+                #  Not found, add a copy of cr's to notice as a spacer this
+                #  first time in
+                #
+                $copyright="\n" . $copyright if $header[0];
+                $copyright.="\n";
 
 
-	    }
+            }
 
 
-	    #  Splice new notice in now
-	    #
-	    splice(@line, $header[0], 0, $copyright);
+            #  Splice new notice in now
+            #
+            splice(@line, $header[0], 0, $copyright);
 
 
-	    #  Re-open file for write out
-	    #
-	    $fh=IO::File->new($fn, O_TRUNC|O_WRONLY) ||
-	        return err("unable to open $fn, $!");
-	    print $fh join('', @line);
-	    $fh->close();
+            #  Re-open file for write out
+            #
+            $fh=IO::File->new($fn, O_TRUNC | O_WRONLY) ||
+                return err ("unable to open $fn, $!");
+            print $fh join('', @line);
+            $fh->close();
 
-	}
-	else {
+        }
+        else {
 
-	    msg "checked $fn\n";
+            msg "checked $fn\n";
 
-	}
+        }
 
     }
 
@@ -1042,7 +1043,7 @@ sub git_make {
     #  Remake makefile
     #
     system($MAKE_EXE);
-    
+
 }
 
 
@@ -1073,7 +1074,7 @@ sub _git_mtime_sync0 {
 
         );
         $touch_or->touch($fn) ||
-            return err("error on touch of file $fn, $!");
+            return err ("error on touch of file $fn, $!");
         msg(
             "synced file $fn to git commit time (%s)\n",
             scalar(localtime($commit_time)));
@@ -1136,9 +1137,9 @@ sub _git_modified {
 
 sub _git {
 
-    my $git_or=Git::Wrapper->new(cwd(), 'git_binary'=> $GIT_EXE ) ||
-        return err('unable to get Git::Wrapper object');
-    
+    my $git_or=Git::Wrapper->new(cwd(), 'git_binary' => $GIT_EXE) ||
+        return err ('unable to get Git::Wrapper object');
+
 }
 
 
@@ -1147,7 +1148,7 @@ sub _git_run {
     my $self=shift();
     my $git_or=$self->_git();
     return [$git_or->RUN(@_)];
-    
+
 }
 
 
@@ -1160,7 +1161,7 @@ sub _git_branch {
             return $1;
         }
     }
-    
+
 }
 
 
@@ -1170,9 +1171,8 @@ sub _git_rev_parse_short {
     $rev ||= 'HEAD';
     my $git_or=$self->_git();
     return ($git_or->rev_parse('--short', $rev))[0];
-    
-}
 
+}
 
 
 1;

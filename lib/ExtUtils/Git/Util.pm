@@ -11,11 +11,6 @@
 #  
 
 
-
-
-
-
-
 #  Utility class for ExtUtils::Git
 #
 package ExtUtils::Git::Util;
@@ -49,6 +44,19 @@ use Carp;
 #==================================================================================================
 
 
+sub arg {
+
+    #  Get args, does nothing but intercept distname for messages, convert to param
+    #  hash
+    #
+    my %param;
+    @param{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM LICENSE AUTHOR TO_INST_PM)}=@_;
+    $param{'TO_INST_PM_AR'}=[split /\s+/, $param{'TO_INST_PM'}];
+    return \%param
+
+}
+
+
 sub err {
 
 
@@ -56,16 +64,6 @@ sub err {
     #
     my $msg=shift();
     croak &fmt("*error*\n\n" . ucfirst($msg), @_);
-
-}
-
-
-sub msg {
-
-
-    #  Print message
-    #
-    CORE::print &fmt(@_), "\n";
 
 }
 
@@ -87,15 +85,12 @@ sub fmt {
 }
 
 
-sub arg {
+sub msg {
 
-    #  Get args, does nothing but intercept distname for messages, convert to param
-    #  hash
+
+    #  Print message
     #
-    my %param;
-    @param{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM LICENSE AUTHOR TO_INST_PM)}=@_;
-    $param{'TO_INST_PM_AR'}=[split /\s+/, $param{'TO_INST_PM'}];
-    return \%param
+    CORE::print &fmt(@_), "\n";
 
 }
 

@@ -11,15 +11,6 @@
 #  
 
 
-
-
-
-
-
-
-
-
-
 #  Augment Perl ExtUtils::MakeMaker functions
 #
 package ExtUtils::Git::MM;
@@ -66,28 +57,28 @@ use base 'ExtUtils::MakeMaker';
 #===================================================================================================
 
 
-#  Manage activation of const_config and dist_ci targets via import tags. Import tags are
-#
-#  use ExtUtils::Git::MM qw(const_config) to just replace the macros section of the Makefile
-#  .. qw(dist_ci) to replace standard MakeMaker targets with our own
-#  .. qw(:all) to get both of the above, usual usage
-#
 sub import {
 
+    #  Manage activation of const_config and dist_ci targets via import tags. Import tags are
+    #
+    #  use ExtUtils::Git::MM qw(const_config) to just replace the macros section of the Makefile
+    #  .. qw(dist_ci) to replace standard MakeMaker targets with our own
+    #  .. qw(:all) to get both of the above, usual usage
+    #
 
     #  Get params, bless self ref and remember import tags spec'd for later
     #  re-use
     #
     my $self=bless \my %self, shift();
-    my %import_tag=map { $_=>1 } @{$self{'import_tag'}=\@_};
+    my %import_tag=map {$_ => 1} @{$self{'import_tag'}=\@_};
     $import_tag{':all'}++ unless keys %import_tag;
 
 
     #  Store for later use in MY::makefile section
     #
     $self{'ISA'}=\@INC;
-    
-    
+
+
     #  sections to replace
     #
     my @section=qw(
@@ -95,21 +86,18 @@ sub import {
         distdir
         depend
         postamble
-    ); #dist_ci
-    {
-        no warnings 'redefine';
+        );    #dist_ci
+    {   no warnings 'redefine';
         foreach my $section (grep {$import_tag{$_} || $import_tag{':all'}} @section) {
             $self{$section}=UNIVERSAL::can('MY', $section);
-            *{"MY::${section}"}=sub { &{$section}($self, @_) };
+            *{"MY::${section}"}=sub {&{$section}($self, @_)};
         }
     }
-    
+
 
 }
 
 
-#  MakeMaker::MY replacement const_config section
-#
 sub const_config {
 
 
@@ -128,38 +116,40 @@ sub const_config {
         $mm->{'macro'}{$key}=$value;
 
     }
-    
-    
+
+
     #   Update license data. Get license type and author
     #
     my $license=$mm->{'LICENSE'} ||
-        return err('no license specified in Makefile');
-    my @author=@{$mm->{'AUTHOR'} ||
-        return err('no author specified in Makefile')};
+        return err ('no license specified in Makefile');
+    my @author=@{
+        $mm->{'AUTHOR'}
+            ||
+            return err ('no author specified in Makefile')};
     my $author=shift(@author);
-    
-    
+
+
     #  Choose appropriate module
     #
     my @license_module=Software::LicenseUtils->guess_license_from_meta_key($license);
-    @license_module || 
+    @license_module ||
         return err ("unable to determine correct license module from string: $license");
-    (@license_module > 1) && 
+    (@license_module > 1) &&
         return err ("ambiguous license string: $license");
-    my $license_or=(shift @license_module)->new({ holder=>$author });
-    
-    
+    my $license_or=(shift @license_module)->new({holder => $author});
+
+
     #  Generate data later used in META files
     #
     @{$mm->{'macro'}}{qw(LICENSE AUTHOR)}=($license, $author);
     $mm->{'META_MERGE'}{'resources'}{'license'}=$license_or->url();
-    
-    
+
+
     #  Adjust PERLRUN to include @INC and this module
     #
     my $perlrun;
     my %perlrun_inc;
-    my $perlrun_inc=join(' ', map { "-I$_" } grep { !$perlrun_inc{$_}++ } @{$self->{'ISA'}});
+    my $perlrun_inc=join(' ', map {"-I$_"} grep {!$perlrun_inc{$_}++} @{$self->{'ISA'}});
     my $class=ref($self);
     if (my $include_tags_ar=$self->{'include_tags'}) {
         $perlrun=sprintf("\$(PERL) $perlrun_inc -M${class}=%s", join(',', @{$include_tags_ar}));
@@ -178,9 +168,50 @@ sub const_config {
 }
 
 
+#  MakeMaker::MY replacement const_config section
+#
+sub depend {
+
+
+    #  Get self ref
+    #
+    my ($self, $mm)=(shift(), @_);
+
+
+    #  Get original and modify
+    #
+    my $depend=$self->{'depend'}(@_);
+
+
+    #  If nothing generate default
+    #
+    if (!$depend && $mm->{'VERSION_FROM'}) {
+        $depend='Makefile : $(VERSION_FROM)';
+    }
+    return $depend;
+
+}
+
 
 #  MakeMaker::MY update postamble section to include a "git_import" and other functions
 #
+sub distdir {
+
+
+    #  Get self ref
+    #
+    my $self=shift();
+
+
+    #  Get original and modify
+    #
+    my $distdir=$self->{'distdir'}(@_);
+    $distdir=~s/distmeta/distmeta git_distchanges/;
+    return $distdir;
+
+}
+
+
 sub postamble {
 
 
@@ -197,9 +228,9 @@ sub postamble {
     #  Open it
     #
     my $patch_fh=IO::File->new($patch_fn, O_RDONLY) ||
-        return err("unable to open $patch_fn, $!");
-        
-        
+        return err ("unable to open $patch_fn, $!");
+
+
     #  Get original and append
     #
     my $postamble=$self->{'postamble'}(@_);
@@ -216,44 +247,4 @@ sub postamble {
     return $postamble;
 
 }
-    
 
-sub distdir {
-
-
-    #  Get self ref
-    #
-    my $self=shift();
-    
-    
-    #  Get original and modify
-    #
-    my $distdir=$self->{'distdir'}(@_);
-    $distdir=~s/distmeta/distmeta git_distchanges/;
-    return $distdir;
-    
-}
-
-
-sub depend {
-
-
-    #  Get self ref
-    #
-    my ($self, $mm)=(shift(), @_);
-    
-    
-    #  Get original and modify
-    #
-    my $depend=$self->{'depend'}(@_);
-    
-    
-    #  If nothing generate default
-    #
-    if (!$depend && $mm->{'VERSION_FROM'}) {
-        $depend='Makefile : $(VERSION_FROM)';
-    }
-    return $depend;
-    
-}
-    

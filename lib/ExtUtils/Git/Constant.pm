@@ -11,18 +11,6 @@
 #  
 
 
-
-#  This package finds, then stores in a cache the full path to various
-#  executables and environment vars, including:
-#
-#  bin
-#
-#  If no cache file is found, this modules will go through the path and
-#  look for the executables, then store the results away in a cache file
-#
-#
-
-
 #
 #
 package ExtUtils::Git::Constant;
@@ -41,7 +29,6 @@ local $^W=0;
 #
 use File::Spec;
 use Cwd qw(abs_path);
-     
 
 
 #===================================================================================================
@@ -55,7 +42,7 @@ my $local_fn="${module_fn}.local";
 
 #  Find file in path
 #
-sub bin_find  {
+sub bin_find {
 
 
     #  Find a binary file
@@ -90,16 +77,18 @@ sub bin_find  {
     #
     return $bin_fn;
 
-};
+}
 
 
 #  Get dn for path ref and make utility function to construct abs path for a file
 #
 (my $module_dn=$module_fn)=~s/\.pm$//;
-sub fn { 
 
-    File::Spec->catfile($module_dn, @_) 
-    
+
+sub fn {
+
+    File::Spec->catfile($module_dn, @_)
+
 }
 
 
@@ -107,71 +96,73 @@ sub fn {
 #  <<<
 %Constant=(
 
-    GIT_EXE       => &bin_find(qw(git git.exe)) || 
-        die('unable to locate git binary in path') ,
+    GIT_EXE => &bin_find(qw(git git.exe)) ||
+        die('unable to locate git binary in path'),
 
-    MAKE_EXE      => &bin_find(qw(make make.exe nmake.exe)) || 
-        die('unable to locate git binary in path') ,
+    MAKE_EXE => &bin_find(qw(make make.exe nmake.exe)) ||
+        die('unable to locate git binary in path'),
 
-    CHANGELOG_FN  => 'ChangeLog',
-    
-    LICENSE_FN    => 'LICENSE',
+    CHANGELOG_FN => 'ChangeLog',
 
-    METAFILE_FN   => 'META.yml',
+    LICENSE_FN => 'LICENSE',
 
-    DUMPER_FN     => '.dumper.cache',
+    METAFILE_FN => 'META.yml',
+
+    DUMPER_FN => '.dumper.cache',
 
     EXTUTILS_ARGV => q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ] .
         q["$(VERSION_SYM)" "$(VERSION_FROM)" "$(LICENSE)" "$(AUTHOR)" "$(TO_INST_PM)"],
 
-    EXTUTILS_GIT  => 'ExtUtils::Git',
+    EXTUTILS_GIT => 'ExtUtils::Git',
 
-    DIST_DEFAULT  => 'git_dist',
+    DIST_DEFAULT => 'git_dist',
 
-    GIT_REPO      => '/opt/git',
+    GIT_REPO => '/opt/git',
 
-    GIT_GROUP     => 'git',
-    
+    GIT_GROUP => 'git',
+
     GIT_BRANCH_MASTER => 'master',
-    
+
     GIT_BRANCH_DEVELOPMENT => 'development',
-    
-    GIT_REMOTE_HR       =>  { 
-        origin => 'git@localhost:/%s.git', 
+
+    GIT_REMOTE_HR => {
+        origin => 'git@localhost:/%s.git',
     },
-    
+
     GIT_IGNORE_FN => '.gitignore',
-    
+
     GIT_IGNORE_AR => [qw(
-        ChangeLog
-        Makefile
-        Makefile.old
-        MYMETA.json
-        MYMETA.yml
-        META.yml
-        blib/*
-        pm_to_blib
-        *.bak
-        *.old
-    )],
-    
+            ChangeLog
+            Makefile
+            Makefile.old
+            MYMETA.json
+            MYMETA.yml
+            META.yml
+            blib/*
+            pm_to_blib
+            *.bak
+            *.old
+            )
+    ],
+
     TEMPLATE_POSTAMBLE_FN => &fn('postamble.inc'),
-    
+
     TEMPLATE_COPYRIGHT_FN => &fn('copyright.inc'),
-    
+
     GIT_AUTOCOPYRIGHT_INCLUDE_AR => [qr/\.pl$/, qr/\.pm$/],
 
     GIT_AUTOCOPYRIGHT_EXCLUDE_AR => [],
-    
+
     COPYRIGHT_HEADER_MAX_LINES => 20,
-    
+
     COPYRIGHT_KEYWORD => 'Copyright',
-    
+
     #  Local constants override anything above
     #
     %{do($local_fn)}
 
 );
+
 #  >>>
 
 
@@ -179,7 +170,7 @@ sub fn {
 #
 require Exporter;
 @ISA=qw(Exporter);
-foreach (keys %Constant) { ${$_}=$ENV{$_} ? $Constant{$_}=eval ($ENV{$_}) : $Constant{$_} } ## no critic
+foreach (keys %Constant) {${$_}=$ENV{$_} ? $Constant{$_}=eval($ENV{$_}) : $Constant{$_}}    ## no critic
 @EXPORT=map {'$' . $_} keys %Constant;
 @EXPORT_OK=@EXPORT;
 %EXPORT_TAGS=(all => [@EXPORT_OK]);

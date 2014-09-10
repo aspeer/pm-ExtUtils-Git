@@ -9,12 +9,14 @@
 #
 #  <http://dev.perl.org/licenses/>
 #
+
+
 #  Augment Perl ExtUtils::MakeMaker functions
 #
 package ExtUtils::Git;
 
 
-#  Compiler Pragma
+#  Pragma
 #
 use strict qw(vars);
 use vars qw($VERSION);
@@ -43,7 +45,7 @@ use Cwd;
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.158_106129258';
+$VERSION='1.159_38824931';
 
 
 #  All done, init finished
@@ -99,10 +101,11 @@ sub git_autocopyright {
     ) || return err ("unable to fill in template $TEMPLATE_COPYRIGHT_FN, $Text::Template::ERROR");
 
 
-    #  Add comment fields
+    #  Add comment fields and a CR
     #
     $copyright=~s/^(.*)/\#  $1/mg;
     $copyright=~s/^\#\s+$/\#/mg;
+    chomp($copyright); $copyright.="\n";
 
 
     #  Get manifest - only update files listed there
@@ -115,10 +118,17 @@ sub git_autocopyright {
     foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}) {
 
 
+        #  Check for specific targets via env variable
+        #
+        if (my $fn_list=$ENV{'GIT_AUTOCOPYRIGHT'}) {
+            next unless grep {$fn eq $_} split(/\s+/, $fn_list);
+        }
+
+
         #  Skip unless matches filter for files to add copyright header to
         #
         unless (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
-            msg("skipping $fn: not in include filter");
+            #msg("skipping $fn: not in include filter");
             next;
         }
         if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_AR}) {
@@ -126,7 +136,7 @@ sub git_autocopyright {
             next;
         }
         unless (exists $manifest_hr->{$fn}) {
-            msg("skipping $fn: not in MANIFEST");
+            #msg("skipping $fn: not in MANIFEST");
             next;
         }
 
@@ -179,8 +189,8 @@ sub git_autocopyright {
             for (my $lineno_header=$header[0]; $lineno_header < @line; $lineno_header++) {
 
 
-                #  We are going backwards through the file, as soon as we
-                #  see something we quit
+                #  We are going forwards through file, as soon as we 
+                #  see a non comment line we quit
                 #
                 my $line_header=$line[$lineno_header];
                 last unless $line_header=~/^#/;
@@ -192,7 +202,7 @@ sub git_autocopyright {
 
 
                 #  We are going backwards through the file, as soon as we
-                #  see something we quit
+                #  see a non comment line we quit
                 #
                 my $line_header=$line[$lineno_header];
                 last if $line_header=~/^#\!/;
@@ -216,7 +226,7 @@ sub git_autocopyright {
         }
 
 
-        #  Only do update if md5's do not match
+        #  Only do update if no match
         #
         my $header_copyright=join('', @line[$header[0]..$header[1]]);
         if ($header_copyright ne $copyright) {
@@ -241,7 +251,6 @@ sub git_autocopyright {
                 #  first time in
                 #
                 $copyright="\n" . $copyright if $header[0];
-                $copyright.="\n";
 
 
             }
@@ -579,7 +588,7 @@ sub git_manicheck {
 
     #  All done
     #
-    return $fail ? err ('MANIFEST check failed') : msg('MANIFEST and git in sync');
+    return $fail ? err ('MANIFEST check failed') : msg('git and MANIFEST are in sync');
 
 }
 
@@ -589,29 +598,61 @@ sub git_merge {
 
     #   Merge current branch to master
     #
-    my $self=shift();
+    my ($self, $param_hr)=(shift(), arg(@_));
     my $git_or=$self->_git();
 
 
     #  Get current branch
     #
-    msg('run');
-    my $branch=$self->_git_branch() ||
+    my $branch=$self->_git_branch_current() ||
         return err ('unable to get current branch');
-    unless ($branch eq 'master') {
-        msg('checkout master');
-        $git_or->checkout('master');
+    unless ($branch eq $GIT_BRANCH_MASTER) {
+        msg("checkout $GIT_BRANCH_MASTER");
+        $git_or->checkout("$GIT_BRANCH_MASTER");
         msg("merge $branch");
         $git_or->merge($branch);
         msg('checkout complete');
+        $self->git_version_increment(@_);
     }
     else {
-        return err ('cant merge while on master branch');
+        return err ("can't merge while on $GIT_BRANCH_MASTER branch");
     }
 
 
 }
 
+
+sub git_branch {
+
+    
+    #  Branch 
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my $git_or=$self->_git();
+
+
+    #  Get current branch
+    #
+    my $branch=$self->_git_branch_current() ||
+        return err ('unable to get current branch');
+    if ($branch eq $GIT_BRANCH_MASTER) {
+        unless (grep {/$GIT_BRANCH_DEVELOPMENT/} $git_or->branch()) {
+            msg("creating branch $GIT_BRANCH_DEVELOPMENT");
+            $git_or->branch($GIT_BRANCH_DEVELOPMENT);
+        }
+        msg("checkout $GIT_BRANCH_DEVELOPMENT");
+        $git_or->checkout($GIT_BRANCH_DEVELOPMENT);
+        msg('checkout complete');
+        $self->git_version_increment(@_);
+    }
+    elsif ($branch eq $GIT_BRANCH_DEVELOPMENT) {
+        msg ("already on $GIT_BRANCH_DEVELOPMENT branch");
+    }
+    else {
+        return err("can only branch from $GIT_BRANCH_MASTER currently");
+    }
+}
+    
 
 sub git_push {
 
@@ -873,24 +914,19 @@ sub git_version_increment {
     #
     my $version=$self->git_version(@_) ||
         return err ("unable to get existing version from $version_from_fn");
-
-    #$version=(split /_/, $version)[0];
     my @version=split(/\./, $version);
-    $version[-1]=~s/_.*//;
-
-    #$version[-1]++;
-    #$version[-1]=sprintf('%03d', $version[-1]);
-    #my $version_new=join('.', @version);
     my $version_new;
 
 
     #  Check branch and make alpha if not on master
     #
-    unless ((my $branch=$self->_git_branch) eq 'master') {
+    unless ((my $branch=$self->_git_branch_current) eq $GIT_BRANCH_MASTER) {
 
 
         #  Get new alpha suffix
         #
+        $version[-1]=~s/_.*//;
+        $version[-1]++;
         my $suffix=hex($self->_git_rev_parse_short());
 
 
@@ -911,9 +947,15 @@ sub git_version_increment {
     else {
 
 
-        #  On master branch
+        #  On master branch - are we promoting alpha, i.e. can we delete _ char ?
         #
-        $version[-1]++;
+        unless ($version[-1]=~s/_.*//) {
+            
+            #  No - just increment
+            #
+            $version[-1]++;
+
+        }
         $version[-1]=sprintf('%03d', $version[-1]);
         $version_new=join('.', @version);
 
@@ -1091,7 +1133,7 @@ sub _git {
 }
 
 
-sub _git_branch {
+sub _git_branch_current {
 
     my $self=shift();
     my $git_or=$self->_git();

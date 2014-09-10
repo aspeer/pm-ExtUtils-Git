@@ -9,8 +9,6 @@
 #
 #  <http://dev.perl.org/licenses/>
 #
-#  Augment Perl ExtUtils::MakeMaker functions
-#
 package ExtUtils::Git::MM;
 
 

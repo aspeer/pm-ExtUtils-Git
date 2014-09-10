@@ -5,7 +5,7 @@ GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_ver
 
 GIT_PERL_PM=$(PERL) -M$(EXTUTILS_GIT) \
 		-e "$(EXTUTILS_GIT)->$@(@ARGV)" \
-		-- $(EXTUTILS_ARGV)
+		-- $(EXTUTILS_ARGV) $(MAKECMDGOALS)
 
 $(GIT_TARGETS) :
 	@$(GIT_PERL_PM)
@@ -17,9 +17,14 @@ git_ci : git_manicheck git_autolicense git_autocopyright
 	$(GIT_EXE) commit -a
 
 
-git_merge : git_ci
-	@$(GIT_PERL_PM) && \
-	$(MAKE) git_version_increment
+git_merge : 
+	@$(GIT_PERL_PM) 
+	$(MAKE)
+
+
+git_branch :
+	@$(GIT_PERL_PM) 
+	$(MAKE)
 
 
 git_release : 

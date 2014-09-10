@@ -9,8 +9,6 @@
 #
 #  <http://dev.perl.org/licenses/>
 #
-#
-#
 package ExtUtils::Git::Constant;
 
 

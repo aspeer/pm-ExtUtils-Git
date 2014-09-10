@@ -9,14 +9,9 @@
 #
 #  <http://dev.perl.org/licenses/>
 #
-#  Utility class for ExtUtils::Git
-#
 package ExtUtils::Git::Util;
 
 
-#  Compiler Pragma
-#
-use strict qw(vars);
 use vars qw($VERSION @ISA @EXPORT);
 use warnings;
 no warnings qw(uninitialized);
@@ -47,10 +42,11 @@ sub arg {
     #  Get args, does nothing but intercept distname for messages, convert to param
     #  hash
     #
-    my %param;
-    @param{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM LICENSE AUTHOR TO_INST_PM EXE_FILES)}=@_;
+    my (%param, @argv);
+    (@param{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM LICENSE AUTHOR TO_INST_PM EXE_FILES)}, @argv)=@_;
     $param{'TO_INST_PM_AR'}=[split /\s+/, $param{'TO_INST_PM'}];
     $param{'EXE_FILES_AR'}=[split /\s+/, $param{'EXE_FILES'}];
+    $param{'ARGV_AR'}=\@argv;
     return \%param
 
 }

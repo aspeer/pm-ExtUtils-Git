@@ -45,7 +45,7 @@ use Cwd;
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.159_38824931';
+$VERSION='1.159';
 
 
 #  All done, init finished

@@ -139,8 +139,8 @@ sub const_config {
     #
     @{$mm->{'macro'}}{qw(LICENSE AUTHOR)}=($license, $author);
     $mm->{'META_MERGE'}{'resources'}{'license'}=$license_or->url();
-    
-    
+
+
     #  Adjust PERLRUN to include @INC and this module
     #
     my $perlrun;

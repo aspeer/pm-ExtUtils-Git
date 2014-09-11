@@ -128,6 +128,7 @@ sub git_autocopyright {
         #  Skip unless matches filter for files to add copyright header to
         #
         unless (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
+
             #msg("skipping $fn: not in include filter");
             next;
         }
@@ -136,6 +137,7 @@ sub git_autocopyright {
             next;
         }
         unless (exists $manifest_hr->{$fn}) {
+
             #msg("skipping $fn: not in MANIFEST");
             next;
         }
@@ -189,7 +191,7 @@ sub git_autocopyright {
             for (my $lineno_header=$header[0]; $lineno_header < @line; $lineno_header++) {
 
 
-                #  We are going forwards through file, as soon as we 
+                #  We are going forwards through file, as soon as we
                 #  see a non comment line we quit
                 #
                 my $line_header=$line[$lineno_header];
@@ -479,28 +481,13 @@ sub git_lint {
             if ($line=~/(\$A{1}uthor|\$D{1}ate|\$H{1}eader|\$I{1}d|\$L{1}ocker|\$L{1}og|\$N{1}ame|\$R{1}CSfile|\$R{1}evision|\$S{1}ource|\$S{1}tate|\$R{1}EVISION)/) {
                 push @match, "found RCS keyword '$1' $match";
             }
-            if ($line=~/REVISION/) {
-                push @match, "found obsolete REVISION keyword $match";
-            }
-
-            #if ($line=~/copyright.*?(\d{4})*\s*(,|-)*\s*(\d{4})/i && ($fn!~/LICENSE/)) {
             if ($line=~/copyright/i && (my @year=($line=~/\d{4}/g)) && ($fn !~ /LICENSE/)) {
                 my $copyyear=$year[-1];
                 my $thisyear=(localtime())[5]+1900;
 
-                #print "cr match $copyyear\n";
                 if (($copyyear < $thisyear)) {
                     push @match, "found old copyright notice ($copyyear) $match";
                 }
-            }
-            if ($line=~/copyright\s+\(/i && ($line=~/andrew/i) && $line !~ /Copyright \(C\) \d{4}-\d{4} Andrew Speer.*?(\<andrew\@webdyne\.org>)?/ && ($fn !~ /LICENSE$/) && ($fn !~ /ChangeLog$/)) {
-                push @match, "inconsistant copyright format $match";
-            }
-            if ($line=~/\s+(.*?)\@isolutions\.com\.au/ && ($fn !~ /ChangeLog$/i)) {
-                push @match, "found isolutions email address $2\@isolutions.com.au $match";
-            }
-            if ($line=~/\s+andrew\.speer\@/ && ($fn !~ /ChangeLog$/i)) {
-                push @match, "found andrew.speer@ email address $2\@isolutions.com.au $match";
             }
         }
         $fn
@@ -624,8 +611,8 @@ sub git_merge {
 
 sub git_branch {
 
-    
-    #  Branch 
+
+    #  Branch
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $git_or=$self->_git();
@@ -646,13 +633,13 @@ sub git_branch {
         $self->git_version_increment(@_);
     }
     elsif ($branch eq $GIT_BRANCH_DEVELOPMENT) {
-        msg ("already on $GIT_BRANCH_DEVELOPMENT branch");
+        msg("already on $GIT_BRANCH_DEVELOPMENT branch");
     }
     else {
-        return err("can only branch from $GIT_BRANCH_MASTER currently");
+        return err ("can only branch from $GIT_BRANCH_MASTER currently");
     }
 }
-    
+
 
 sub git_push {
 
@@ -674,16 +661,16 @@ sub git_push {
     foreach my $name (sort keys %remote) {
         my $repo=$remote{$name};
         msg("push refs to $name: $repo");
-        $git_or->push($name, );
+        $git_or->push($name,);
         msg(join($/, @{$git_or->ERR}));
         msg("push tags to $name: $repo");
-        $git_or->push($name,  '--tags');
+        $git_or->push($name, '--tags');
         msg(join($/, @{$git_or->ERR}));
     }
-    
+
 }
-    
-    
+
+
 sub git_remote {
 
 
@@ -950,7 +937,7 @@ sub git_version_increment {
         #  On master branch - are we promoting alpha, i.e. can we delete _ char ?
         #
         unless ($version[-1]=~s/_.*//) {
-            
+
             #  No - just increment
             #
             $version[-1]++;
@@ -1320,5 +1307,5 @@ Will tag files with current version. Not recommended for manual use
 
 =head1 COPYRIGHT
 
-Copyright (C) 2008 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
+Copyright (C) 2014 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
 reserved.

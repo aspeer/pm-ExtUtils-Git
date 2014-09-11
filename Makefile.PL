@@ -85,11 +85,20 @@ WriteMakefile(
 
     ($mm_ver <= 6.45 ? () : (
 
-        META_MERGE => { resources => {
-
-            homepage                        =>  'git@github.com:aspeer/ExtUtils-Git.git'
-
-        }}
+        META_MERGE => { 
+        
+            'meta-spec'         => {
+                version         => 2
+            },
+            resources           => {
+                homepage        => 'https://github.com/aspeer/ExtUtils-Git',
+                repository      => {
+                    type        => 'git',
+                    url         => 'https://github.com/aspeer/ExtUtils-Git.git',
+                    web         => 'https://github.com/aspeer/ExtUtils-Git'
+                }
+            }
+        }
     )),
 
 

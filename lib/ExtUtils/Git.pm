@@ -56,6 +56,17 @@ $VERSION='1.159';
 #===================================================================================================
 
 
+sub import {
+
+
+    #  Let MakeMaker (MM) Module handle import routines
+    #
+    require ExtUtils::Git::MM;
+    goto &ExtUtils::Git::MM::import;
+    
+}
+
+
 sub git_autocopyright {
 
 

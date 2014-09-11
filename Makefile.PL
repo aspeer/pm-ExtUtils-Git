@@ -83,6 +83,16 @@ WriteMakefile(
     )),
 
 
+    ($mm_ver <= 6.45 ? () : (
+
+        META_MERGE => { resources => {
+
+            homepage                        =>  'git@github.com:aspeer/ExtUtils-Git.git'
+
+        }}
+    )),
+
+
    );
 
 package MY;

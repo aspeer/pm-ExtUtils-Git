@@ -1532,7 +1532,7 @@ Will tag files with current version. Not recommended for manual use
 
 =back
 
-=head1 COPYRIGHT
+=head1 LICENSE
 
 Copyright (C) 2014 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
 reserved.

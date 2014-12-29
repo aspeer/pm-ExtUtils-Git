@@ -107,7 +107,7 @@ sub fn {
     DUMPER_FN => '.dumper.cache',
 
     EXTUTILS_ARGV => q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ] .
-        q["$(VERSION_SYM)" "$(VERSION_FROM)" "$(LICENSE)" "$(AUTHOR)" "$(TO_INST_PM)" "$(EXE_FILES)"],
+        q["$(VERSION_SYM)" "$(VERSION_FROM)" "$(LICENSE)" "$(AUTHOR)" "$(TO_INST_PM)" "$(EXE_FILES)" "$(DIST_DEFAULT_TARGET)" "$(SUFFIX)"],
 
     EXTUTILS_GIT => 'ExtUtils::Git',
 
@@ -129,6 +129,7 @@ sub fn {
 
     GIT_IGNORE_AR => [qw(
             ChangeLog
+            Changes
             Makefile
             Makefile.old
             MYMETA.json

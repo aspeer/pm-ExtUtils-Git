@@ -42,7 +42,18 @@ use Software::License;
 use Cwd;
 
 
-#  Version information in a formate suitable for CPAN etc. Must be
+#  Data Dumper formatting
+#
+$Data::Dumper::Indent=1;
+$Data::Dumper::Terse=1;
+
+
+#  Make ExtUtils::Manifest quiet
+#
+$ExtUtils::Manifest::Quiet=1;
+
+
+#  Version information in a format suitable for CPAN etc. Must be
 #  all on one line
 #
 $VERSION='1.160';
@@ -409,7 +420,7 @@ sub git_ignore {
 
     #  Ignore dists packed/unpacked here also
     #
-    printf $fh "/%s-*\n", $param_hr->{'DISTNAME'};
+    printf $fh "%s-*\n", $param_hr->{'DISTNAME'};
 
 
     #  Add the gitignore file itself
@@ -442,8 +453,10 @@ sub git_import {
     #  Remove the ChangeLog, META.yml etc. from the manifest - they are generated at distribution time, and
     #  is not tracked by Git
     #
-    foreach my $fn (@{$GIT_IGNORE_AR}) {
-        delete $manifest_hr->{$fn};
+    foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
+        foreach my $fn (glob($fn_glob)) {
+            delete $manifest_hr->{$fn};
+        }
     }
 
 
@@ -456,7 +469,7 @@ sub git_import {
 
     #  All OK
     #
-    msg('git import successful');
+    msg('Git import successful');
     return \undef;
 
 
@@ -539,23 +552,51 @@ sub git_manicheck {
     my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
         return err ('unable to get distname');
-
-
-    #  Check manifest files present on file system
-    #
-    my $fail;
-    my @missing=ExtUtils::Manifest::manicheck();
-    if (@missing) {
-        msg(
-            "the following files are in the manifest but missing from the file system: \n\n\%s\n\n",
-            Dumper(\@missing)
-            )
-    }
-
+        
 
     #  Get manifest
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
+    
+    
+    #  Check self-generated files (created when dist is made) or ignored files that are in MANIFEST and shouldn't be there
+    #
+    my $fail;
+    {
+        my @test;
+        foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
+            foreach my $fn (glob($fn_glob)) {
+                push @test, $fn if exists $manifest_hr->{$fn};
+            }
+        }
+        if (@test) {
+            msg(
+                "the following self-generated or ignored files are in MANIFEST: \n\n\%s\n",
+                Dumper(\@test)
+                );
+            $fail++;
+        }
+    }
+
+
+    #  Check manifest files present on file system
+    #
+    {
+        my %missing=map { $_=>1 } ExtUtils::Manifest::manicheck();
+        #  Ignore files caught by above test
+        foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
+            foreach my $fn (glob($fn_glob)) {
+                delete $missing{$fn};
+            }
+        }
+        if (my @missing=keys %missing) {
+            msg(
+                "the following files are in MANIFEST but missing from the file system: \n\n\%s\n",
+                Dumper(\@missing)
+                );
+            $fail++;
+        }
+    }
 
 
     #  Read in all the Git files skipping any in MANIFEST.SKIP
@@ -566,32 +607,63 @@ sub git_manicheck {
 
     #  Check for files in Git, but not in the manifest, or vica versa
     #
-    my %test0=%{$manifest_hr};
-    map {delete $test0{$_}} keys %git_manifest;
-    if (keys %test0) {
-        msg(
-            "the following files are in the manifest but not in git: \n\n%s\n\n",
-            Dumper([keys %test0]));
-        $fail++;
+    {
+        my %test=%{$manifest_hr};
+        map {delete $test{$_}} keys %git_manifest;
+        foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
+            foreach my $fn (glob($fn_glob)) {
+                delete $test{$fn};
+            }
+        }
+        if (keys %test) {
+            msg(
+                "the following files are in MANIFEST but not in Git: \n\n%s\n",
+                Dumper([keys %test]));
+            $fail++;
+        }
     }
-    my %test1=%git_manifest;
-    map {delete $test1{$_}} keys %{$manifest_hr};
-    if (keys %test1) {
-        msg(
-            "the following files are in git but not in the manifest: \n\n%s\n\n",
-            Dumper([keys %test1]));
-        $fail++;
+    
+
+    #  Now the vica-versa
+    #
+    {
+        my %test=%git_manifest;
+        map {delete $test{$_}} keys %{$manifest_hr};
+        foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
+            foreach my $fn (glob($fn_glob)) {
+                delete $test{$fn};
+            }
+        }
+        if (keys %test) {
+            msg(
+                "the following files are in Git but not in MANIFEST: \n\n%s\n",
+                Dumper([keys %test]));
+            $fail++;
+        }
     }
 
+    
+    #  Check that ChangeLog etc. are not tracked by Git
+    #
+    {
+        my @test=grep { $git_manifest{$_} } @{$GIT_IGNORE_AR};
+        if (@test) {
+            msg(
+                "the following files are self-generated and should not be tracked by Git: \n\n%s\n",
+                Dumper(\@test));
+            $fail++;
+        }
+    }
+    
 
     #  All done
     #
-    return $fail ? err ('MANIFEST check failed') : msg('git and MANIFEST are in sync');
+    return $fail ? err ('MANIFEST check failed') : msg('Git and MANIFEST are in sync');
 
 }
 
 
-sub git_merge {
+sub git_branch_master {
 
 
     #   Merge current branch to master
@@ -620,7 +692,12 @@ sub git_merge {
 }
 
 
-sub git_branch {
+sub git_master {
+    &git_branch_master(@_);
+}
+
+
+sub git_branch_development {
 
 
     #  Branch
@@ -640,6 +717,8 @@ sub git_branch {
         }
         msg("checkout $GIT_BRANCH_DEVELOPMENT");
         $git_or->checkout($GIT_BRANCH_DEVELOPMENT);
+        msg("merge $GIT_BRANCH_DEVELOPMENT");
+        $git_or->merge($GIT_BRANCH_DEVELOPMENT);
         msg('checkout complete');
         $self->git_version_increment(@_);
     }
@@ -649,6 +728,11 @@ sub git_branch {
     else {
         return err ("can only branch from $GIT_BRANCH_MASTER currently");
     }
+}
+
+
+sub git_development {
+    &git_branch_development(@_);
 }
 
 
@@ -925,7 +1009,7 @@ sub git_version_increment {
         #
         $version[-1]=~s/_.*//;
         $version[-1]++;
-        my $suffix=hex($self->_git_rev_parse_short());
+        my $suffix=sprintf('%08i', hex($self->_git_rev_parse_short()));
 
 
         #  Add _ to ver number
@@ -1116,6 +1200,138 @@ sub git_version_increment_files {
 
 }
 
+
+sub git_perlver {
+
+    
+    #  Use Perl::Minimumversion to find minimum Perl version required
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    require Perl::MinimumVersion;
+    
+
+    #  Get manifest - only test files in manifest
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Get modules and exe files and iterate
+    #
+    my %perlver;
+    my ($pm_to_inst_ar, $exe_files_ar)=
+        @{$param_hr}{qw(TO_INST_PM_AR EXE_FILES_AR)};
+    foreach my $fn ((grep {/\.pm$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
+    
+        #  Skip LICENSE, non-Manifest files
+        #
+        next if ($fn eq $LICENSE_FN);
+        next unless exists $manifest_hr->{$fn};
+        my $pv_or=Perl::MinimumVersion->new($fn) ||
+            return err("unable to create new Perl::MinimumVersion object for file $fn, $!");
+        my $v_or=$perlver{$fn}=$pv_or->minimum_version();
+        msg("Perl::MinimumVersion for $fn: %s (%s)", $v_or->normal(), $v_or->numify());
+    }
+    
+    
+    #  Sort
+    #
+    my @perlver=sort { version->parse($b) <=> version->parse($a) } values %perlver;
+    my $v_or=shift(@perlver) ||
+        return err('unable to determine minimum perl version');
+    
+    
+    #  Done
+    #
+    #msg("Perl::MinimumVersion results:\n%s\n\n", Dumper(\@perlver));
+    msg("Perl::MinimumVersion result: %s (%s)", $v_or->normal(), $v_or->numify());
+    return \undef;
+    
+}
+
+
+sub git_kwalitee {
+
+    
+    #  Use to find minimum Perl version required
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    #require App::CPANTS::Lint;
+    my ($distvname, $dist_default, $suffix)=
+        @{$param_hr}{qw(DISTVNAME DIST_DEFAULT_TARGET SUFFIX)};
+    my %suffix=(
+        tardist => "tar${suffix}",
+        zip     => 'zip'
+    );
+    my $distvname_suffix=$suffix{$dist_default} ||
+        return err("unable to determine suffix for dist_default type: $dist_default");
+    my $distvname_fn="${distvname}.${distvname_suffix}";
+    msg("distvname $distvname_fn");
+    
+    
+    #  Check file exists
+    #
+    unless (-f $distvname_fn) {
+        #return err("unable to check distribution file $distvname_fn, file not present");
+    };
+
+
+    #  Start CPANTS check
+    #
+    use Module::CPANTS::Analyse;
+    use Module::CPANTS::Kwalitee;
+    use Module::CPANTS::SiteKwalitee;
+    my $cpants_or=Module::CPANTS::Analyse->new({
+        dist=>$distvname_fn
+        #dist=>'ExtUtils-Git-1.159.tar.gz'
+    });
+    
+    
+    #  Add extra indicators
+    #
+    $cpants_or->mck(Module::CPANTS::SiteKwalitee->new);
+    $cpants_or->run;
+    
+    
+    #  Get results
+    #
+    my %error;
+    my $kwalitee_hr=$cpants_or->d->{'kwalitee'};
+    my $indicator_ar=$cpants_or->mck->get_indicators;
+    foreach my $indicator_hr (@{$indicator_ar}) {
+        unless ($kwalitee_hr->{my $name=$indicator_hr->{'name'}}) {
+            next if $indicator_hr->{'needs_db'};
+            next if $indicator_hr->{'is_experimental'};
+            $error{$name}={
+                error   => $indicator_hr->{'error'},
+                remedy  => $indicator_hr->{'remedy'}
+            };
+            msg("fail kwalitee test: $name");
+        }
+    }
+
+
+    #  Return
+    #
+    if (keys %error) {
+        return err(Dumper(\%error));
+    }
+    else {
+        return msg("Kwalitee check OK");
+    }
+
+}
+
+
+sub git_arg {
+
+    #  Dump args 
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    msg("args \n%s\n\n", Dumper($param_hr));
+    return \undef;
+    
+}
+    
 
 #===================================================================================================
 

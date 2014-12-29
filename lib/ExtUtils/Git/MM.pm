@@ -131,7 +131,7 @@ sub const_config {
     @license_module ||
         return err ("unable to determine correct license module from string: $license");
     (@license_module > 1) &&
-        return err ("ambiguous license string: $license");
+        return err ("ambiguous license string: $license, resolves to %s", join(',', @license_module));
     my $license_or=(shift @license_module)->new({holder => $author});
 
 
@@ -154,6 +154,11 @@ sub const_config {
         $perlrun="\$(PERL) $perlrun_inc -M${class}";
     }
     $mm->{'PERLRUN'}=$perlrun;
+    
+    
+    #  Keep copy of DIST_DEFAULT
+    #
+    $mm->{'macro'}{'DIST_DEFAULT_TARGET'}=$mm->{'DIST_DEFAULT'};
 
 
     #  Return whatever our parent does

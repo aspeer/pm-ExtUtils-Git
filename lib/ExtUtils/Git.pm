@@ -1536,3 +1536,6 @@ Will tag files with current version. Not recommended for manual use
 
 Copyright (C) 2014 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
 reserved.
+
+The full text of the license can be found in the LICENSE file included with
+this module.

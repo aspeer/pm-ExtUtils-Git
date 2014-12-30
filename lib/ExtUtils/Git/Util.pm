@@ -31,6 +31,12 @@ use Carp;
 @EXPORT=qw(err msg arg);
 
 
+#  Version information in a format suitable for CPAN etc. Must be
+#  all on one line
+#
+$VERSION='1.169';
+
+
 #  Done
 #
 1;

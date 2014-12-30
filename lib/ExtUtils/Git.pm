@@ -34,9 +34,8 @@ use File::Spec;
 use ExtUtils::Manifest;
 use ExtUtils::MM_Any;
 use Data::Dumper;
-use File::Touch;
 use File::Temp;
-#use File::Copy;
+use File::Copy;
 use File::Grep qw(fdo);
 use Git::Wrapper;
 use Software::LicenseUtils;
@@ -59,7 +58,7 @@ $ExtUtils::Manifest::Quiet=1;
 #  Version information in a format suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.164';
+$VERSION='1.169';
 
 
 #  All done, init finished
@@ -70,7 +69,7 @@ $VERSION='1.164';
 #===================================================================================================
 
 
-sub import {
+sub import { # no subsort
 
 
     #  Let MakeMaker (MM) Module handle import routines
@@ -1063,13 +1062,19 @@ sub git_version_increment_commit {
 }
 
 
-sub git_perlver {
+sub perlver { # no subsort
 
     
     #  Use Perl::Minimumversion to find minimum Perl version required
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    require Perl::MinimumVersion;
+    
+    
+    #  Try to load modules we need
+    #
+    eval {
+        require Perl::MinimumVersion;
+    } || return err('cannot load module Perl::MinimumVersion');
     
 
     #  Get manifest - only test files in manifest
@@ -1112,13 +1117,12 @@ sub git_perlver {
 }
 
 
-sub git_kwalitee {
+sub kwalitee { # no subsort
 
     
     #  Use to find minimum Perl version required
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    #require App::CPANTS::Lint;
     my ($distvname, $dist_default, $suffix)=
         @{$param_hr}{qw(DISTVNAME DIST_DEFAULT_TARGET SUFFIX)};
     my %suffix=(
@@ -1138,14 +1142,24 @@ sub git_kwalitee {
     };
 
 
+    #  Load CPANTs modules
+    #
+    eval {
+        require Module::CPANTS::Kwalitee;
+        Module::CPANTS::Kwalitee->import();
+    } || return err('cannot load module Module::CPANTS::Kwalitee');
+    eval {
+        require Module::CPANTS::Analyse;
+    } || return err('cannot load module Perl::MinimumVersion');
+    eval {
+        require Module::CPANTS::SiteKwalitee;
+    } || return err('cannot load module Module::CPANTS::SiteKwalitee');
+    
+
     #  Start CPANTS check
     #
-    use Module::CPANTS::Analyse;
-    use Module::CPANTS::Kwalitee;
-    use Module::CPANTS::SiteKwalitee;
     my $cpants_or=Module::CPANTS::Analyse->new({
         dist=>$distvname_fn
-        #dist=>'ExtUtils-Git-1.159.tar.gz'
     });
     
     
@@ -1252,6 +1266,12 @@ sub _git_rev_parse_short {
 
 }
 
+
+#sub _module_load {
+#
+#    foreach my $module (@_) {
+#        eval { "require $module" } ||
+#            return err("
 
 1;
 __END__
@@ -1396,12 +1416,6 @@ Will tag files with current version. Not recommended for manual use
 =back
 
 =head1 LICENSE
-
-Copyright (C) 2014 Andrew Speer <andrew.speer@isolutions.com.au>. All rights
-reserved.
-
-The full text of the license can be found in the LICENSE file included with
-this module.
 
 This software is copyright (c) 2014 by Andrew Speer <andrew.speer@isolutions.com.au>.
 

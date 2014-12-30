@@ -1,8 +1,7 @@
 #  Generic targets that all run the same named method from the ExtUtils::Git module
 #
 GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment git_version_increment_commit  \
-	git_lint git_version_dump git_version_increment_files git_autocopyright git_remote git_push git_perlver git_kwalitee \
-	git_arg
+	git_lint git_version_dump git_version_increment_files git_autocopyright git_remote git_push git_arg perlver
 
 
 #  Other targets that need the Makefile rebuilt after running
@@ -34,17 +33,14 @@ git_ci : git_manicheck git_autolicense git_autocopyright
 	$(GIT_EXE) commit -a
 
 
-
 #  Target to build a release
 #
 git_release : git_status
 	$(MAKE) git_version_increment 
 	-$(MAKE)
 	$(MAKE) git_version_increment_commit 
-	#$(GIT_EXE) commit -a -m "VERSION increment"
 	$(MAKE) git_tag
 	$(MAKE) git_dist
-
 
 
 #  Build distribution
@@ -55,7 +51,7 @@ git_dist : git_status
 
 #  Make new repository and import files into Git
 #
-git_import : git_init git_autolicense
+git_import : git_init git_autolicense git_autocopyright
 	@$(GIT_PERL_PM) && \
 	$(GIT_EXE) commit -m "MANIFEST Import"
 
@@ -66,14 +62,8 @@ git_init :
 	@if [ ! -d .git ]; then \
 	    $(GIT_EXE) init || exit 1; \
 	    $(GIT_EXE) remote add origin $(GIT_REPO)/$(DISTNAME); \
-	    $(MAKE) git_ignore
+	    $(MAKE) git_ignore; \
 	fi
-
-
-#  Debug to show args supplied to ExtUtils::Git methods
-#
-#git_arg :
-#	@echo $(EXTUTILS_ARGV)
 
 
 #  Check all files are in git and up to date
@@ -104,6 +94,12 @@ perlcritic : all
 	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm$$/} @ARGV)' -- $(TO_INST_PM)`; \
 		do echo $$d; perlcritic $$d; done
 	@for d in $(EXE_FILES); do perlcritic $$d; done
+
+
+#  kwalitee tests
+#
+kwalitee : all tardist
+	@$(GIT_PERL_PM)
 
 
 #  Crete changelog

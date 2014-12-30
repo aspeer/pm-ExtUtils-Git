@@ -27,6 +27,12 @@ use File::Spec;
 use Cwd qw(abs_path);
 
 
+#  Version information in a format suitable for CPAN etc. Must be
+#  all on one line
+#
+$VERSION='1.169';
+
+
 #===================================================================================================
 
 
@@ -135,6 +141,7 @@ sub fn {
             MYMETA.json
             MYMETA.yml
             META.yml
+            META.json
             blib/*
             pm_to_blib
             *.bak

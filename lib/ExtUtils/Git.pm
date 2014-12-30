@@ -35,10 +35,13 @@ use ExtUtils::Manifest;
 use ExtUtils::MM_Any;
 use Data::Dumper;
 use File::Touch;
+use File::Temp;
+#use File::Copy;
 use File::Grep qw(fdo);
 use Git::Wrapper;
 use Software::LicenseUtils;
 use Software::License;
+use Module::Extract::VERSION;
 use Cwd;
 
 
@@ -150,8 +153,7 @@ sub git_autocopyright {
         #  Skip unless matches filter for files to add copyright header to
         #
         unless (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
-
-            #msg("skipping $fn: not in include filter");
+            msg("skipping $fn: not in include filter");
             next;
         }
         if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_AR}) {
@@ -159,8 +161,7 @@ sub git_autocopyright {
             next;
         }
         unless (exists $manifest_hr->{$fn}) {
-
-            #msg("skipping $fn: not in MANIFEST");
+            msg("skipping $fn: not in MANIFEST");
             next;
         }
 
@@ -349,42 +350,6 @@ sub git_commit {
     #  Do it
     #
     unless (system($GIT_EXE, 'commit', '-a') == 0) {
-        return err ("error on git commit, $?");
-    }
-
-
-    #  All done
-    #
-    return \undef;
-
-
-}
-
-
-sub git_commit0 {
-
-
-    #  Commit modified file
-    #
-    my ($self, $param_hr)=(shift(), arg(@_));
-    my $distname=$param_hr->{'DISTNAME'} ||
-        return err ('unable to get distname');
-
-
-    #  Read in version number, convers .'s to -
-    #
-    my $version=$self->git_version(@_) ||
-        return err ('unable to get version number');
-
-
-    #  Add distname
-    #
-    my $tag="${distname}_${version}";
-
-
-    #  Run git program to update
-    #
-    unless (system($GIT_EXE, 'commit', qw(-a -e -m), qq[Tag: $tag]) == 0) {
         return err ("error on git commit, $?");
     }
 
@@ -926,71 +891,17 @@ sub git_version {
 }
 
 
-sub git_version_dump {
-
-
-    #  Get self ref
-    #
-    my ($self, $param_hr)=(shift(), arg(@_));
-
-
-    #  Get version we are saving
-    #
-    my $have_version=$self->git_version(@_);
-
-
-    #  Get location of Dumper file, load up module, version info
-    #  that we are processing, save again
-    #
-    my $dump_fn=File::Spec->catfile($DUMPER_FN);
-    my $dump_hr=do($dump_fn);
-    my %dump=(
-        $param_hr->{'NAME'} => $have_version
-    );
-
-
-    #  Check if we need not update
-    #
-    my $dump_version=$dump_hr->{$param_hr->{'NAME'}};
-    if ("v$dump_version" ne "v$have_version") {
-
-        my $dump_fh=IO::File->new($dump_fn, O_WRONLY | O_TRUNC | O_CREAT) ||
-            err ("unable to open file $dump_fn, $!");
-        binmode($dump_fh);
-        $Data::Dumper::Indent=1;
-        print $dump_fh (Data::Dumper->Dump([\%dump], []));
-        $dump_fh->close();
-        msg('git version dump complete');
-
-
-    }
-    else {
-
-
-        #  Message
-        #
-        msg('git version dump file up-to-date');
-
-
-    }
-
-
-    #  Done
-    #
-    return \undef;
-
-}
-
-
 sub git_version_increment {
+    
 
-
-    #  Increment the VERSION_FROM file
+    #  Increment the version of all package files
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    my $version_from_fn=$param_hr->{'VERSION_FROM'} ||
+    my ($version_from_fn,$pm_to_inst_ar, $exe_files_ar)=
+        @{$param_hr}{qw(VERSION_FROM TO_INST_PM_AR EXE_FILES_AR)};
+    $version_from_fn ||
         return err ('unable to get version_from file name');
-
+    
 
     #  Get current version
     #
@@ -1043,33 +954,93 @@ sub git_version_increment {
 
     }
 
-
-    #  Open file handles for read and write
+    #  Get manifest - only update files listed there
     #
-    my $old_fh=IO::File->new($version_from_fn, O_RDONLY) ||
-        return err ("unable to open file '$version_from_fn' for read, $!");
-    my $new_fh=IO::File->new("$version_from_fn.tmp", O_WRONLY | O_CREAT | O_TRUNC) ||
-        return err ("unable to open file '$version_from_fn.tmp' for write, $!");
+    my $manifest_hr=ExtUtils::Manifest::maniread();
 
 
-    #  Now iterate through file, increasing version number if found
+    #  Now update files
     #
-    while (my $line=<$old_fh>) {
-        $line=~s/\Q$version\E/$version_new/;
-        print $new_fh $line;
+    foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
+        if (exists $manifest_hr->{$fn}) {
+            msg("version update $fn");
+            $self->git_version_update_file($fn, $version_new) ||
+                return err("unable to update file $fn");
+        }
+        else {
+            msg("skipping $fn, not in MANIFEST");
+        }
+    }
+    
+    
+    #  Done
+    #
+    return \undef;
+    
+}
+
+
+sub git_version_update_file {
+
+
+    #  Change file version number
+    #
+    my ($self, $fn, $version_new)=@_;
+    
+    
+    #  Get existing version
+    #
+    my (undef, undef, $version_old, undef, $lineno)=Module::Extract::VERSION->parse_version_safely($fn);
+    $version_old ||
+        return err("unable to determine current version number in file $fn");
+    $lineno ||
+        return err("unable to line number of version string in file $fn");
+        
+        
+    #  Check old version not newer than proposed version number
+    #
+    if (version->parse($version_old) > version->parse($version_new) ) {
+        return err("version of file $fn ($version_old) is later than proposed version ($version_new)");
     }
 
-    #  Close file handles, overwrite existing file
+
+    #  Open file for read + tmp file handle
     #
+    my $old_fh=IO::File->new($fn, O_RDONLY) ||
+        return err ("unable to open file '$fn' for read, $!");
+    my $tmp_fh=File::Temp->new( UNLINK=>0 ) ||
+        return err('unable to create temporary file');
+    my $tmp_fn=$tmp_fh->filename();
+
+
+    #  Seek to version string
+    #
+    for (1..($lineno-1)) { print $tmp_fh scalar <$old_fh> };
+    my $line_version=<$old_fh>;
+    unless ($line_version=~s/\Q$version_old\E/$version_new/) {
+        return err("unable to substitute version string in $line_version");
+    }
+    print $tmp_fh $line_version;
+    
+    
+    #  Finish wrinting file
+    #
+    while (my $line=<$old_fh>) {
+        print $tmp_fh $line
+    }
     $old_fh->close();
-    $new_fh->close();
-    rename("$version_from_fn.tmp", $version_from_fn) ||
-        return err ("unable to replace $version_from_fn with newer version, $!");
+    $tmp_fh->close();
+    
+
+    #  Overwrite existing file
+    #
+    File::Copy::move($tmp_fn, $fn) ||
+        return err ("unable to replace $fn with newer version, $!");
 
 
     #  All OK
     #
-    msg("updated $version_from_fn from version $version to $version_new");
+    msg("updated $fn from version $version_old to $version_new");
 
 
     #  Done
@@ -1088,115 +1059,6 @@ sub git_version_increment_commit {
     my $version=$self->git_version(@_);
     my $git_or=$self->_git();
     $git_or->commit('-a', '-m', "VERSION increment: $version");
-
-}
-
-
-sub git_version_increment_files {
-
-
-    #  Check for files that have changed and edit to update version numvers
-    #
-    my ($self, $param_hr)=(shift(), arg(@_));
-    my $version_from_fn=$param_hr->{'VERSION_FROM'} ||
-        return err ('unable to get version_from file name');
-
-
-    #  Get manifest.
-    #
-    my $manifest_hr=ExtUtils::Manifest::maniread();
-    use File::Temp;
-    use File::Copy;
-
-
-    #  Get list of modified files
-    #
-    #my %git_modified=map {chomp($_); $_ => 1} split($/, qx($GIT_EXE ls-files --modified));
-    my $git_modified_hr=$self->_git_modified();
-
-
-    # Iterate through
-    #
-    foreach my $fn (keys %{$manifest_hr}) {
-
-
-        #  Skip VERSION.pm file
-        #
-        #print "fn $fn, vfrom $version_from_fn\n";
-        next if ($fn eq $version_from_fn);
-
-
-        #  Get number of git checkins
-        #
-        my $git_rev_list=qx($GIT_EXE rev-list HEAD $fn);
-        my $revision=(my @revision=split($/, $git_rev_list));
-        $revision=sprintf('%03d', $revision);
-        if ($revision > 998) {
-            return err ("revision too high ($revision) - update release ?");
-        }
-
-        #print "$fn, $revision\n";
-
-        my $temp_fh=File::Temp->new() ||
-            return err ("unable to open tempfile, $!");
-        my $temp_fn=$temp_fh->filename() ||
-            return err ("unable to obtain tempfile name from fh $temp_fh");
-        my $fh=IO::File->new($fn) ||
-            return err ("unable to open file $fn for readm $!");
-        my ($update_fg, $version_seen_fg);
-        while (my $line=<$fh>) {
-
-            if ($line=~/^\$VERSION\s*=\s*'(\d+)\.(\d+)'/ && !$version_seen_fg && $git_modified_hr->{$fn}) {
-                $version_seen_fg++;
-                my $release=$1 || 1;
-                print "found rev $2 vs git rev $revision\n";
-                if ($2 < $revision) {
-
-                    #  Update revision in anticipation of checkin
-                    $revision=sprintf('%03d', $revision);
-                    $line=~s/^(\$VERSION\s*=\s*)'(\d+)\.(\d+)'(.*)$/$1'$release.$revision'$4/;
-                    print "updating $fn version from $2.$3 to $release.$revision\n";
-
-                    #print "$line";
-                    $update_fg++;
-                }
-                elsif ($2 > ($revision+1)) {
-                    return err ("error - $fn existing version $1.$2 > proposed version $1.$revision !");
-                }
-                elsif ($2 == $revision) {
-                    print "skipping update of $fn, version $1.$2 identical to proposed rev $1.$revision\n";
-                }
-            }
-            elsif ($line=~/^\$VERSION/ && $line !~ /^\$VERSION\s*=\s*'\d+\.\d+'/ && !$version_seen_fg) {
-                $version_seen_fg++;
-                my $release=1;
-
-                #  Update revision in anticipation of checkin
-                $revision++;
-                $revision=sprintf('%03d', $revision);
-                print "changing $fn version format to $release.$revision\n";
-                $line="\$VERSION='$release.$revision';\n";
-                $update_fg++;
-            }
-            print $temp_fh $line;
-        }
-        $fh->close();
-        $temp_fh->close();
-        if ($update_fg) {
-
-            #print "Would update fn $fn\n";
-            File::Copy::move($temp_fn, $fn) ||
-                return err ("error moving file $temp_fn=>$fn, $!")
-        }
-        else {
-            #print "no \$VERSION match on file $fn\n";
-        }
-    }
-
-
-    #  All done
-    #
-    return \undef;
 
 }
 
@@ -1220,8 +1082,9 @@ sub git_perlver {
     my %perlver;
     my ($pm_to_inst_ar, $exe_files_ar)=
         @{$param_hr}{qw(TO_INST_PM_AR EXE_FILES_AR)};
-    foreach my $fn ((grep {/\.pm$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
+    foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
     
+
         #  Skip LICENSE, non-Manifest files
         #
         next if ($fn eq $LICENSE_FN);
@@ -1230,6 +1093,7 @@ sub git_perlver {
             return err("unable to create new Perl::MinimumVersion object for file $fn, $!");
         my $v_or=$perlver{$fn}=$pv_or->minimum_version();
         msg("Perl::MinimumVersion for $fn: %s (%s)", $v_or->normal(), $v_or->numify());
+
     }
     
     
@@ -1242,7 +1106,6 @@ sub git_perlver {
     
     #  Done
     #
-    #msg("Perl::MinimumVersion results:\n%s\n\n", Dumper(\@perlver));
     msg("Perl::MinimumVersion result: %s (%s)", $v_or->normal(), $v_or->numify());
     return \undef;
     
@@ -1539,3 +1402,12 @@ reserved.
 
 The full text of the license can be found in the LICENSE file included with
 this module.
+
+This software is copyright (c) 2014 by Andrew Speer <andrew.speer@isolutions.com.au>.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+Full license text is available at:
+
+<http://dev.perl.org/licenses/>

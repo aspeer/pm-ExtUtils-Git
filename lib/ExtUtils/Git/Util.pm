@@ -1,6 +1,6 @@
 #  This file is part of ExtUtils::Git.
 #
-#  This software is copyright (c) 2014 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  This software is copyright (c) 2015 by Andrew Speer <andrew.speer@isolutions.com.au>.
 #
 #  This is free software; you can redistribute it and/or modify it under
 #  the same terms as the Perl 5 programming language system itself.
@@ -50,7 +50,7 @@ sub arg {
     #  hash
     #
     my (%param, @argv);
-    (@param{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM LICENSE AUTHOR TO_INST_PM EXE_FILES DIST_DEFAULT_TARGET SUFFIX)}, @argv)=@_;
+    (@param{qw(NAME NAME_SYM DISTNAME DISTVNAME VERSION VERSION_SYM VERSION_FROM LICENSE AUTHOR TO_INST_PM EXE_FILES DIST_DEFAULT_TARGET SUFFIX ABSTRACT_FROM)}, @argv)=@_;
     $param{'TO_INST_PM_AR'}=[split /\s+/, $param{'TO_INST_PM'}];
     $param{'EXE_FILES_AR'}=[split /\s+/,  $param{'EXE_FILES'}];
     $param{'ARGV_AR'}=\@argv;

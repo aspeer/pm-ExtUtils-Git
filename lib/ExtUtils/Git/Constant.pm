@@ -1,6 +1,6 @@
 #  This file is part of ExtUtils::Git.
 #
-#  This software is copyright (c) 2014 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  This software is copyright (c) 2015 by Andrew Speer <andrew.speer@isolutions.com.au>.
 #
 #  This is free software; you can redistribute it and/or modify it under
 #  the same terms as the Perl 5 programming language system itself.
@@ -113,7 +113,7 @@ sub fn {
     DUMPER_FN => '.dumper.cache',
 
     EXTUTILS_ARGV => q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ] .
-        q["$(VERSION_SYM)" "$(VERSION_FROM)" "$(LICENSE)" "$(AUTHOR)" "$(TO_INST_PM)" "$(EXE_FILES)" "$(DIST_DEFAULT_TARGET)" "$(SUFFIX)"],
+        q["$(VERSION_SYM)" "$(VERSION_FROM)" "$(LICENSE)" "$(AUTHOR)" "$(TO_INST_PM)" "$(EXE_FILES)" "$(DIST_DEFAULT_TARGET)" "$(SUFFIX)" "$(ABSTRACT_FROM)"],
 
     EXTUTILS_GIT => 'ExtUtils::Git',
 
@@ -153,9 +153,11 @@ sub fn {
 
     TEMPLATE_COPYRIGHT_FN => &fn('copyright.inc'),
 
-    GIT_AUTOCOPYRIGHT_INCLUDE_AR => [qr/\.pl$/, qr/\.pm$/],
+    GIT_AUTOCOPYRIGHT_INCLUDE_AR => [qr/\.pm$/],
 
-    GIT_AUTOCOPYRIGHT_EXCLUDE_AR => [],
+    GIT_AUTOCOPYRIGHT_EXCLUDE_AR => [qr/^LICENSE$/, qr/\.xml$/],
+
+    GIT_AUTOCOPYRIGHT_EXCLUDE_FN => '.git_autocopyright_exclude',
 
     COPYRIGHT_HEADER_MAX_LINES => 20,
 

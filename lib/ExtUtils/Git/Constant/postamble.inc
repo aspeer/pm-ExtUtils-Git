@@ -1,7 +1,18 @@
+#  This file is part of ExtUtils::Git.
+#
+#  This software is copyright (c) 2015 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#
+#  This is free software; you can redistribute it and/or modify it under
+#  the same terms as the Perl 5 programming language system itself.
+#
+#  Full license text is available at:
+#
+#  <http://dev.perl.org/licenses/>
+#
 #  Generic targets that all run the same named method from the ExtUtils::Git module
 #
-GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment git_version_increment_commit  \
-	git_lint git_version_dump git_version_increment_files git_autocopyright git_remote git_push git_arg perlver
+GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment_commit  \
+	git_lint git_version_dump git_version_increment_files git_autocopyright git_remote git_push git_arg git_version_reset perlver
 
 
 #  Other targets that need the Makefile rebuilt after running
@@ -35,12 +46,18 @@ git_ci : git_manicheck git_autolicense git_autocopyright
 
 #  Target to build a release
 #
-git_release : git_status
+git_release :
 	$(MAKE) git_version_increment 
+	$(MAKE) git_dist
+
+
+#  Version increment
+#
+git_version_increment : git_status
+	@$(GIT_PERL_PM)
 	-$(MAKE)
 	$(MAKE) git_version_increment_commit 
 	$(MAKE) git_tag
-	$(MAKE) git_dist
 
 
 #  Build distribution
@@ -110,3 +127,11 @@ git_distchanges : create_distdir
 	$(ABSPERLRUN) -MExtUtils::Manifest=maniadd -e 'exit unless -e q{$(CHANGELOG_FN)};' \
 		-e 'eval { maniadd({q{$(CHANGELOG_FN)} => q{Module ChangeLog (added by ExtUtils::Git)}}) }' \
 		-e '    or print "Could not add $(CHANGELOG_FN) to MANIFEST: $$$${'\''@'\''}\n"' --
+
+#  Create README
+#
+readme :
+	pandoc -f docbook -t markdown_github $(VERSION_FROM).xml > README.md
+	pandoc -f docbook -t plain $(VERSION_FROM).xml > README
+	markdown2pod --dialect Theory README.md > README.pod
+	$(MAKE) git_autocopyright

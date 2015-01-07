@@ -1,6 +1,6 @@
 #  This file is part of ExtUtils::Git.
 #
-#  This software is copyright (c) 2014 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  This software is copyright (c) 2015 by Andrew Speer <andrew.speer@isolutions.com.au>.
 #
 #  This is free software; you can redistribute it and/or modify it under
 #  the same terms as the Perl 5 programming language system itself.
@@ -80,6 +80,17 @@ sub import { # no subsort
 }
 
 
+sub git_arg {
+
+    #  Dump args 
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    msg("args \n%s\n\n", Dumper($param_hr));
+    return \undef;
+    
+}
+
+
 sub git_autocopyright {
 
 
@@ -137,6 +148,18 @@ sub git_autocopyright {
     my $manifest_hr=ExtUtils::Manifest::maniread();
 
 
+    #  Load exclusion file
+    #
+    my $exclude_fn=File::Spec->catfile(cwd(), $GIT_AUTOCOPYRIGHT_EXCLUDE_FN);
+    my $exclude_ar;
+    if (-f $exclude_fn) { 
+        $exclude_ar=eval { do { $exclude_fn } };
+        $exclude_ar || 
+            return err("unable to read $exclude_ar, $@");
+    }
+    my %exclude_fn=map { $_=>1 } @{$exclude_ar};
+
+
     #  Iterate across files to protect
     #
     foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}) {
@@ -148,15 +171,17 @@ sub git_autocopyright {
             next unless grep {$fn eq $_} split(/\s+/, $fn_list);
         }
 
-
-        #  Skip unless matches filter for files to add copyright header to
-        #
-        unless (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
-            msg("skipping $fn: not in include filter");
-            next;
-        }
+        #unless (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
+        #    msg("skipping $fn: not in include filter");
+        #    next;
+        #}
+        #  Check for exclusion;
         if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_AR}) {
             msg("skipping $fn: matches exclude filter");
+            next;
+        }
+        if ($exclude_fn{$fn}) {
+            msg("skipping $fn: matches exclusion in $GIT_AUTOCOPYRIGHT_EXCLUDE_FN");
             next;
         }
         unless (exists $manifest_hr->{$fn}) {
@@ -338,6 +363,69 @@ sub git_autolicense {
 }
 
 
+sub git_branch_development {
+
+
+    #  Branch
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my $git_or=$self->_git();
+
+
+    #  Get current branch
+    #
+    my $branch=$self->_git_branch_current() ||
+        return err ('unable to get current branch');
+    if ($branch eq $GIT_BRANCH_MASTER) {
+        unless (grep {/$GIT_BRANCH_DEVELOPMENT/} $git_or->branch()) {
+            msg("creating branch $GIT_BRANCH_DEVELOPMENT");
+            $git_or->branch($GIT_BRANCH_DEVELOPMENT);
+        }
+        msg("checkout $GIT_BRANCH_DEVELOPMENT");
+        $git_or->checkout($GIT_BRANCH_DEVELOPMENT);
+        msg("merge $GIT_BRANCH_DEVELOPMENT");
+        $git_or->merge($GIT_BRANCH_DEVELOPMENT);
+        msg('checkout complete');
+        $self->git_version_increment(@_);
+    }
+    elsif ($branch eq $GIT_BRANCH_DEVELOPMENT) {
+        msg("already on $GIT_BRANCH_DEVELOPMENT branch");
+    }
+    else {
+        return err ("can only branch from $GIT_BRANCH_MASTER currently");
+    }
+}
+
+
+sub git_branch_master {
+
+
+    #   Merge current branch to master
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my $git_or=$self->_git();
+
+
+    #  Get current branch
+    #
+    my $branch=$self->_git_branch_current() ||
+        return err ('unable to get current branch');
+    unless ($branch eq $GIT_BRANCH_MASTER) {
+        msg("checkout $GIT_BRANCH_MASTER");
+        $git_or->checkout("$GIT_BRANCH_MASTER");
+        msg("merge $branch");
+        $git_or->merge($branch);
+        msg('checkout complete');
+        $self->git_version_increment(@_);
+    }
+    else {
+        return err ("can't merge while on $GIT_BRANCH_MASTER branch");
+    }
+
+
+}
+
+
 sub git_commit {
 
 
@@ -358,6 +446,11 @@ sub git_commit {
     return \undef;
 
 
+}
+
+
+sub git_development {
+    &git_branch_development(@_);
 }
 
 
@@ -627,76 +720,8 @@ sub git_manicheck {
 }
 
 
-sub git_branch_master {
-
-
-    #   Merge current branch to master
-    #
-    my ($self, $param_hr)=(shift(), arg(@_));
-    my $git_or=$self->_git();
-
-
-    #  Get current branch
-    #
-    my $branch=$self->_git_branch_current() ||
-        return err ('unable to get current branch');
-    unless ($branch eq $GIT_BRANCH_MASTER) {
-        msg("checkout $GIT_BRANCH_MASTER");
-        $git_or->checkout("$GIT_BRANCH_MASTER");
-        msg("merge $branch");
-        $git_or->merge($branch);
-        msg('checkout complete');
-        $self->git_version_increment(@_);
-    }
-    else {
-        return err ("can't merge while on $GIT_BRANCH_MASTER branch");
-    }
-
-
-}
-
-
 sub git_master {
     &git_branch_master(@_);
-}
-
-
-sub git_branch_development {
-
-
-    #  Branch
-    #
-    my ($self, $param_hr)=(shift(), arg(@_));
-    my $git_or=$self->_git();
-
-
-    #  Get current branch
-    #
-    my $branch=$self->_git_branch_current() ||
-        return err ('unable to get current branch');
-    if ($branch eq $GIT_BRANCH_MASTER) {
-        unless (grep {/$GIT_BRANCH_DEVELOPMENT/} $git_or->branch()) {
-            msg("creating branch $GIT_BRANCH_DEVELOPMENT");
-            $git_or->branch($GIT_BRANCH_DEVELOPMENT);
-        }
-        msg("checkout $GIT_BRANCH_DEVELOPMENT");
-        $git_or->checkout($GIT_BRANCH_DEVELOPMENT);
-        msg("merge $GIT_BRANCH_DEVELOPMENT");
-        $git_or->merge($GIT_BRANCH_DEVELOPMENT);
-        msg('checkout complete');
-        $self->git_version_increment(@_);
-    }
-    elsif ($branch eq $GIT_BRANCH_DEVELOPMENT) {
-        msg("already on $GIT_BRANCH_DEVELOPMENT branch");
-    }
-    else {
-        return err ("can only branch from $GIT_BRANCH_MASTER currently");
-    }
-}
-
-
-sub git_development {
-    &git_branch_development(@_);
 }
 
 
@@ -960,7 +985,7 @@ sub git_version_increment {
 
     #  Now update files
     #
-    foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
+    foreach my $fn ((grep {/\.p(m|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
         if (exists $manifest_hr->{$fn}) {
             msg("version update $fn");
             $self->git_version_update_file($fn, $version_new) ||
@@ -979,73 +1004,40 @@ sub git_version_increment {
 }
 
 
-sub git_version_update_file {
+sub git_version_reset {
+    
+
+    #  Reset the version of all package files
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my ($pm_to_inst_ar, $exe_files_ar)=
+        @{$param_hr}{qw(TO_INST_PM_AR EXE_FILES_AR)};
+    my $version_new=$ENV{'GIT_VERSION_RESET'} || '0.001';
 
 
-    #  Change file version number
+    #  Get manifest - only update files listed there
     #
-    my ($self, $fn, $version_new)=@_;
-    
-    
-    #  Get existing version
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Now update files
     #
-    my (undef, undef, $version_old, undef, $lineno)=Module::Extract::VERSION->parse_version_safely($fn);
-    $version_old ||
-        return err("unable to determine current version number in file $fn");
-    $lineno ||
-        return err("unable to line number of version string in file $fn");
-        
-        
-    #  Check old version not newer than proposed version number
-    #
-    if (version->parse($version_old) > version->parse($version_new) ) {
-        return err("version of file $fn ($version_old) is later than proposed version ($version_new)");
+    #foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
+    foreach my $fn ((grep {/\.p(m|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
+        if (exists $manifest_hr->{$fn}) {
+            msg("version update $fn");
+            $self->git_version_update_file($fn, $version_new, (my $force=1)) ||
+                return err("unable to update file $fn");
+        }
+        else {
+            msg("skipping $fn, not in MANIFEST");
+        }
     }
-
-
-    #  Open file for read + tmp file handle
-    #
-    my $old_fh=IO::File->new($fn, O_RDONLY) ||
-        return err ("unable to open file '$fn' for read, $!");
-    my $tmp_fh=File::Temp->new( UNLINK=>0 ) ||
-        return err('unable to create temporary file');
-    my $tmp_fn=$tmp_fh->filename();
-
-
-    #  Seek to version string
-    #
-    for (1..($lineno-1)) { print $tmp_fh scalar <$old_fh> };
-    my $line_version=<$old_fh>;
-    unless ($line_version=~s/\Q$version_old\E/$version_new/) {
-        return err("unable to substitute version string in $line_version");
-    }
-    print $tmp_fh $line_version;
     
     
-    #  Finish wrinting file
-    #
-    while (my $line=<$old_fh>) {
-        print $tmp_fh $line
-    }
-    $old_fh->close();
-    $tmp_fh->close();
-    
-
-    #  Overwrite existing file
-    #
-    File::Copy::move($tmp_fn, $fn) ||
-        return err ("unable to replace $fn with newer version, $!");
-
-
-    #  All OK
-    #
-    msg("updated $fn from version $version_old to $version_new");
-
-
     #  Done
     #
     return \undef;
-
 }
 
 
@@ -1074,6 +1066,7 @@ sub perlver { # no subsort
     #
     eval {
         require Perl::MinimumVersion;
+        1;
     } || return err('cannot load module Perl::MinimumVersion');
     
 
@@ -1199,16 +1192,220 @@ sub kwalitee { # no subsort
 }
 
 
-sub git_arg {
+sub git_version_update_file {
 
-    #  Dump args 
+
+    #  Change file version number
+    #
+    my ($self, $fn, $version_new, $force)=@_;
+    
+    
+    #  Get existing version
+    #
+    my (undef, undef, $version_old, undef, $lineno)=Module::Extract::VERSION->parse_version_safely($fn);
+    $version_old ||
+        return err("unable to determine current version number in file $fn");
+    $lineno ||
+        return err("unable to line number of version string in file $fn");
+        
+        
+    #  Check old version not newer than proposed version number
+    #
+    if ((version->parse($version_old) > version->parse($version_new)) && !$force ) {
+        return err("version of file $fn ($version_old) is later than proposed version ($version_new)");
+    }
+
+
+    #  Open file for read + tmp file handle
+    #
+    my $old_fh=IO::File->new($fn, O_RDONLY) ||
+        return err ("unable to open file '$fn' for read, $!");
+    my $tmp_fh=File::Temp->new( UNLINK=>0 ) ||
+        return err('unable to create temporary file');
+    my $tmp_fn=$tmp_fh->filename();
+
+
+    #  Seek to version string
+    #
+    for (1..($lineno-1)) { print $tmp_fh scalar <$old_fh> };
+    my $line_version=<$old_fh>;
+    unless ($line_version=~s/\Q$version_old\E/$version_new/) {
+        return err("unable to substitute version string in $line_version");
+    }
+    print $tmp_fh $line_version;
+    
+    
+    #  Finish wrinting file
+    #
+    while (my $line=<$old_fh>) {
+        print $tmp_fh $line
+    }
+    $old_fh->close();
+    $tmp_fh->close();
+    
+
+    #  Overwrite existing file
+    #
+    File::Copy::move($tmp_fn, $fn) ||
+        return err ("unable to replace $fn with newer version, $!");
+
+
+    #  All OK
+    #
+    msg("updated $fn from version $version_old to $version_new");
+
+
+    #  Done
+    #
+    return \undef;
+
+}
+
+
+sub docbook2pod {
+
+
+    #  Convert XML files to POD and append
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    msg("args \n%s\n\n", Dumper($param_hr));
-    return \undef;
+    
+    
+    #  Try to load modules we need
+    #
+    eval {
+        require Perl::MinimumVersion;
+        1;
+    } || return err('cannot load module Perl::MinimumVersion');
+    
+
+    #  Get manifest - only test files in manifest
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+    
+    
+    #  Look for all XML files
+    #
+    my @manifest_xml_fn=grep { /\.xml$/ } keys %{$manifest_hr};
+    msg('found following xml files for conversion %s', Dumper(\@manifest_xml_fn));
+    
+    
+    #  Load
+    #
+    my $dn=File::Temp->newdir( CLEANUP=>1 ) ||
+        return err("unable to create new temp dir, $!");
+    msg("tmp_dn $dn");
+    eval {
+        require IPC::Cmd;
+        IPC::Cmd->import(qw(can_run));
+        require IPC::Run3;
+        IPC::Run3->import(qw(run3));
+        1;
+    } || return err('unable to load IPC::Run3');
+    
+    
+    #  Check for xlstproc;
+    #
+    use File::Find;
+    my $xsltproc_exe=can_run('xsltproc') ||
+        return err('can\'t find xlstproc installed on system');
+    my $man_exe=can_run('groff') ||
+        return err('can\'t find man installed on system');
+    my $rman_exe=can_run('rman') ||
+        return err('can\'t find rman installed on system');
+
+
+    #  Process files 
+    #
+    foreach my $fn (@manifest_xml_fn) {
+
+        my @command=(
+            $xsltproc_exe,
+            '-o',
+            "$dn/", 
+            '/usr/share/sgml/docbook/xsl-stylesheets-1.78.1/manpages/docbook.xsl',
+            $fn
+        );
+        run3(\@command, \undef, \undef, \undef) ||
+            return err('unable to run3 %s', Dumper(\@command));
+        if ((my $err=$?) >> 8) {
+            return err("error $err on run3 of: %s", Dumper(\@command));
+        }
+        my $cwd=cwd(); 
+        my $wanted_cr=sub {
+            
+            msg("process $File::Find::name");
+            return unless -f $File::Find::name;
+            my $tmp_fh=File::Temp->new(UNLINK=>1) ||
+                return err("unable to create new temp file, $!");
+            my $tmp_fn=$tmp_fh->filename();
+            
+            my @command=(
+                $man_exe,
+                '-e',
+                '-mandoc',
+                '-Tascii',
+                $File::Find::name,
+            );
+            my $stdout;
+            #run(command => \@command, verbose=>1, buffer=>\$stdout);
+            use IPC::Run3;
+            my $pid=run3(\@command, undef, $tmp_fh, \undef);
+            $tmp_fh->close();
+            msg("fn $tmp_fn");
+            my $pod;
+            @command=(
+                $rman_exe,
+                '-f',
+                'pod',
+                $tmp_fn
+            );
+            $pid=run3(\@command, undef, \$pod, \undef);
+            #@print "pid $pid, stdout $tmp_fn, pod $pod";
+            $pod || 
+                return err('unable to generate POD file');
+            #msg("pod $pod");    
+                
+            #  Get target file name;
+            #
+            (my $target_fn=$fn)=~s/\.xml$//;
+            msg("target fn $target_fn");
+            use Cwd qw(cwd);
+            use File::Spec;
+            $target_fn=File::Spec->catfile($cwd, $target_fn);
+            msg("on target $target_fn");
+            return unless (-f $target_fn);
+            
+            use PPI;
+            my $ppi_doc_or=PPI::Document->new($target_fn);
+            my $ppi_pod_or=PPI::Document->new(\$pod);
+            #msg $ppi_pod_or->print();
+            
+            #  Prune existing POD
+            #
+            $ppi_doc_or->prune('PPI::Token::Pod');
+            if (my $ppi_doc_end_or=$ppi_doc_or->find_first('PPI::Statement::End')) {
+                $ppi_doc_end_or->prune('PPI::Token::Comment');
+                $ppi_doc_end_or->prune('PPI::Token::Whitespace');
+            }else {
+                $ppi_doc_or->add_element(PPI::Token::Separator->new('__END__'));
+                $ppi_doc_or->add_element(PPI::Token::Whitespace->new("\n"));
+            }
+            
+            #$ppi_doc_or->add_element(@{$ppi_pod_or->find('PPI::Token::Pod')});
+            $ppi_doc_or->add_element($ppi_pod_or);
+            $ppi_doc_or->save('/tmp/as.pl');
+            
+            msg("compelete update $target_fn");
+            
+        };
+        find($wanted_cr, $dn);
+    }
+    
+    
+    
     
 }
-    
+
 
 #===================================================================================================
 

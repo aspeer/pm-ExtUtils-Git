@@ -9,8 +9,6 @@
 #
 #  <http://dev.perl.org/licenses/>
 #
-#  Generic targets that all run the same named method from the ExtUtils::Git module
-#
 GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment_commit  \
 	git_lint git_version_dump git_version_increment_files git_autocopyright git_remote git_push git_arg git_version_reset perlver
 
@@ -133,5 +131,4 @@ git_distchanges : create_distdir
 readme :
 	pandoc -f docbook -t markdown_github $(VERSION_FROM).xml > README.md
 	pandoc -f docbook -t plain $(VERSION_FROM).xml > README
-	markdown2pod --dialect Theory README.md > README.pod
 	$(MAKE) git_autocopyright

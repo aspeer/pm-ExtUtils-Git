@@ -30,7 +30,7 @@ use Cwd qw(abs_path);
 #  Version information in a format suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.169';
+$VERSION='1.170';
 
 
 #===================================================================================================

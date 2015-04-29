@@ -99,6 +99,7 @@ sub git_autocopyright {
     my ($self, $param_hr)=(shift(), arg(@_));
     my ($license, $author, $name, $pm_to_inst_ar, $exe_files_ar)=
         @{$param_hr}{qw(LICENSE AUTHOR NAME TO_INST_PM_AR EXE_FILES_AR)};
+    debug('in git_autocopyright');
 
 
     #  Get the license object
@@ -134,6 +135,7 @@ sub git_autocopyright {
         DELIMITERS => ['<:', ':>'],
 
     ) || return err ("unable to fill in template $TEMPLATE_COPYRIGHT_FN, $Text::Template::ERROR");
+    debug("copyright $copyright");
 
 
     #  Add comment fields and a CR
@@ -199,6 +201,7 @@ sub git_autocopyright {
         #  Setup keywords we are looking for
         #
         my $keyword=$COPYRIGHT_KEYWORD;
+        debug("keyword $keyword");
         my @header;
 
 
@@ -212,6 +215,7 @@ sub git_autocopyright {
         my ($lineno, @line)=0;
         while (my $line=<$fh>) {
             push @line, $line;
+            debug("line $lineno, @line");
             push(@header, $lineno || 0) if $line=~/^#.*\Q$keyword\E/i;
             $lineno++;
         }
@@ -230,6 +234,7 @@ sub git_autocopyright {
 
             #  Valid copyright block (probably) found. Set flag
             #
+            debug("keyword found");
             $keyword_found_fg++;
 
 
@@ -268,6 +273,7 @@ sub git_autocopyright {
             #  Just make top of file, unless first line is #! (shebang) shell
             #  meta
             #
+            debug("keyword not found");
             if   ($line[0]=~/^#\!/) {@header=(1, 1)}
             else                    {@header=(0, 0)}
 
@@ -278,6 +284,7 @@ sub git_autocopyright {
         #  Only do update if no match
         #
         my $header_copyright=join('', @line[$header[0]..$header[1]]);
+        debug("hc: $header_copyright, c: $copyright");
         if ($header_copyright ne $copyright) {
 
 
@@ -1463,6 +1470,10 @@ sub _git_rev_parse_short {
 
 }
 
+
+sub debug {
+    CORE::printf(shift."\n",@_) if $ENV{'GIT_DEBUG'};
+}
 
 #sub _module_load {
 #

@@ -1,0 +1,42 @@
+#  This file is part of ExtUtils::Git.
+#  
+#  This software is copyright (c) 2014 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  
+#  This is free software; you can redistribute it and/or modify it under
+#  the same terms as the Perl 5 programming language system itself.
+#  
+#  Full license text is available at:
+#  
+#  <http://dev.perl.org/licenses/>
+#  
+
+
+
+
+
+$VAR1 = {
+          'GIT_GROUP' => 3,
+          'EXTUTILS_GIT' => 'ExtUtils::Git',
+          'GIT_EXE' => '/usr/bin/git',
+          'GIT_BRANCH_DEVELOPMENT' => 'devlopment',
+          'ONE' => 5,
+          'EXTUTILS_ARGV' => '"$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" "$(VERSION_SYM)" "$(VERSION_FROM)"',
+          'CHANGELOG_FN' => 'ChangeLog',
+          'GIT_IGNORE_FN' => '.gitignore',
+          'DUMPER_FN' => '.dumper.cache',
+          'DIST_DEFAULT' => 'git_dist',
+          'GIT_REPO' => '/opt/git',
+          'GIT_BRANCH_MASTER' => 'master',
+          'GIT_IGNORE_AR' => [
+                               'ChangeLog',
+                               'Changes',
+                               'Makefile',
+                               'Makefile.old',
+                               'MYMETA.json',
+                               'MYMETA.yml',
+                               'META.yml',
+                               'blib/*',
+                               'pm_to_blib'
+                             ],
+          'METAFILE_FN' => 'META.yml'
+        };

@@ -155,7 +155,7 @@ sub fn {
 
     GIT_AUTOCOPYRIGHT_INCLUDE_AR => [qr/\.pm$/],
 
-    GIT_AUTOCOPYRIGHT_EXCLUDE_AR => [qr/^LICENSE$/, qr/\.xml$/],
+    GIT_AUTOCOPYRIGHT_EXCLUDE_AR => [qr/^LICENSE$/, qr/\.xml$/, qr/copyright\.inc$/, qr/postamble\.inc/],
 
     GIT_AUTOCOPYRIGHT_EXCLUDE_FN => '.git_autocopyright_exclude',
 

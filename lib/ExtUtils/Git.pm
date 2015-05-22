@@ -1472,14 +1472,9 @@ sub _git_rev_parse_short {
 
 
 sub debug {
-    CORE::printf(shift."\n",@_) if $ENV{'GIT_DEBUG'};
+    CORE::printf(shift."\n",@_) if $ENV{'EXTUTILS-GIT_DEBUG'};
 }
 
-#sub _module_load {
-#
-#    foreach my $module (@_) {
-#        eval { "require $module" } ||
-#            return err("
 
 1;
 __END__

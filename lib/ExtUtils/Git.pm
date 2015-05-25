@@ -304,9 +304,10 @@ sub git_autocopyright {
 
 
                 #  Not found, add a copy of cr's to notice as a spacer this
-                #  first time in
+                #  first time in. Take into account shebang lines.
                 #
-                $copyright="\n" . $copyright if $header[0];
+                #$copyright="\n" . $copyright if $header[0];
+                $copyright.="\n" if (($line[0]=~/^#/) && $line[0]!~/^#\!/);
 
 
             }

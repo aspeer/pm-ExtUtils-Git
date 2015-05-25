@@ -89,7 +89,7 @@ cw : all
 perltidy : all
 	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm$$/} @ARGV)' -- $(TO_INST_PM)`; \
 		do echo $$d; perltidy -se -b $$d; done
-	@for d in $(EXE_FILES); do perltidy -x -b $$d; done
+	@for d in $(EXE_FILES); do echo $$d; perltidy -x -b $$d; done
 
 
 #  perlcritic of all files
@@ -97,7 +97,15 @@ perltidy : all
 perlcritic : all
 	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm$$/} @ARGV)' -- $(TO_INST_PM)`; \
 		do echo $$d; perlcritic $$d; done
-	@for d in $(EXE_FILES); do perlcritic $$d; done
+	@for d in $(EXE_FILES); do echo $$d; perlcritic $$d; done
+
+
+#  subsort
+#
+subsort : all
+	@for d in `$(PERL) -e 'print join q[ ], (grep {/\.pm$$/} @ARGV)' -- $(TO_INST_PM)`; \
+		do echo $$d; perltidy_subsort $$d; done
+	@for d in $(EXE_FILES); do echo $$d; perltidy_subsort $$d; done
 
 
 #  kwalitee tests

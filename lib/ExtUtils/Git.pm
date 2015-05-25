@@ -70,25 +70,25 @@ $VERSION='1.171';
 #===================================================================================================
 
 
-sub import { # no subsort
+sub import {    # no subsort
 
 
     #  Let MakeMaker (MM) Module handle import routines
     #
     require ExtUtils::Git::MM;
     goto &ExtUtils::Git::MM::import;
-    
+
 }
 
 
 sub git_arg {
 
-    #  Dump args 
+    #  Dump args
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     msg("args \n%s\n\n", Dumper($param_hr));
     return \undef;
-    
+
 }
 
 
@@ -155,12 +155,14 @@ sub git_autocopyright {
     #
     my $exclude_fn=File::Spec->catfile(cwd(), $GIT_AUTOCOPYRIGHT_EXCLUDE_FN);
     my $exclude_ar;
-    if (-f $exclude_fn) { 
-        $exclude_ar=eval { do { $exclude_fn } };
-        $exclude_ar || 
-            return err("unable to read $exclude_ar, $@");
+    if (-f $exclude_fn) {
+        $exclude_ar=eval {
+            do {$exclude_fn}
+        };
+        $exclude_ar ||
+            return err ("unable to read $exclude_ar, $@");
     }
-    my %exclude_fn=map { $_=>1 } @{$exclude_ar};
+    my %exclude_fn=map {$_ => 1} @{$exclude_ar};
 
 
     #  Iterate across files to protect
@@ -308,7 +310,7 @@ sub git_autocopyright {
                 #  first time in. Take into account shebang lines.
                 #
                 #$copyright="\n" . $copyright if $header[0];
-                $copyright.="\n" if (($line[0]=~/^#/) && $line[0]!~/^#\!/);
+                $copyright.="\n" if (($line[0]=~/^#/) && $line[0] !~ /^#\!/);
 
 
             }
@@ -618,18 +620,17 @@ sub git_manicheck {
     my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
         return err ('unable to get distname');
-        
+
 
     #  Get manifest
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
-    
-    
+
+
     #  Check self-generated files (created when dist is made) or ignored files that are in MANIFEST and shouldn't be there
     #
     my $fail;
-    {
-        my @test;
+    {   my @test;
         foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
             foreach my $fn (glob($fn_glob)) {
                 push @test, $fn if exists $manifest_hr->{$fn};
@@ -639,7 +640,7 @@ sub git_manicheck {
             msg(
                 "the following self-generated or ignored files are in MANIFEST: \n\n\%s\n",
                 Dumper(\@test)
-                );
+            );
             $fail++;
         }
     }
@@ -647,8 +648,8 @@ sub git_manicheck {
 
     #  Check manifest files present on file system
     #
-    {
-        my %missing=map { $_=>1 } ExtUtils::Manifest::manicheck();
+    {   my %missing=map {$_ => 1} ExtUtils::Manifest::manicheck();
+
         #  Ignore files caught by above test
         foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
             foreach my $fn (glob($fn_glob)) {
@@ -659,7 +660,7 @@ sub git_manicheck {
             msg(
                 "the following files are in MANIFEST but missing from the file system: \n\n\%s\n",
                 Dumper(\@missing)
-                );
+            );
             $fail++;
         }
     }
@@ -673,8 +674,7 @@ sub git_manicheck {
 
     #  Check for files in Git, but not in the manifest, or vica versa
     #
-    {
-        my %test=%{$manifest_hr};
+    {   my %test=%{$manifest_hr};
         map {delete $test{$_}} keys %git_manifest;
         foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
             foreach my $fn (glob($fn_glob)) {
@@ -688,12 +688,11 @@ sub git_manicheck {
             $fail++;
         }
     }
-    
+
 
     #  Now the vica-versa
     #
-    {
-        my %test=%git_manifest;
+    {   my %test=%git_manifest;
         map {delete $test{$_}} keys %{$manifest_hr};
         foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
             foreach my $fn (glob($fn_glob)) {
@@ -708,11 +707,10 @@ sub git_manicheck {
         }
     }
 
-    
+
     #  Check that ChangeLog etc. are not tracked by Git
     #
-    {
-        my @test=grep { $git_manifest{$_} } @{$GIT_IGNORE_AR};
+    {   my @test=grep {$git_manifest{$_}} @{$GIT_IGNORE_AR};
         if (@test) {
             msg(
                 "the following files are self-generated and should not be tracked by Git: \n\n%s\n",
@@ -720,7 +718,7 @@ sub git_manicheck {
             $fail++;
         }
     }
-    
+
 
     #  All done
     #
@@ -925,16 +923,16 @@ sub git_version {
 
 
 sub git_version_increment {
-    
+
 
     #  Increment the version of all package files
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    my ($version_from_fn,$pm_to_inst_ar, $exe_files_ar)=
+    my ($version_from_fn, $pm_to_inst_ar, $exe_files_ar)=
         @{$param_hr}{qw(VERSION_FROM TO_INST_PM_AR EXE_FILES_AR)};
     $version_from_fn ||
         return err ('unable to get version_from file name');
-    
+
 
     #  Get current version
     #
@@ -998,23 +996,23 @@ sub git_version_increment {
         if (exists $manifest_hr->{$fn}) {
             msg("version update $fn");
             $self->git_version_update_file($fn, $version_new) ||
-                return err("unable to update file $fn");
+                return err ("unable to update file $fn");
         }
         else {
             msg("skipping $fn, not in MANIFEST");
         }
     }
-    
-    
+
+
     #  Done
     #
     return \undef;
-    
+
 }
 
 
 sub git_version_reset {
-    
+
 
     #  Reset the version of all package files
     #
@@ -1036,14 +1034,14 @@ sub git_version_reset {
         if (exists $manifest_hr->{$fn}) {
             msg("version update $fn");
             $self->git_version_update_file($fn, $version_new, (my $force=1)) ||
-                return err("unable to update file $fn");
+                return err ("unable to update file $fn");
         }
         else {
             msg("skipping $fn, not in MANIFEST");
         }
     }
-    
-    
+
+
     #  Done
     #
     return \undef;
@@ -1063,21 +1061,21 @@ sub git_version_increment_commit {
 }
 
 
-sub perlver { # no subsort
+sub perlver {
 
-    
+
     #  Use Perl::Minimumversion to find minimum Perl version required
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    
-    
+
+
     #  Try to load modules we need
     #
     eval {
         require Perl::MinimumVersion;
         1;
-    } || return err('cannot load module Perl::MinimumVersion');
-    
+    } || return err ('cannot load module Perl::MinimumVersion');
+
 
     #  Get manifest - only test files in manifest
     #
@@ -1090,38 +1088,38 @@ sub perlver { # no subsort
     my ($pm_to_inst_ar, $exe_files_ar)=
         @{$param_hr}{qw(TO_INST_PM_AR EXE_FILES_AR)};
     foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
-    
+
 
         #  Skip LICENSE, non-Manifest files
         #
         next if ($fn eq $LICENSE_FN);
         next unless exists $manifest_hr->{$fn};
         my $pv_or=Perl::MinimumVersion->new($fn) ||
-            return err("unable to create new Perl::MinimumVersion object for file $fn, $!");
+            return err ("unable to create new Perl::MinimumVersion object for file $fn, $!");
         my $v_or=$perlver{$fn}=$pv_or->minimum_version();
         msg("Perl::MinimumVersion for $fn: %s (%s)", $v_or->normal(), $v_or->numify());
 
     }
-    
-    
+
+
     #  Sort
     #
-    my @perlver=sort { version->parse($b) <=> version->parse($a) } values %perlver;
+    my @perlver=sort {version->parse($b) <=> version->parse($a)} values %perlver;
     my $v_or=shift(@perlver) ||
-        return err('unable to determine minimum perl version');
-    
-    
+        return err ('unable to determine minimum perl version');
+
+
     #  Done
     #
     msg("Perl::MinimumVersion result: %s (%s)", $v_or->normal(), $v_or->numify());
     return \undef;
-    
+
 }
 
 
-sub kwalitee { # no subsort
+sub kwalitee {
 
-    
+
     #  Use to find minimum Perl version required
     #
     my ($self, $param_hr)=(shift(), arg(@_));
@@ -1132,16 +1130,17 @@ sub kwalitee { # no subsort
         zip     => 'zip'
     );
     my $distvname_suffix=$suffix{$dist_default} ||
-        return err("unable to determine suffix for dist_default type: $dist_default");
+        return err ("unable to determine suffix for dist_default type: $dist_default");
     my $distvname_fn="${distvname}.${distvname_suffix}";
     msg("distvname $distvname_fn");
-    
-    
+
+
     #  Check file exists
     #
     unless (-f $distvname_fn) {
+
         #return err("unable to check distribution file $distvname_fn, file not present");
-    };
+    }
 
 
     #  Load CPANTs modules
@@ -1149,28 +1148,29 @@ sub kwalitee { # no subsort
     eval {
         require Module::CPANTS::Kwalitee;
         Module::CPANTS::Kwalitee->import();
-    } || return err('cannot load module Module::CPANTS::Kwalitee');
+    } || return err ('cannot load module Module::CPANTS::Kwalitee');
     eval {
         require Module::CPANTS::Analyse;
-    } || return err('cannot load module Perl::MinimumVersion');
+    } || return err ('cannot load module Perl::MinimumVersion');
     eval {
         require Module::CPANTS::SiteKwalitee;
-    } || return err('cannot load module Module::CPANTS::SiteKwalitee');
-    
+    } || return err ('cannot load module Module::CPANTS::SiteKwalitee');
+
 
     #  Start CPANTS check
     #
-    my $cpants_or=Module::CPANTS::Analyse->new({
-        dist=>$distvname_fn
-    });
-    
-    
+    my $cpants_or=Module::CPANTS::Analyse->new(
+        {
+            dist => $distvname_fn
+        });
+
+
     #  Add extra indicators
     #
     $cpants_or->mck(Module::CPANTS::SiteKwalitee->new);
     $cpants_or->run;
-    
-    
+
+
     #  Get results
     #
     my %error;
@@ -1181,8 +1181,8 @@ sub kwalitee { # no subsort
             next if $indicator_hr->{'needs_db'};
             next if $indicator_hr->{'is_experimental'};
             $error{$name}={
-                error   => $indicator_hr->{'error'},
-                remedy  => $indicator_hr->{'remedy'}
+                error  => $indicator_hr->{'error'},
+                remedy => $indicator_hr->{'remedy'}
             };
             msg("fail kwalitee test: $name");
         }
@@ -1192,7 +1192,7 @@ sub kwalitee { # no subsort
     #  Return
     #
     if (keys %error) {
-        return err(Dumper(\%error));
+        return err (Dumper(\%error));
     }
     else {
         return msg("Kwalitee check OK");
@@ -1207,21 +1207,21 @@ sub git_version_update_file {
     #  Change file version number
     #
     my ($self, $fn, $version_new, $force)=@_;
-    
-    
+
+
     #  Get existing version
     #
     my (undef, undef, $version_old, undef, $lineno)=Module::Extract::VERSION->parse_version_safely($fn);
     $version_old ||
-        return err("unable to determine current version number in file $fn");
+        return err ("unable to determine current version number in file $fn");
     $lineno ||
-        return err("unable to line number of version string in file $fn");
-        
-        
+        return err ("unable to line number of version string in file $fn");
+
+
     #  Check old version not newer than proposed version number
     #
-    if ((version->parse($version_old) > version->parse($version_new)) && !$force ) {
-        return err("version of file $fn ($version_old) is later than proposed version ($version_new)");
+    if ((version->parse($version_old) > version->parse($version_new)) && !$force) {
+        return err ("version of file $fn ($version_old) is later than proposed version ($version_new)");
     }
 
 
@@ -1229,21 +1229,21 @@ sub git_version_update_file {
     #
     my $old_fh=IO::File->new($fn, O_RDONLY) ||
         return err ("unable to open file '$fn' for read, $!");
-    my $tmp_fh=File::Temp->new( UNLINK=>0 ) ||
-        return err('unable to create temporary file');
+    my $tmp_fh=File::Temp->new(UNLINK => 0) ||
+        return err ('unable to create temporary file');
     my $tmp_fn=$tmp_fh->filename();
 
 
     #  Seek to version string
     #
-    for (1..($lineno-1)) { print $tmp_fh scalar <$old_fh> };
+    for (1..($lineno-1)) {print $tmp_fh scalar <$old_fh>}
     my $line_version=<$old_fh>;
     unless ($line_version=~s/\Q$version_old\E/$version_new/) {
-        return err("unable to substitute version string in $line_version");
+        return err ("unable to substitute version string in $line_version");
     }
     print $tmp_fh $line_version;
-    
-    
+
+
     #  Finish wrinting file
     #
     while (my $line=<$old_fh>) {
@@ -1251,7 +1251,7 @@ sub git_version_update_file {
     }
     $old_fh->close();
     $tmp_fh->close();
-    
+
 
     #  Overwrite existing file
     #
@@ -1277,31 +1277,31 @@ sub docbook2pod {
     #  Convert XML files to POD and append
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    
-    
+
+
     #  Try to load modules we need
     #
     eval {
         require Perl::MinimumVersion;
         1;
-    } || return err('cannot load module Perl::MinimumVersion');
-    
+    } || return err ('cannot load module Perl::MinimumVersion');
+
 
     #  Get manifest - only test files in manifest
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
-    
-    
+
+
     #  Look for all XML files
     #
-    my @manifest_xml_fn=grep { /\.xml$/ } keys %{$manifest_hr};
+    my @manifest_xml_fn=grep {/\.xml$/} keys %{$manifest_hr};
     msg('found following xml files for conversion %s', Dumper(\@manifest_xml_fn));
-    
-    
+
+
     #  Load
     #
-    my $dn=File::Temp->newdir( CLEANUP=>1 ) ||
-        return err("unable to create new temp dir, $!");
+    my $dn=File::Temp->newdir(CLEANUP => 1) ||
+        return err ("unable to create new temp dir, $!");
     msg("tmp_dn $dn");
     eval {
         require IPC::Cmd;
@@ -1309,45 +1309,45 @@ sub docbook2pod {
         require IPC::Run3;
         IPC::Run3->import(qw(run3));
         1;
-    } || return err('unable to load IPC::Run3');
-    
-    
+    } || return err ('unable to load IPC::Run3');
+
+
     #  Check for xlstproc;
     #
     use File::Find;
     my $xsltproc_exe=can_run('xsltproc') ||
-        return err('can\'t find xlstproc installed on system');
+        return err ('can\'t find xlstproc installed on system');
     my $man_exe=can_run('groff') ||
-        return err('can\'t find man installed on system');
+        return err ('can\'t find man installed on system');
     my $rman_exe=can_run('rman') ||
-        return err('can\'t find rman installed on system');
+        return err ('can\'t find rman installed on system');
 
 
-    #  Process files 
+    #  Process files
     #
     foreach my $fn (@manifest_xml_fn) {
 
         my @command=(
             $xsltproc_exe,
             '-o',
-            "$dn/", 
+            "$dn/",
             '/usr/share/sgml/docbook/xsl-stylesheets-1.78.1/manpages/docbook.xsl',
             $fn
         );
         run3(\@command, \undef, \undef, \undef) ||
-            return err('unable to run3 %s', Dumper(\@command));
+            return err ('unable to run3 %s', Dumper(\@command));
         if ((my $err=$?) >> 8) {
-            return err("error $err on run3 of: %s", Dumper(\@command));
+            return err ("error $err on run3 of: %s", Dumper(\@command));
         }
-        my $cwd=cwd(); 
+        my $cwd=cwd();
         my $wanted_cr=sub {
-            
+
             msg("process $File::Find::name");
             return unless -f $File::Find::name;
-            my $tmp_fh=File::Temp->new(UNLINK=>1) ||
-                return err("unable to create new temp file, $!");
+            my $tmp_fh=File::Temp->new(UNLINK => 1) ||
+                return err ("unable to create new temp file, $!");
             my $tmp_fn=$tmp_fh->filename();
-            
+
             my @command=(
                 $man_exe,
                 '-e',
@@ -1356,6 +1356,7 @@ sub docbook2pod {
                 $File::Find::name,
             );
             my $stdout;
+
             #run(command => \@command, verbose=>1, buffer=>\$stdout);
             use IPC::Run3;
             my $pid=run3(\@command, undef, $tmp_fh, \undef);
@@ -1369,11 +1370,13 @@ sub docbook2pod {
                 $tmp_fn
             );
             $pid=run3(\@command, undef, \$pod, \undef);
+
             #@print "pid $pid, stdout $tmp_fn, pod $pod";
-            $pod || 
-                return err('unable to generate POD file');
-            #msg("pod $pod");    
-                
+            $pod ||
+                return err ('unable to generate POD file');
+
+            #msg("pod $pod");
+
             #  Get target file name;
             #
             (my $target_fn=$fn)=~s/\.xml$//;
@@ -1383,36 +1386,36 @@ sub docbook2pod {
             $target_fn=File::Spec->catfile($cwd, $target_fn);
             msg("on target $target_fn");
             return unless (-f $target_fn);
-            
+
             use PPI;
             my $ppi_doc_or=PPI::Document->new($target_fn);
             my $ppi_pod_or=PPI::Document->new(\$pod);
+
             #msg $ppi_pod_or->print();
-            
+
             #  Prune existing POD
             #
             $ppi_doc_or->prune('PPI::Token::Pod');
             if (my $ppi_doc_end_or=$ppi_doc_or->find_first('PPI::Statement::End')) {
                 $ppi_doc_end_or->prune('PPI::Token::Comment');
                 $ppi_doc_end_or->prune('PPI::Token::Whitespace');
-            }else {
+            }
+            else {
                 $ppi_doc_or->add_element(PPI::Token::Separator->new('__END__'));
                 $ppi_doc_or->add_element(PPI::Token::Whitespace->new("\n"));
             }
-            
+
             #$ppi_doc_or->add_element(@{$ppi_pod_or->find('PPI::Token::Pod')});
             $ppi_doc_or->add_element($ppi_pod_or);
             $ppi_doc_or->save('/tmp/as.pl');
-            
+
             msg("compelete update $target_fn");
-            
+
         };
         find($wanted_cr, $dn);
     }
-    
-    
-    
-    
+
+
 }
 
 
@@ -1474,7 +1477,7 @@ sub _git_rev_parse_short {
 
 
 sub debug {
-    CORE::printf(shift."\n",@_) if $ENV{'EXTUTILS-GIT_DEBUG'};
+    CORE::printf(shift . "\n", @_) if $ENV{'EXTUTILS-GIT_DEBUG'};
 }
 
 

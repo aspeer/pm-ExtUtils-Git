@@ -1,4 +1,5 @@
 MANIFEST
+MANIFEST.SKIP
 Makefile.PL
 lib/ExtUtils/Git.pm
 lib/ExtUtils/Git/Util.pm

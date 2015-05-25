@@ -155,8 +155,8 @@ sub const_config {
         $perlrun="\$(PERL) $perlrun_inc -M${class}";
     }
     $mm->{'PERLRUN'}=$perlrun;
-    
-    
+
+
     #  Keep copy of DIST_DEFAULT
     #
     $mm->{'macro'}{'DIST_DEFAULT_TARGET'}=$mm->{'DIST_DEFAULT'};

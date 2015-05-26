@@ -388,7 +388,7 @@ sub copyright_generate {
     #
     chomp($copyright); $copyright.="\n";
     return $copyright;
-    
+
 
 }
 
@@ -402,12 +402,12 @@ sub git_autocopyright_pod {
     my ($license, $author, $name, $pm_to_inst_ar, $exe_files_ar)=
         @{$param_hr}{qw(LICENSE AUTHOR NAME TO_INST_PM_AR EXE_FILES_AR)};
     debug('in git_autocopyright');
-    
-    
+
+
     #  Generate copyright
     #
     my $copyright=$self->copyright_generate($license, $author, $name) ||
-        return err("unable to generate copyright from license $license");
+        return err ("unable to generate copyright from license $license");
 
 
     #  Get manifest - only update files listed there
@@ -483,6 +483,7 @@ sub git_autocopyright_pod {
         my ($lineno, @line, $headno)=0;
         while (my $line=<$fh>) {
             push @line, $line;
+
             #debug("line $lineno, @line");
             foreach my $keyword (@keyword) {
                 if ($line=~/^=head(\d+)\s+.*\Q$keyword\E/i) {
@@ -526,20 +527,20 @@ sub git_autocopyright_pod {
                 $header[1]=$lineno_header;
 
             }
-            $header[1]||=@line;
+            $header[1] ||= @line;
             debug('header[0]:%s, header[1]:%s', @header);
 
         }
         else {
-            
-            
+
+
             # No match found. Skip
             #
             next;
-            
+
         }
-        
-        
+
+
         #  Massage copyright with POD header, primitive link conversion
         #
         $copyright=sprintf($COPYRIGHT_HEADER_POD, $headno) . $copyright;

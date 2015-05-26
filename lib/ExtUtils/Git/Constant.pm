@@ -161,6 +161,10 @@ sub fn {
     COPYRIGHT_HEADER_MAX_LINES => 20,
 
     COPYRIGHT_KEYWORD => 'Copyright',
+    
+    COPYRIGHT_KEYWORD_POD_AR => [qw(copyright license)],
+    
+    COPYRIGHT_HEADER_POD => "=head%s LICENSE and COPYRIGHT\n",
 
     #  Local constants override anything above
     #

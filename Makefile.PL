@@ -45,7 +45,8 @@ WriteMakefile(
         'File::Touch'                   =>  0,
         'File::Grep'                    =>  0,
         'Git::Wrapper'                  =>  0,
-        'Software::License'             =>  0
+        'Software::License'             =>  0,
+        'Module::Extract::VERSION'      =>  0
 
        }; ($ENV{'PREREQ_PM'} eq '0') ? {} : $::prereq_hr },
 

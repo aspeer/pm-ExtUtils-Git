@@ -1,5 +1,7 @@
-GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment_commit  \
-	git_lint git_version_dump git_version_increment_files git_autocopyright git_autocopyright_pod git_remote git_push git_arg git_version_reset perlver
+GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment_commit \
+	git_lint git_version_dump git_version_increment_files git_remote git_push git_arg git_version_reset \
+	git_autocopyright_pm git_autocopyright_pod git_autocopyright_xml git_autocopyright_md \
+	perlver
 
 
 #  Other targets that need the Makefile rebuilt after running
@@ -122,6 +124,12 @@ git_distchanges : create_distdir
 	$(ABSPERLRUN) -MExtUtils::Manifest=maniadd -e 'exit unless -e q{$(CHANGELOG_FN)};' \
 		-e 'eval { maniadd({q{$(CHANGELOG_FN)} => q{Module ChangeLog (added by ExtUtils::Git)}}) }' \
 		-e '    or print "Could not add $(CHANGELOG_FN) to MANIFEST: $$$${'\''@'\''}\n"' --
+
+
+#  Update copyrights
+#
+git_autocopyright : git_autocopyright_pm git_autocopyright_xml git_autocopyright_pod git_autocopyright_md
+
 
 #  Create README
 #

@@ -92,7 +92,7 @@ sub git_arg {
 }
 
 
-sub git_autocopyright {
+sub git_autocopyright_pm {
 
 
     #  Make sure copyright header is added to every file
@@ -103,40 +103,10 @@ sub git_autocopyright {
     debug('in git_autocopyright');
 
 
-    #  Get the license object
+    #  Generate copyright
     #
-    my @license_guess=Software::LicenseUtils->guess_license_from_meta_key($license);
-    @license_guess ||
-        return err ("unable to determine license from string $license");
-    (@license_guess > 1) &&
-        return err ("ambiguous license from string $license");
-    my $license_guess=shift @license_guess;
-    my $license_or=$license_guess->new({holder => $author});
-
-
-    #  Open copyright header template
-    #
-    my $template_or=Text::Template->new(
-
-        type   => 'FILE',
-        source => $TEMPLATE_COPYRIGHT_FN,
-
-    ) || return err ("unable to open template, $TEMPLATE_COPYRIGHT_FN $!");
-
-
-    #  Fill in with out self ref as a hash
-    #
-    my $copyright=$template_or->fill_in(
-
-        HASH => {
-            name   => $name,
-            notice => $license_or->notice(),
-            url    => $license_or->url()
-        },
-        DELIMITERS => ['<:', ':>'],
-
-    ) || return err ("unable to fill in template $TEMPLATE_COPYRIGHT_FN, $Text::Template::ERROR");
-    debug("copyright $copyright");
+    my $copyright=$self->copyright_generate($license, $author, $name) ||
+        return err ("unable to generate copyright from license $license");
 
 
     #  Add comment fields and a CR
@@ -153,16 +123,8 @@ sub git_autocopyright {
 
     #  Load exclusion file
     #
-    my $exclude_fn=File::Spec->catfile(cwd(), $GIT_AUTOCOPYRIGHT_EXCLUDE_FN);
-    my $exclude_ar;
-    if (-f $exclude_fn) {
-        $exclude_ar=eval {
-            do {$exclude_fn}
-        };
-        $exclude_ar ||
-            return err ("unable to read $exclude_ar, $@");
-    }
-    my %exclude_fn=map {$_ => 1} @{$exclude_ar};
+    my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
+        return err();
 
 
     #  Iterate across files to protect
@@ -170,22 +132,14 @@ sub git_autocopyright {
     foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}) {
 
 
-        #  Check for specific targets via env variable
+        #  Check for exclusions and skip;
         #
-        if (my $fn_list=$ENV{'GIT_AUTOCOPYRIGHT'}) {
-            next unless grep {$fn eq $_} split(/\s+/, $fn_list);
-        }
-
-        #unless (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
-        #    msg("skipping $fn: not in include filter");
-        #    next;
-        #}
-        #  Check for exclusion;
+        msg("considering $fn");
         if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_AR}) {
             msg("skipping $fn: matches exclude filter");
             next;
         }
-        if ($exclude_fn{$fn}) {
+        if ($exclude_fn_hr->{$fn}) {
             msg("skipping $fn: matches exclusion in $GIT_AUTOCOPYRIGHT_EXCLUDE_FN");
             next;
         }
@@ -203,8 +157,8 @@ sub git_autocopyright {
 
         #  Setup keywords we are looking for
         #
-        my $keyword=$COPYRIGHT_KEYWORD;
-        debug("keyword $keyword");
+        my @keyword=@{$COPYRIGHT_KEYWORD_AR};
+        debug('keyword %s', Dumper(\@keyword));
         my @header;
 
 
@@ -218,8 +172,13 @@ sub git_autocopyright {
         my ($lineno, @line)=0;
         while (my $line=<$fh>) {
             push @line, $line;
-            debug("line $lineno, @line");
-            push(@header, $lineno || 0) if $line=~/^#.*\Q$keyword\E/i;
+            foreach my $keyword (@keyword) {
+                debug("line $lineno, @line");
+                if ($line=~/^#.*\Q$keyword\E/i) {
+                    push(@header, $lineno || 0); 
+                    last;
+                }
+            }
             $lineno++;
         }
 
@@ -279,6 +238,7 @@ sub git_autocopyright {
             debug("keyword not found");
             if   ($line[0]=~/^#\!/) {@header=(1, 1)}
             else                    {@header=(0, 0)}
+            msg("copyright not found: $fn");
 
 
         }
@@ -293,7 +253,7 @@ sub git_autocopyright {
 
             #  Need to update. If delim found, need to splice out
             #
-            msg "updating $fn\n";
+            msg "copyright updated: $fn";
             if ($keyword_found_fg) {
 
 
@@ -331,7 +291,7 @@ sub git_autocopyright {
         }
         else {
 
-            msg "checked $fn\n";
+            msg "copyright OK: $fn";
 
         }
 
@@ -393,6 +353,34 @@ sub copyright_generate {
 }
 
 
+sub copyright_exclude_fn_hr {
+
+    #  Load copyright exclusion file
+    #
+    my ($self, $fn)=@_;
+    
+
+    #  Load exclusion file
+    #
+    my $exclude_fn=File::Spec->catfile(cwd(), $fn);
+    my $exclude_ar;
+    if (-f $exclude_fn) {
+        $exclude_ar=eval {
+            do {$exclude_fn}
+        };
+        $exclude_ar ||
+            return err ("unable to read $exclude_ar, $@");
+    }
+    my %exclude_fn=map {$_ => 1} @{$exclude_ar};
+    
+    
+    #  Done, return hash ref
+    #
+    return \%exclude_fn;
+    
+}
+
+
 sub git_autocopyright_pod {
 
 
@@ -413,44 +401,28 @@ sub git_autocopyright_pod {
     #  Get manifest - only update files listed there
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
+    my @fn=grep {/\.pod$/} keys %{$manifest_hr};
+
 
 
     #  Load exclusion file
     #
-    my $exclude_fn=File::Spec->catfile(cwd(), $GIT_AUTOCOPYRIGHT_EXCLUDE_FN);
-    my $exclude_ar;
-    if (-f $exclude_fn) {
-        $exclude_ar=eval {
-            do {$exclude_fn}
-        };
-        $exclude_ar ||
-            return err ("unable to read $exclude_ar, $@");
-    }
-    my %exclude_fn=map {$_ => 1} @{$exclude_ar};
+    my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
+        return err();
 
 
     #  Iterate across files to protect
     #
-    foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}) {
+    foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
 
 
-        #  Check for specific targets via env variable
-        #
-        debug("file $fn");
-        if (my $fn_list=$ENV{'GIT_AUTOCOPYRIGHT'}) {
-            next unless grep {$fn eq $_} split(/\s+/, $fn_list);
-        }
-
-        #unless (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_INCLUDE_AR}) {
-        #    msg("skipping $fn: not in include filter");
-        #    next;
-        #}
         #  Check for exclusion;
-        if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_AR}) {
+        msg("considering $fn");
+        if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_POD_AR}) {
             msg("skipping $fn: matches exclude filter");
             next;
         }
-        if ($exclude_fn{$fn}) {
+        if ($exclude_fn_hr->{$fn}) {
             msg("skipping $fn: matches exclusion in $GIT_AUTOCOPYRIGHT_EXCLUDE_FN");
             next;
         }
@@ -468,7 +440,7 @@ sub git_autocopyright_pod {
 
         #  Setup keywords we are looking for
         #
-        my @keyword=@{$COPYRIGHT_KEYWORD_POD_AR};
+        my @keyword=@{$COPYRIGHT_KEYWORD_AR};
         debug('keyword %s', Dumper(\@keyword));
         my @header;
 
@@ -483,7 +455,6 @@ sub git_autocopyright_pod {
         my ($lineno, @line, $headno)=0;
         while (my $line=<$fh>) {
             push @line, $line;
-
             #debug("line $lineno, @line");
             foreach my $keyword (@keyword) {
                 if ($line=~/^=head(\d+)\s+.*\Q$keyword\E/i) {
@@ -536,6 +507,7 @@ sub git_autocopyright_pod {
 
             # No match found. Skip
             #
+            msg("copyright section not found: $fn");
             next;
 
         }
@@ -543,20 +515,20 @@ sub git_autocopyright_pod {
 
         #  Massage copyright with POD header, primitive link conversion
         #
-        $copyright=sprintf($COPYRIGHT_HEADER_POD, $headno) . $copyright;
-        $copyright=~s/^\s*<http/L<http/m;
+        my $copyright_insert=sprintf($COPYRIGHT_HEADER_POD, $headno) . $copyright;
+        $copyright_insert=~s/^\s*<http/L<http/m;
 
 
         #  Only do update if no match
         #
         my $header_copyright=join('', @line[$header[0]..$header[1]]);
-        debug("hc: $header_copyright, c: $copyright");
-        if ($header_copyright ne $copyright) {
+        debug("hc: $header_copyright, c: $copyright_insert");
+        if ($header_copyright ne $copyright_insert) {
 
 
             #  Need to update. If delim found, need to splice out
             #
-            msg "updating $fn\n";
+            msg "copyright updated: $fn";
             if ($keyword_found_fg) {
 
 
@@ -571,7 +543,7 @@ sub git_autocopyright_pod {
 
             #  Splice new notice in now
             #
-            splice(@line, $header[0], 0, $copyright);
+            splice(@line, $header[0], 0, $copyright_insert);
 
 
             #  Re-open file for write out
@@ -584,7 +556,390 @@ sub git_autocopyright_pod {
         }
         else {
 
-            msg "checked $fn\n";
+            msg "copyright OK: $fn";
+
+        }
+
+    }
+
+}
+
+
+sub git_autocopyright_xml {
+
+
+    #  Make sure copyright section is updated in XML
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my ($license, $author, $name, $pm_to_inst_ar, $exe_files_ar)=
+        @{$param_hr}{qw(LICENSE AUTHOR NAME TO_INST_PM_AR EXE_FILES_AR)};
+    debug('in git_autocopyright');
+
+
+    #  Generate copyright
+    #
+    my $copyright=$self->copyright_generate($license, $author, $name) ||
+        return err ("unable to generate copyright from license $license");
+    my $copyright_xml;
+    {
+        require XML::Writer;
+        my $xml_or = XML::Writer->new(OUTPUT => \$copyright_xml, DATA_MODE => 1, DATA_INDENT => '   ', UNSAFE=>1);
+        my $para_fg;
+        foreach my $line (split("\n", $copyright)) {
+            if ($line=~/^\s*$/) {
+                if ($para_fg) {
+                    $xml_or->endTag('para');
+                    $xml_or->raw("\n\n");
+                    $para_fg=0;
+                }
+            }
+            else {
+                unless($para_fg++) {
+                    $xml_or->startTag('para');
+                 }
+                 $xml_or->characters($line);
+            }
+        }
+        $xml_or->raw("\n\n");
+    }
+
+
+    #  Get manifest - only update files listed there
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Load exclusion file
+    #
+    my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
+        return err();
+
+
+    #  Iterate across files to protect
+    #
+    foreach my $fn (grep {/\.xml$/} keys %{$manifest_hr}) {
+
+
+        #  Start processing
+        #
+        msg("considering $fn");
+        #  Check for exclusion;
+        if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_XML_AR}) {
+            msg("skipping $fn: matches exclude filter");
+            next;
+        }
+        if ($exclude_fn_hr->{$fn}) {
+            msg("skipping $fn: matches exclusion in $GIT_AUTOCOPYRIGHT_EXCLUDE_FN");
+            next;
+        }
+        unless (exists $manifest_hr->{$fn}) {
+            msg("skipping $fn: not in MANIFEST");
+            next;
+        }
+
+
+        #  Open file for read
+        #
+        my $fh=IO::File->new($fn, O_RDONLY) ||
+            return err ("unable to open file $fn, $!");
+
+
+        #  Setup keywords we are looking for
+        #
+        my @keyword=@{$COPYRIGHT_KEYWORD_AR};
+        debug('keyword %s', Dumper(\@keyword));
+        my @header;
+
+
+        #  Flag set if existing copyright notice detected
+        #
+        my $keyword_found_fg;
+
+
+        #  Turn into array, search for keyword
+        #
+        my ($lineno, @line)=0;
+        while (my $line=<$fh>) {
+            push @line, $line;
+            foreach my $keyword (@keyword) {
+                if ($line=~/^\s*<title>\s*.*\Q$keyword\E.*<\/title>/i) {
+                    push(@header, $lineno || 0);
+                    last;
+                }
+            }
+            $lineno++;
+        }
+        debug("lineno $lineno. %s", Dumper(\@header));
+
+
+        #  Close
+        #
+        $fh->close();
+
+
+        #  Only do cleanup of old copyright if copyright section was found
+        #
+        if (defined($header[0])) {
+
+
+            #  Valid copyright block (probably) found. Set flag
+            #
+            debug("keyword found");
+            $keyword_found_fg++;
+
+
+            #  Start looks for start and end of header
+            #
+            for (my $lineno_header=$header[0]+1; $lineno_header <= @line; $lineno_header++) {
+
+
+                #  We are going forwards through file, as soon as we
+                #  see a non comment line we quit
+                #
+                my $line_header=$line[$lineno_header];
+                last if $line_header=~/^\s*<\/section>/i;
+                $header[1]=$lineno_header;
+
+            }
+            $header[1] ||= @line;
+            debug('header[0]:%s, header[1]:%s', @header);
+
+        }
+        else {
+
+
+            # No match found. Skip
+            #
+            msg("copyright section not found: $fn");
+            next;
+
+        }
+
+
+        #  Massage copyright with POD header, primitive link conversion
+        #
+        my $copyright_insert=$COPYRIGHT_HEADER_XML . $copyright_xml;
+
+
+        #  Only do update if no match
+        #
+        my $header_copyright=join('', @line[$header[0]..$header[1]]);
+        debug("hc: $header_copyright, c: $copyright_insert");
+        if ($header_copyright ne $copyright_insert) {
+
+
+            #  Need to update. If delim found, need to splice out
+            #
+            msg "copyright updated: $fn\n";
+            if ($keyword_found_fg) {
+
+
+                #  Yes, found, so splice existing notice out
+                #
+                debug('splicing out');
+                splice(@line, $header[0], ($header[1]-$header[0]+1));
+
+
+            }
+
+
+            #  Splice new notice in now
+            #
+            splice(@line, $header[0], 0, $copyright_insert);
+
+
+            #  Re-open file for write out
+            #
+            $fh=IO::File->new($fn, O_TRUNC | O_WRONLY) ||
+                return err ("unable to open $fn, $!");
+            print $fh join('', @line);
+            $fh->close();
+
+        }
+        else {
+
+            msg "copyright OK: $fn";
+
+        }
+
+    }
+
+}
+
+sub git_autocopyright_md {
+
+
+    #  Make sure copyright section is updated in Markdown
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my ($license, $author, $name, $pm_to_inst_ar, $exe_files_ar)=
+        @{$param_hr}{qw(LICENSE AUTHOR NAME TO_INST_PM_AR EXE_FILES_AR)};
+    debug('in git_autocopyright');
+
+
+    #  Generate copyright
+    #
+    my $copyright=$self->copyright_generate($license, $author, $name) ||
+        return err ("unable to generate copyright from license $license");
+
+
+    #  Get manifest - only update files listed there
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Load exclusion file
+    #
+    my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
+        return err();
+
+
+    #  Iterate across files to protect
+    #
+    foreach my $fn (grep {/\.md$/} keys %{$manifest_hr}) {
+
+
+        #  Start processing
+        #
+        msg("considering $fn");
+        #  Check for exclusion;
+        if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_MD_AR}) {
+            msg("skipping $fn: matches exclude filter");
+            next;
+        }
+        if ($exclude_fn_hr->{$fn}) {
+            msg("skipping $fn: matches exclusion in $GIT_AUTOCOPYRIGHT_EXCLUDE_FN");
+            next;
+        }
+        unless (exists $manifest_hr->{$fn}) {
+            msg("skipping $fn: not in MANIFEST");
+            next;
+        }
+
+
+        #  Open file for read
+        #
+        my $fh=IO::File->new($fn, O_RDONLY) ||
+            return err ("unable to open file $fn, $!");
+
+
+        #  Setup keywords we are looking for
+        #
+        my @keyword=@{$COPYRIGHT_KEYWORD_AR};
+        debug('keyword %s', Dumper(\@keyword));
+        my @header;
+
+
+        #  Flag set if existing copyright notice detected
+        #
+        my $keyword_found_fg;
+
+
+        #  Turn into array, search for keyword
+        #
+        my ($lineno, @line, $headno)=0;
+        while (my $line=<$fh>) {
+            push @line, $line;
+            debug("line $line");
+            foreach my $keyword (@keyword) {
+                if ($line=~/^(#+).*\Q$keyword\E/i) {
+                    push(@header, $lineno || 0);
+                    $headno=$1;
+                    last;
+                }
+            }
+            $lineno++;
+        }
+        debug("headno: $headno, lineno $lineno. %s", Dumper(\@header));
+
+
+        #  Close
+        #
+        $fh->close();
+
+
+        #  Only do cleanup of old copyright if copyright section was found
+        #
+        if (defined($header[0])) {
+
+
+            #  Valid copyright block (probably) found. Set flag
+            #
+            debug("keyword found");
+            $keyword_found_fg++;
+
+
+            #  Start looks for start and end of header
+            #
+            for (my $lineno_header=$header[0]+1; $lineno_header <= @line; $lineno_header++) {
+
+
+                #  We are going forwards through file, as soon as we
+                #  see a non comment line we quit
+                #
+                my $line_header=$line[$lineno_header];
+                last if $line_header=~/^#+/i;
+                $header[1]=$lineno_header;
+
+            }
+            $header[1] ||= @line;
+            debug('header[0]:%s, header[1]:%s', @header);
+
+        }
+        else {
+
+
+            # No match found. Skip
+            #
+            msg("copyright section not found: $fn");
+            next;
+
+        }
+
+
+        #  Massage copyright with POD header, primitive link conversion
+        #
+        my $copyright_insert="$headno $COPYRIGHT_HEADER_MD" . $copyright;
+
+
+        #  Only do update if no match
+        #
+        my $header_copyright=join('', @line[$header[0]..$header[1]]);
+        debug("hc: $header_copyright, c: $copyright_insert");
+        if ($header_copyright ne $copyright_insert) {
+
+
+            #  Need to update. If delim found, need to splice out
+            #
+            msg "copyright updated: $fn";
+            if ($keyword_found_fg) {
+
+
+                #  Yes, found, so splice existing notice out
+                #
+                debug('splicing out');
+                splice(@line, $header[0], ($header[1]-$header[0]+1));
+
+
+            }
+
+
+            #  Splice new notice in now
+            #
+            splice(@line, $header[0], 0, $copyright_insert);
+
+
+            #  Re-open file for write out
+            #
+            $fh=IO::File->new($fn, O_TRUNC | O_WRONLY) ||
+                return err ("unable to open $fn, $!");
+            print $fh join('', @line);
+            $fh->close();
+
+        }
+        else {
+
+            msg "copyright OK: $fn";
 
         }
 

@@ -152,9 +152,13 @@ sub fn {
 
     TEMPLATE_COPYRIGHT_FN => &fn('copyright.inc'),
 
-    GIT_AUTOCOPYRIGHT_INCLUDE_AR => [qr/\.pm$/],
-
     GIT_AUTOCOPYRIGHT_EXCLUDE_AR => [qr/^LICENSE$/, qr/\.xml$/, qr/copyright\.inc$/, qr/postamble\.inc/],
+
+    GIT_AUTOCOPYRIGHT_EXCLUDE_POD_AR => [qr/^LICENSE$/],
+
+    GIT_AUTOCOPYRIGHT_EXCLUDE_XML_AR => [],
+
+    GIT_AUTOCOPYRIGHT_EXCLUDE_MD_AR => [],
 
     GIT_AUTOCOPYRIGHT_EXCLUDE_FN => '.git_autocopyright_exclude',
 
@@ -162,9 +166,13 @@ sub fn {
 
     COPYRIGHT_KEYWORD => 'Copyright',
 
-    COPYRIGHT_KEYWORD_POD_AR => [qw(copyright license)],
+    COPYRIGHT_KEYWORD_AR => [qw(copyright copying license)],
 
     COPYRIGHT_HEADER_POD => "=head%s LICENSE and COPYRIGHT\n",
+
+    COPYRIGHT_HEADER_XML => "<title>LICENSE and COPYRIGHT</title>\n\n",
+
+    COPYRIGHT_HEADER_MD => "LICENSE and COPYRIGHT\n",
 
     #  Local constants override anything above
     #

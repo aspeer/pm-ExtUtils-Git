@@ -11,3 +11,5 @@ t/00-load.t
 LICENSE
 INSTALL
 README
+as.xml
+as.md

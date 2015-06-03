@@ -1896,18 +1896,61 @@ sub doc {
     my $manifest_hr=ExtUtils::Manifest::maniread();
 
 
-    #  Look for all XML files
-    #
-    my @manifest_md_fn=grep {/\.md$/} keys %{$manifest_hr};
-    msg('found following md files for conversion %s', Dumper(\@manifest_md_fn));
-
-
     #  Load Docbook2Pod module
     #
     eval {
         require Docbook2Pod;
         1;
     } || return err ('cannot load module Docbook2Pod');
+
+
+    #  Look for all XML files
+    #
+    my @manifest_xml_fn=grep {/\.xml$/} keys %{$manifest_hr};
+    msg('found following md files for conversion %s', Dumper(\@manifest_xml_fn));
+    
+
+    #  Iterate
+    #
+    foreach my $fn (@manifest_xml_fn) {
+
+
+        #  Slurp in the file
+        #
+        my $fh=IO::File->new($fn, O_RDONLY) ||
+            return err ("unable to open file $fn, $!");
+        my $xml;
+        local $/=undef;
+        $xml=<$fh>;
+        $fh->close();
+
+
+        #  Get target file name;
+        #
+        (my $target_fn=$fn)=~s/\.xml$//;
+        msg("considering $target_fn");
+        if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
+            my $pod_sr=Docbook2Pod->docbook2pod(\$xml) ||
+                return err ();
+            Docbook2Pod->pod_replace($target_fn, $pod_sr) ||
+                return err ();
+            msg("converted to POD: $target_fn");
+        }
+        else {
+            #  Markdown
+            $target_fn.='.md';
+            Docbook2Pod->docbook2md(\$xml, $target_fn) ||
+                return err ();
+            msg("converted to Markdown: $target_fn");
+        }
+    }
+
+    
+
+    #  Look for all Markdown files
+    #
+    my @manifest_md_fn=grep {/\.md$/} keys %{$manifest_hr};
+    msg('found following md files for conversion %s', Dumper(\@manifest_md_fn));
 
 
     #  Iterate
@@ -1938,7 +1981,7 @@ sub doc {
         }
         else {
             #  Plain text
-            my $text_sr=Docbook2Pod->md2text(\$md, $target_fn) ||
+            Docbook2Pod->md2text(\$md, $target_fn) ||
                 return err ();
             msg("converted to text: $target_fn");
         }

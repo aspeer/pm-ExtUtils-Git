@@ -1908,7 +1908,7 @@ sub doc {
     #
     my @manifest_xml_fn=grep {/\.xml$/} keys %{$manifest_hr};
     msg('found following md files for conversion %s', Dumper(\@manifest_xml_fn));
-    
+
 
     #  Iterate
     #
@@ -1945,7 +1945,6 @@ sub doc {
         }
     }
 
-    
 
     #  Look for all Markdown files
     #

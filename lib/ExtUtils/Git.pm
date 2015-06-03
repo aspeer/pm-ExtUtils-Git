@@ -124,7 +124,7 @@ sub git_autocopyright_pm {
     #  Load exclusion file
     #
     my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
-        return err();
+        return err ();
 
 
     #  Iterate across files to protect
@@ -175,7 +175,7 @@ sub git_autocopyright_pm {
             foreach my $keyword (@keyword) {
                 debug("line $lineno, @line");
                 if ($line=~/^#.*\Q$keyword\E/i) {
-                    push(@header, $lineno || 0); 
+                    push(@header, $lineno || 0);
                     last;
                 }
             }
@@ -358,7 +358,7 @@ sub copyright_exclude_fn_hr {
     #  Load copyright exclusion file
     #
     my ($self, $fn)=@_;
-    
+
 
     #  Load exclusion file
     #
@@ -372,12 +372,12 @@ sub copyright_exclude_fn_hr {
             return err ("unable to read $exclude_ar, $@");
     }
     my %exclude_fn=map {$_ => 1} @{$exclude_ar};
-    
-    
+
+
     #  Done, return hash ref
     #
     return \%exclude_fn;
-    
+
 }
 
 
@@ -404,11 +404,10 @@ sub git_autocopyright_pod {
     my @fn=grep {/\.pod$/} keys %{$manifest_hr};
 
 
-
     #  Load exclusion file
     #
     my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
-        return err();
+        return err ();
 
 
     #  Iterate across files to protect
@@ -455,6 +454,7 @@ sub git_autocopyright_pod {
         my ($lineno, @line, $headno)=0;
         while (my $line=<$fh>) {
             push @line, $line;
+
             #debug("line $lineno, @line");
             foreach my $keyword (@keyword) {
                 if ($line=~/^=head(\d+)\s+.*\Q$keyword\E/i) {
@@ -581,9 +581,8 @@ sub git_autocopyright_xml {
     my $copyright=$self->copyright_generate($license, $author, $name) ||
         return err ("unable to generate copyright from license $license");
     my $copyright_xml;
-    {
-        require XML::Writer;
-        my $xml_or = XML::Writer->new(OUTPUT => \$copyright_xml, DATA_MODE => 1, DATA_INDENT => '   ', UNSAFE=>1);
+    {   require XML::Writer;
+        my $xml_or=XML::Writer->new(OUTPUT => \$copyright_xml, DATA_MODE => 1, DATA_INDENT => '   ', UNSAFE => 1);
         my $para_fg;
         foreach my $line (split("\n", $copyright)) {
             if ($line=~/^\s*$/) {
@@ -594,10 +593,10 @@ sub git_autocopyright_xml {
                 }
             }
             else {
-                unless($para_fg++) {
+                unless ($para_fg++) {
                     $xml_or->startTag('para');
-                 }
-                 $xml_or->characters($line);
+                }
+                $xml_or->characters($line);
             }
         }
         $xml_or->raw("\n\n");
@@ -612,7 +611,7 @@ sub git_autocopyright_xml {
     #  Load exclusion file
     #
     my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
-        return err();
+        return err ();
 
 
     #  Iterate across files to protect
@@ -623,6 +622,7 @@ sub git_autocopyright_xml {
         #  Start processing
         #
         msg("considering $fn");
+
         #  Check for exclusion;
         if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_XML_AR}) {
             msg("skipping $fn: matches exclude filter");
@@ -766,6 +766,7 @@ sub git_autocopyright_xml {
 
 }
 
+
 sub git_autocopyright_md {
 
 
@@ -791,7 +792,7 @@ sub git_autocopyright_md {
     #  Load exclusion file
     #
     my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
-        return err();
+        return err ();
 
 
     #  Iterate across files to protect
@@ -802,6 +803,7 @@ sub git_autocopyright_md {
         #  Start processing
         #
         msg("considering $fn");
+
         #  Check for exclusion;
         if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_MD_AR}) {
             msg("skipping $fn: matches exclude filter");
@@ -1879,150 +1881,74 @@ sub git_version_update_file {
 }
 
 
-sub docbook2pod {
+sub doc {
 
 
-    #  Convert XML files to POD and append
+    #  Convert MD files to POD and append
     #
     my ($self, $param_hr)=(shift(), arg(@_));
+    my $exe_files_ar=$param_hr->{'EXE_FILES_AR'};
+    my %exe_files=map {$_ => 1} @{$exe_files_ar};
 
 
-    #  Try to load modules we need
-    #
-    eval {
-        require Perl::MinimumVersion;
-        1;
-    } || return err ('cannot load module Perl::MinimumVersion');
-
-
-    #  Get manifest - only test files in manifest
+    #  Get manifest - only convert files in manifest
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
 
 
     #  Look for all XML files
     #
-    my @manifest_xml_fn=grep {/\.xml$/} keys %{$manifest_hr};
-    msg('found following xml files for conversion %s', Dumper(\@manifest_xml_fn));
+    my @manifest_md_fn=grep {/\.md$/} keys %{$manifest_hr};
+    msg('found following md files for conversion %s', Dumper(\@manifest_md_fn));
 
 
-    #  Load
+    #  Load Docbook2Pod module
     #
-    my $dn=File::Temp->newdir(CLEANUP => 1) ||
-        return err ("unable to create new temp dir, $!");
-    msg("tmp_dn $dn");
     eval {
-        require IPC::Cmd;
-        IPC::Cmd->import(qw(can_run));
-        require IPC::Run3;
-        IPC::Run3->import(qw(run3));
+        require Docbook2Pod;
         1;
-    } || return err ('unable to load IPC::Run3');
+    } || return err ('cannot load module Docbook2Pod');
 
 
-    #  Check for xlstproc;
+    #  Iterate
     #
-    use File::Find;
-    my $xsltproc_exe=can_run('xsltproc') ||
-        return err ('can\'t find xlstproc installed on system');
-    my $man_exe=can_run('groff') ||
-        return err ('can\'t find man installed on system');
-    my $rman_exe=can_run('rman') ||
-        return err ('can\'t find rman installed on system');
+    foreach my $fn (@manifest_md_fn) {
 
 
-    #  Process files
-    #
-    foreach my $fn (@manifest_xml_fn) {
+        #  Slurp in the file
+        #
+        my $fh=IO::File->new($fn, O_RDONLY) ||
+            return err ("unable to open file $fn, $!");
+        my $md;
+        local $/=undef;
+        $md=<$fh>;
+        $fh->close();
 
-        my @command=(
-            $xsltproc_exe,
-            '-o',
-            "$dn/",
-            '/usr/share/sgml/docbook/xsl-stylesheets-1.78.1/manpages/docbook.xsl',
-            $fn
-        );
-        run3(\@command, \undef, \undef, \undef) ||
-            return err ('unable to run3 %s', Dumper(\@command));
-        if ((my $err=$?) >> 8) {
-            return err ("error $err on run3 of: %s", Dumper(\@command));
+
+        #  Get target file name;
+        #
+        (my $target_fn=$fn)=~s/\.md$//;
+        msg("considering $target_fn");
+        if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
+            my $pod_sr=Docbook2Pod->md2pod(\$md) ||
+                return err ();
+            Docbook2Pod->pod_replace($target_fn, $pod_sr) ||
+                return err ();
+            msg("converted to POD: $target_fn");
         }
-        my $cwd=cwd();
-        my $wanted_cr=sub {
+        else {
+            #  Plain text
+            my $text_sr=Docbook2Pod->md2text(\$md, $target_fn) ||
+                return err ();
+            msg("converted to text: $target_fn");
+        }
 
-            msg("process $File::Find::name");
-            return unless -f $File::Find::name;
-            my $tmp_fh=File::Temp->new(UNLINK => 1) ||
-                return err ("unable to create new temp file, $!");
-            my $tmp_fn=$tmp_fh->filename();
-
-            my @command=(
-                $man_exe,
-                '-e',
-                '-mandoc',
-                '-Tascii',
-                $File::Find::name,
-            );
-            my $stdout;
-
-            #run(command => \@command, verbose=>1, buffer=>\$stdout);
-            use IPC::Run3;
-            my $pid=run3(\@command, undef, $tmp_fh, \undef);
-            $tmp_fh->close();
-            msg("fn $tmp_fn");
-            my $pod;
-            @command=(
-                $rman_exe,
-                '-f',
-                'pod',
-                $tmp_fn
-            );
-            $pid=run3(\@command, undef, \$pod, \undef);
-
-            #@print "pid $pid, stdout $tmp_fn, pod $pod";
-            $pod ||
-                return err ('unable to generate POD file');
-
-            #msg("pod $pod");
-
-            #  Get target file name;
-            #
-            (my $target_fn=$fn)=~s/\.xml$//;
-            msg("target fn $target_fn");
-            use Cwd qw(cwd);
-            use File::Spec;
-            $target_fn=File::Spec->catfile($cwd, $target_fn);
-            msg("on target $target_fn");
-            return unless (-f $target_fn);
-
-            use PPI;
-            my $ppi_doc_or=PPI::Document->new($target_fn);
-            my $ppi_pod_or=PPI::Document->new(\$pod);
-
-            #msg $ppi_pod_or->print();
-
-            #  Prune existing POD
-            #
-            $ppi_doc_or->prune('PPI::Token::Pod');
-            if (my $ppi_doc_end_or=$ppi_doc_or->find_first('PPI::Statement::End')) {
-                $ppi_doc_end_or->prune('PPI::Token::Comment');
-                $ppi_doc_end_or->prune('PPI::Token::Whitespace');
-            }
-            else {
-                $ppi_doc_or->add_element(PPI::Token::Separator->new('__END__'));
-                $ppi_doc_or->add_element(PPI::Token::Whitespace->new("\n"));
-            }
-
-            #$ppi_doc_or->add_element(@{$ppi_pod_or->find('PPI::Token::Pod')});
-            $ppi_doc_or->add_element($ppi_pod_or);
-            $ppi_doc_or->save('/tmp/as.pl');
-
-            msg("compelete update $target_fn");
-
-        };
-        find($wanted_cr, $dn);
     }
 
+
+    #  Done
+    #
+    return \undef;
 
 }
 

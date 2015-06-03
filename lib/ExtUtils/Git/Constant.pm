@@ -145,6 +145,12 @@ sub fn {
             pm_to_blib
             *.bak
             *.old
+            .DS_Store
+            ._.DS_Store
+            *~
+            *.tmp
+            .dumper.cache
+            *.tdy
             )
     ],
 

@@ -42,6 +42,7 @@ use Git::Wrapper;
 use Software::LicenseUtils;
 use Software::License;
 use Module::Extract::VERSION;
+use PPI;
 use Cwd;
 
 
@@ -1627,9 +1628,9 @@ sub git_version_reset {
     #  Reset the version of all package files
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    my ($pm_to_inst_ar, $exe_files_ar)=
-        @{$param_hr}{qw(TO_INST_PM_AR EXE_FILES_AR)};
-    my $version_new=$ENV{'GIT_VERSION_RESET'} || '0.001';
+    my ($pm_to_inst_ar, $exe_files_ar, $version)=
+        @{$param_hr}{qw(TO_INST_PM_AR EXE_FILES_AR VERSION)};
+    my $version_new=$ENV{'GIT_VERSION_RESET'} || $version || '0.001';
 
 
     #  Get manifest - only update files listed there
@@ -2053,7 +2054,7 @@ sub _git_rev_parse_short {
 
 
 sub debug {
-    CORE::printf(shift . "\n", @_) if $ENV{'EXTUTILS_GIT_DEBUG'};
+    CORE::printf(shift() . "\n", @_) if $ENV{'EXTUTILS_GIT_DEBUG'};
 }
 
 

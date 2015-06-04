@@ -59,7 +59,7 @@ $ExtUtils::Manifest::Quiet=1;
 #  Version information in a format suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.173';
+$VERSION='1.174';
 
 
 #  All done, init finished

@@ -1050,18 +1050,18 @@ sub git_branch_master {
 
 sub git_branch_current {
 
-    
+
     #  Get current branch
     #
     my $self=shift();
     my $git_or=$self->_git();
-    my @branch=grep { /^\*\s+/ } ($git_or->branch());
+    my @branch=grep {/^\*\s+/} ($git_or->branch());
     my $branch=shift @branch;
     $branch=~s/^\*\s+//;
     return $branch;
-    
+
 }
-    
+
 
 sub git_commit {
 
@@ -1464,7 +1464,7 @@ sub git_status {
         $err.=Data::Dumper::Dumper($git_modified_hr);
         return err ($err);
     }
-    
+
 
     #  Get list of conflicting files
     #
@@ -1478,8 +1478,8 @@ sub git_status {
         $err.=Data::Dumper::Dumper($git_conflict_hr);
         return err ($err);
     }
-    
-    
+
+
     #  All looks OK
     #
     msg("git files up-to-date");
@@ -2084,7 +2084,7 @@ sub _git_status {
         }
     }
     return \%git_fn;
-    
+
 }
 
 

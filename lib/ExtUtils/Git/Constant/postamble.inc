@@ -67,7 +67,7 @@ git_import : git_init git_autolicense git_autocopyright
 git_init :
 	@if [ ! -d .git ]; then \
 	    $(GIT_EXE) init || exit 1; \
-	    $(GIT_EXE) remote add origin $(GIT_REPO)/$(DISTNAME); \
+	    $(MAKE) git_remote; \
 	    $(MAKE) git_ignore; \
 	fi
 

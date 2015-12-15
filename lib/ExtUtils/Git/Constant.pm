@@ -118,8 +118,6 @@ sub fn {
 
     DIST_DEFAULT => 'git_dist',
 
-    GIT_REPO => '/opt/git',
-
     GIT_GROUP => 'git',
 
     GIT_BRANCH_MASTER => 'master',
@@ -127,7 +125,7 @@ sub fn {
     GIT_BRANCH_DEVELOPMENT => 'development',
 
     GIT_REMOTE_HR => {
-        origin => 'git@localhost:/%s.git',
+        origin => 'git@localhost:/pm-%s.git',
     },
 
     GIT_IGNORE_FN => '.gitignore',

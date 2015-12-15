@@ -1048,6 +1048,21 @@ sub git_branch_master {
 }
 
 
+sub git_branch_current {
+
+    
+    #  Get current branch
+    #
+    my $self=shift();
+    my $git_or=$self->_git();
+    my @branch=grep { /^\*\s+/ } ($git_or->branch());
+    my $branch=shift @branch;
+    $branch=~s/^\*\s+//;
+    return $branch;
+    
+}
+    
+
 sub git_commit {
 
 
@@ -1353,6 +1368,8 @@ sub git_push {
 
     #  Iterate through remote targets and add
     #
+    my $branch=$self->git_branch_current();
+    msg("pushing branch $branch");
     my $git_or=$self->_git();
     my @remote=$git_or->remote('-v');
     my %remote;
@@ -1363,7 +1380,7 @@ sub git_push {
     foreach my $name (sort keys %remote) {
         my $repo=$remote{$name};
         msg("push refs to $name: $repo");
-        $git_or->push($name,);
+        $git_or->push($name, $branch);
         msg(join($/, @{$git_or->ERR}));
         msg("push tags to $name: $repo");
         $git_or->push($name, '--tags');
@@ -1447,13 +1464,22 @@ sub git_status {
         $err.=Data::Dumper::Dumper($git_modified_hr);
         return err ($err);
     }
+    
 
-
-    #  Array for files that may be newer than version_from file
+    #  Get list of conflicting files
     #
-    my @modified_fn;
+    my $git_conflict_hr=$self->_git_conflict();
 
 
+    #  If any conflicting file bail now
+    #
+    if (keys %{$git_conflict_hr}) {
+        my $err="The following files have conflicts preventing commit:\n";
+        $err.=Data::Dumper::Dumper($git_conflict_hr);
+        return err ($err);
+    }
+    
+    
     #  All looks OK
     #
     msg("git files up-to-date");
@@ -2029,17 +2055,36 @@ sub _git_modified {
     #  Return a hash of modified files
     #
     my $self=shift();
+    return $self->_git_status('changed');
+
+}
+
+
+sub _git_conflict {
+
+
+    #  Return a hash of conflicting files
+    #
+    my $self=shift();
+    return $self->_git_status('conflict');
+
+}
+
+
+sub _git_status {
+
+    my ($self, $group)=@_;
     my $git_or=$self->_git();
-    my %git_modified;
+    my %git_fn;
     if (my $statuses_or=$git_or->status()) {
-        foreach my $status_or ($statuses_or->get('changed')) {
+        foreach my $status_or ($statuses_or->get($group)) {
             my $fn=$status_or->to() || $status_or->from();
             my $mode=$status_or->mode();
-            $git_modified{$fn}=$mode;
+            $git_fn{$fn}=$mode;
         }
     }
-    return \%git_modified;
-
+    return \%git_fn;
+    
 }
 
 

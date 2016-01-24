@@ -180,6 +180,43 @@ sub fn {
     
     COPYRIGHT_HEADER => 'LICENSE and COPYRIGHT',
 
+    PANDOC_EXE => &bin_find(qw(pandoc pandoc.exe)),
+
+    PANDOC_CMD_DOCBOOK2MD_CR => sub {
+        return [
+            shift(),                # PANDOC_EXE
+            '-fdocbook',            # from docbook
+            '-tmarkdown_github',    # to markdown (github dialect)
+            shift(),                # File name
+            ]
+    },
+
+    PANDOC_CMD_MD2TEXT_CR => sub {
+        return [
+            shift(),                # PANDOC_EXE
+            '-fmarkdown_github',    # from markdown (github dialect)
+            '-tplain',              # to plaintext
+            shift(),                # File name
+            ]
+    },
+
+    PANDOC_CMD_DOCBOOK2TEXT_CR => sub {
+        return [
+            shift(),                # PANDOC_EXE
+            '-fdocbook',             # from docbook
+            '-tplain',              # to plaintext
+            shift(),                # File name
+            ]
+    },
+    
+    TEXT_FN_AR => [qw(README INSTALL)],
+
+
+    #  Dialect one of Standard, Github, Theory
+    #
+    MARKDOWN_DIALECT => 'Theory',
+
+
     #  Local constants override anything above
     #
     %{do($local_fn)}

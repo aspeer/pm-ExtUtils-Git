@@ -1885,6 +1885,14 @@ sub doc {
     #  Get manifest - only convert files in manifest
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
+    
+    
+    #  Hierachy: 
+    #  xml=>md
+    #  xml=>pod
+    #  xml=>text
+    #  md=>pod
+    #  md=>text
 
 
     #  Load Docbook2Pod module
@@ -1898,7 +1906,12 @@ sub doc {
     #  Look for all XML files
     #
     my @manifest_xml_fn=grep {/\.xml$/} keys %{$manifest_hr};
-    msg('found following md files for conversion %s', Dumper(\@manifest_xml_fn));
+    msg('found following docbook files for conversion %s', Dumper(\@manifest_xml_fn));
+    
+    
+    #  Hash to hold files we generate so not processed twice
+    #
+    my %ignore_fn;
 
 
     #  Iterate
@@ -1908,12 +1921,8 @@ sub doc {
 
         #  Slurp in the file
         #
-        my $fh=IO::File->new($fn, O_RDONLY) ||
-            return err ("unable to open file $fn, $!");
-        my $xml;
-        local $/=undef;
-        $xml=<$fh>;
-        $fh->close();
+        my $xml=$self->doc_slurp($fn) ||
+            return err();
 
 
         #  Get target file name;
@@ -1929,14 +1938,29 @@ sub doc {
         }
         else {
             #  Markdown
-            $target_fn.='.md';
+            (my $md_fn=$target_fn).='.md';
+            $ignore_fn{$md_fn}++;
             my $md=Docbook::Convert->markdown($xml) ||
                 return err ();
-            my $fh=IO::File->new($target_fn, O_WRONLY|O_CREAT|O_TRUNC) ||
-                return err ("unable to open $target_fn for write, $!");
-            print $fh $md;
-            $fh->close();
-            msg("converted to Markdown: $target_fn");
+            $self->doc_blurp($md_fn, $md) ||
+                return err();
+            msg("converted to Markdown: $md_fn");
+        }
+        
+        #  Also convert to text if README or INSTALL. EDIT - doesn't work
+        #
+        if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
+            my $text=$self->doc_docbook2text($xml);
+            #  Bug in pandoc - remove lines with > only
+            #
+            my @text;
+            foreach my $line (split(/\n/, $text)) {
+                next if $line=~/^>$/;
+                push @text, $line;
+            };
+            $text=join($/, @text);
+            $self->doc_blurp($target_fn, $text);
+            msg("converted to Text: $target_fn");
         }
     }
 
@@ -1950,16 +1974,17 @@ sub doc {
     #  Iterate
     #
     foreach my $fn (@manifest_md_fn) {
+    
+    
+        #  Ignore ones we generated above
+        #
+        next if $ignore_fn{$fn};
 
 
         #  Slurp in the file
         #
-        my $fh=IO::File->new($fn, O_RDONLY) ||
-            return err ("unable to open file $fn, $!");
-        my $md;
-        local $/=undef;
-        $md=<$fh>;
-        $fh->close();
+        my $md=$self->doc_slurp($fn) ||
+            return err();
 
 
         #  Get target file name;
@@ -1967,17 +1992,23 @@ sub doc {
         (my $target_fn=$fn)=~s/\.md$//;
         msg("considering $target_fn");
         if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
-            my $pod_sr=Docbook2Pod->md2pod(\$md) ||
+            my $pod=$self->doc_md2pod($md) ||
                 return err ();
-            Docbook2Pod->pod_replace($target_fn, $pod_sr) ||
+            Docbook::Convert::POD::Util->_pod_replace($target_fn, \$pod) ||
                 return err ();
             msg("converted to POD: $target_fn");
         }
         else {
-            #  Plain text
-            Docbook2Pod->md2text(\$md, $target_fn) ||
-                return err ();
-            msg("converted to text: $target_fn");
+            #  Also convert to text if README or INSTALL
+            #
+            if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
+                #  Plain text
+                my $text=$self->doc_md2text($md) ||
+                    return err ();
+                $self->doc_blurp($target_fn, $text) ||
+                    return err();
+                msg("converted to text: $target_fn");
+            }
         }
 
     }
@@ -1986,6 +2017,145 @@ sub doc {
     #  Done
     #
     return \undef;
+
+}
+
+
+sub doc_slurp {
+
+    #  Slurp in file content
+    #
+    my ($self, $fn)=@_;
+    my $fh=IO::File->new($fn, O_RDONLY) ||
+        return err ("unable to open file $fn, $!");
+    my $text;
+    local $/=undef;
+    $text=<$fh>;
+    $fh->close();
+    return $text;
+    
+}
+    
+
+sub doc_blurp {
+
+    #  Save to file
+    #
+    my ($self, $fn, $text)=@_;
+    my $fh=IO::File->new($fn, O_WRONLY|O_CREAT|O_TRUNC) ||
+        return err ("unable to open $fn for write, $!");
+    print $fh $text;
+    $fh->close();
+    
+}
+    
+
+sub doc_md2pod {
+
+
+    #  Convert Markdown to POD
+    #
+    my ($self, $md)=@_;
+    
+    
+    #  Meed Markdown::Pod module
+    #
+    eval {
+        require Markdown::Pod;
+        1
+    } || return err('unable to load Markdown::Pod module');
+
+
+    my $m2p_or=Markdown::Pod->new() ||
+        return err ('unable to create new Markdown::Pod object');
+    my $pod=$m2p_or->markdown_to_pod(
+        dialect  => $MARKDOWN_DIALECT,
+        markdown => $md,
+    ) || return err ('unable to created pod from markdown');
+
+
+    #  Done
+    #
+    return $pod;
+
+}
+
+
+sub doc_md2text {
+
+
+    #  Convert Markdown to text
+    #
+    my ($self, $md, $fn)=@_;
+    
+    
+    #  Need IPC::Run3
+    #
+    eval {
+        require IPC::Run3;
+        1;
+    } || return err('unable to load IPC::Run3 module');
+    
+    
+    #  Need pandoc for this bit
+    #
+    $PANDOC_EXE || 
+        return err('pandoc is required for markdown to text conversion');
+
+    #  Run the Pandoc conversion to markup
+    #
+    my $text;
+    {   my $command_ar=
+            $PANDOC_CMD_MD2TEXT_CR->($PANDOC_EXE, '-');
+        IPC::Run3::run3($command_ar, \$md, ($fn || \$text), \undef) ||
+            return err ('unable to run3 %s', Dumper($command_ar));
+        if ((my $err=$?) >> 8) {
+            return err ("error $err on run3 of: %s", Dumper($command_ar));
+        }
+    }
+
+    #  Done
+    #
+    return $text;
+
+}
+
+
+sub doc_docbook2text {
+
+    #  Convert Docbook to text
+    #
+    my ($self, $xml, $fn)=@_;
+    
+
+    #  Need IPC::Run3
+    #
+    eval {
+        require IPC::Run3;
+        1;
+    } || return err('unable to load IPC::Run3 module');
+    
+
+    #  Need pandoc for this bit
+    #
+    $PANDOC_EXE || 
+        return err('pandoc is required for markdown to text conversion');
+
+    #  Run the Pandoc conversion to markup
+    #
+    my $text;
+    {   my $command_ar=
+            $PANDOC_CMD_DOCBOOK2TEXT_CR->($PANDOC_EXE, '-');
+        IPC::Run3::run3($command_ar, \$xml, ($fn || \$text), \undef) ||
+            return err ('unable to run3 %s', Dumper($command_ar));
+        if ((my $err=$?) >> 8) {
+            return err ("error $err on run3 of: %s", Dumper($command_ar));
+        }
+    }
+
+    #  Done
+    #
+    return $text;
 
 }
 

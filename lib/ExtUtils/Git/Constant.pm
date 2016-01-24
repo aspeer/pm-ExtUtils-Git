@@ -177,6 +177,8 @@ sub fn {
     COPYRIGHT_HEADER_XML => "<title>LICENSE and COPYRIGHT</title>\n\n",
 
     COPYRIGHT_HEADER_MD => "LICENSE and COPYRIGHT\n",
+    
+    COPYRIGHT_HEADER => 'LICENSE and COPYRIGHT',
 
     #  Local constants override anything above
     #

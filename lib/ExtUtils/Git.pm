@@ -566,6 +566,38 @@ sub git_autocopyright_pod {
 }
 
 
+sub copyright_generate_xml {
+
+    #  Generate XML::Twig copyright section
+    #
+    my ($self, $copyright, $section_tag)=@_;
+
+    my $copyright_xml_or=XML::Twig::Elt->new($section_tag);
+    XML::Twig::Elt->new('title', $COPYRIGHT_HEADER)->paste(
+        'last_child',
+        $copyright_xml_or
+    );
+
+    my @para;
+    foreach my $line (split("\n", $copyright)) {
+        if ($line=~/^\s*$/ && @para) {
+            my $para_xml_or=XML::Twig::Elt->new('para', @para);
+            $para_xml_or->paste('last_child', $copyright_xml_or);
+            undef @para;
+        }
+        else {
+            push @para, $line;;
+        }    
+    }
+    if (@para) {
+        my $para_xml_or=XML::Twig::Elt->new('para', @para);
+        $para_xml_or->paste('last_child', $copyright_xml_or);
+    }
+    return $copyright_xml_or
+
+}
+
+
 sub git_autocopyright_xml {
 
 
@@ -575,34 +607,21 @@ sub git_autocopyright_xml {
     my ($license, $author, $name, $pm_to_inst_ar, $exe_files_ar)=
         @{$param_hr}{qw(LICENSE AUTHOR NAME TO_INST_PM_AR EXE_FILES_AR)};
     debug('in git_autocopyright');
+    
+
+    #  Need the XML::Twig module
+    #
+    eval {
+        require XML::Twig;
+        1;
+    } || return err("error loading module XML::Twig, $@");
 
 
     #  Generate copyright
     #
     my $copyright=$self->copyright_generate($license, $author, $name) ||
         return err ("unable to generate copyright from license $license");
-    my $copyright_xml;
-    {   require XML::Writer;
-        my $xml_or=XML::Writer->new(OUTPUT => \$copyright_xml, DATA_MODE => 1, DATA_INDENT => '   ', UNSAFE => 1);
-        my $para_fg;
-        foreach my $line (split("\n", $copyright)) {
-            if ($line=~/^\s*$/) {
-                if ($para_fg) {
-                    $xml_or->endTag('para');
-                    $xml_or->raw("\n\n");
-                    $para_fg=0;
-                }
-            }
-            else {
-                unless ($para_fg++) {
-                    $xml_or->startTag('para');
-                }
-                $xml_or->characters($line);
-            }
-        }
-        $xml_or->raw("\n\n");
-    }
-
+    
 
     #  Get manifest - only update files listed there
     #
@@ -637,135 +656,80 @@ sub git_autocopyright_xml {
             msg("skipping $fn: not in MANIFEST");
             next;
         }
-
-
-        #  Open file for read
+        
+        
+        #  Subroutine to count section/refsections we see
         #
-        my $fh=IO::File->new($fn, O_RDONLY) ||
-            return err ("unable to open file $fn, $!");
-
-
-        #  Setup keywords we are looking for
-        #
-        my @keyword=@{$COPYRIGHT_KEYWORD_AR};
-        debug('keyword %s', Dumper(\@keyword));
-        my @header;
-
-
-        #  Flag set if existing copyright notice detected
-        #
-        my $keyword_found_fg;
-
-
-        #  Turn into array, search for keyword
-        #
-        my ($lineno, @line)=0;
-        while (my $line=<$fh>) {
-            push @line, $line;
-            foreach my $keyword (@keyword) {
-                if ($line=~/^\s*<title>\s*.*\Q$keyword\E.*<\/title>/i) {
-                    push(@header, $lineno || 0);
+        my @section;
+        my $section_cr=sub {
+            my ($twig_or, $elt_or)=@_;
+            my $title=$elt_or->field('title');
+            foreach my $keyword (@{$COPYRIGHT_KEYWORD_AR}) {
+                if ($title=~/\Q$keyword\E/i) {
+                    push @section, $elt_or;
                     last;
                 }
             }
-            $lineno++;
-        }
-        debug("lineno $lineno. %s", Dumper(\@header));
+        };
 
 
-        #  Close
+        #  Parse the file
         #
-        $fh->close();
+        my $twig_or=XML::Twig->new(
+            TwigHandlers=> { section=>$section_cr, refsection=>$section_cr },
 
-
-        #  Only do cleanup of old copyright if copyright section was found
+        );
+        $twig_or->parsefile($fn);
+        
+        
+        #  Get type of Docbook, article or refentry
         #
-        if (defined($header[0])) {
-
-
-            #  Valid copyright block (probably) found. Set flag
-            #
-            debug("keyword found");
-            $keyword_found_fg++;
-
-
-            #  Start looks for start and end of header
-            #
-            for (my $lineno_header=$header[0]+1; $lineno_header <= @line; $lineno_header++) {
-
-
-                #  We are going forwards through file, as soon as we
-                #  see a non comment line we quit
-                #
-                my $line_header=$line[$lineno_header];
-                last if $line_header=~/^\s*<\/section>/i;
-                $header[1]=$lineno_header;
-
-            }
-            $header[1] ||= @line;
-            debug('header[0]:%s, header[1]:%s', @header);
-
+        my $elt_or=$twig_or->first_elt;
+        my $doctype=$elt_or->name;
+        my $section_type={
+            article     => 'section',
+            refentry    => 'refsection',
+        }->{$doctype} ||
+            return err("unable to get section type for Docbook template $doctype");
+        msg("doctype of $doctype detected in: $fn");
+        
+        
+        #  Generate XML
+        #
+        my $copyright_xml_or=$self->copyright_generate_xml(
+            $copyright,
+            $section_type
+        );
+        
+        
+        #  Now paste in
+        #
+        if (@section) {
+            my $section_xml_or=shift @section;
+            $copyright_xml_or->replace($section_xml_or);
         }
         else {
-
-
-            # No match found. Skip
-            #
-            msg("copyright section not found: $fn");
-            next;
-
+            @section=$twig_or->get_xpath("${section_type}[last()]");
+            my $section_xml_or=shift @section ||
+                return err("unable to get last $section_type in file $fn");
+            $copyright_xml_or->paste('after', $section_xml_or);
         }
+        
 
-
-        #  Massage copyright with POD header, primitive link conversion
+        #  Write out the file
         #
-        my $copyright_insert=$COPYRIGHT_HEADER_XML . $copyright_xml;
-
-
-        #  Only do update if no match
+        $twig_or->print_to_file($fn);
+        
+        
+        #  Done
         #
-        my $header_copyright=join('', @line[$header[0]..$header[1]]);
-        debug("hc: $header_copyright, c: $copyright_insert");
-        if ($header_copyright ne $copyright_insert) {
+        msg("copyright section updated: $fn");
 
-
-            #  Need to update. If delim found, need to splice out
-            #
-            msg "copyright updated: $fn\n";
-            if ($keyword_found_fg) {
-
-
-                #  Yes, found, so splice existing notice out
-                #
-                debug('splicing out');
-                splice(@line, $header[0], ($header[1]-$header[0]+1));
-
-
-            }
-
-
-            #  Splice new notice in now
-            #
-            splice(@line, $header[0], 0, $copyright_insert);
-
-
-            #  Re-open file for write out
-            #
-            $fh=IO::File->new($fn, O_TRUNC | O_WRONLY) ||
-                return err ("unable to open $fn, $!");
-            print $fh join('', @line);
-            $fh->close();
-
-        }
-        else {
-
-            msg "copyright OK: $fn";
-
-        }
 
     }
 
 }
+
 
 
 sub git_autocopyright_md {
@@ -1926,9 +1890,9 @@ sub doc {
     #  Load Docbook2Pod module
     #
     eval {
-        require Docbook2Pod;
+        require Docbook::Convert;
         1;
-    } || return err ('cannot load module Docbook2Pod');
+    } || return err ('cannot load module Docbook::Convert');
 
 
     #  Look for all XML files
@@ -1957,17 +1921,21 @@ sub doc {
         (my $target_fn=$fn)=~s/\.xml$//;
         msg("considering $target_fn");
         if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
-            my $pod_sr=Docbook2Pod->docbook2pod(\$xml) ||
+            my $pod=Docbook::Convert->pod($xml) ||
                 return err ();
-            Docbook2Pod->pod_replace($target_fn, $pod_sr) ||
+            Docbook::Convert::POD::Util->_pod_replace($target_fn, \$pod) ||
                 return err ();
             msg("converted to POD: $target_fn");
         }
         else {
             #  Markdown
             $target_fn.='.md';
-            Docbook2Pod->docbook2md(\$xml, $target_fn) ||
+            my $md=Docbook::Convert->markdown($xml) ||
                 return err ();
+            my $fh=IO::File->new($target_fn, O_WRONLY|O_CREAT|O_TRUNC) ||
+                return err ("unable to open $target_fn for write, $!");
+            print $fh $md;
+            $fh->close();
             msg("converted to Markdown: $target_fn");
         }
     }
@@ -2106,154 +2074,84 @@ sub debug {
 1;
 __END__
 
-
-=head1 NAME
-
-ExtUtils::Git - Class to add git related targets to Makefile generated from perl Makefile.PL
-
-=head1 SYNOPSIS
-
-    perl -MExtUtils::Git=:all Makefile.PL
-    make git_import
-    make git_manicheck
-    make git_ci
-    make git_status
-
-=head1 DESCRIPTION
-
-ExtUtils::Git is a class that extends ExtUtils::MakeMaker to add git related
-targets to the Makefile generated from Makefile.PL.
-
-ExtUtils::Git will enforce various rules during module distribution, such as
-not building a dist for a module before all components are checked in to
-Git.  It will also not build a dist if the MANIFEST and Git ideas of what
-are in the module are out of sync.
+ExtUtils::Git
+3
+ExtUtils::Git
+ExtUtils::MakeMaker helper module to add git related Makefile targets
+perl -MExtUtils::Git Makefile.PL
 
 
-=head1 OVERVIEW
+=head1 Description
 
-Create a normal module using h2xs (see L<h2xs>). Either put ExtUtils::Git
-into an eval'd BEGIN block in your Makefile.PL, or build the Makefile.PL
-with ExtUtils::Git as an included module.
+ExtUtils::Git is a ExtUtils::MakeMaker helper module that will add git related targets to the Makefile generated by a Makefile.PL run. It is intended to help during module development by enforcing some sanity checks around git related operations as they apply to Perl modules and provide other (sometime not git related) Makefile targets to improve productivity.
 
-=over 4
-
-=item BEGIN block within Makefile.PL
-
-A sample Makefile.PL may look like this:
-
-        use strict;
-        use ExtUtils::MakeMaker;
-
-        WriteMakeFile (
-
-                NAME    =>  'Acme::Froogle'
-                ... MakeMaker options here
-
-        );
-
-        sub BEGIN {  eval('use ExtUtils::Git') }
-
-eval'ing ExtUtils::Git within a BEGIN block allows user to build your module
-even if they do not have a local copy of ExtUtils::Git.
-
-=item Using as a module when running Makefile.PL
-
-If you do not want any reference to ExtUtils::Git within your Makefile.PL,
-you can build the Makefile with the following command:
-
-        perl -MExtUtils::Git Makefile.PL
-
-This will build a Makefile with all the ExtUtils::Git targets.
-
-=back
-
-=head1 IMPORTING INTO GIT
-
-Once you have created the first draft of your module, and included
-ExtUtils::Git into the Makefile.PL file in one of the above ways, you can
-import the module into Git.  Simply do a
-
-        make git_import
-
-in the working directory. All files in the MANIFEST will be imported into
-Git and a new Git repository will be created in the current working
-directory.
-
-=head1 ADDING OR REMOVING FILES WITHIN THE PROJECT
-
-Once checked out you can work on your files as per normal. If you add or
-remove a file from your module project you need to undertake the
-corresponding action in git with a
-
-        git add myfile.pm OR
-        git remove myfile.pm
-
-You must remember to add or remove the file from the MANIFEST, or
-ExtUtils::Git will generate a error when you try to build the dist.  This is
-by design - the contents of the MANIFEST file should mirror the active Git
-files.
-
-=head1 CHECKING IN MODIFICATIONS
-
-Periodically you will want to check modifications into the Git repository.
-If you are not planning to make a distribution at this time a normal
-
-        git commit
-
-will still work. As this is a stardard git check in, no checking of the
-MANIFEST etc will be performed.
-
-If you wish to build a distribution from the current project working
-directory you should do a
-
-        make git_ci
-
-Doing a 'make git_ci' will undertake a check to ensure that the MANIFEST and
-Git are in sync.  It will check modified files into Git, incrementing the
-current module version.  In addition, it will then tag the repository with
-the new version in the form 'Acme-Froogle_1.26'.  Thus at any time you can
-checkout an earlier version of your module with a git command in the form of
-
-        git checkout Acme-Froogle_1.26
+This module will undertake workflow check such as ensuring that all files in a Module MANIFEST file are present in git during checkin. It will increment version numbers and tag files during distribution builds and provide other utility functions.
 
 
-=head1 OTHER MAKEFILE TARGETS
+=head1 Options
 
-As well as 'make git_import' and 'make git_ci', the following other targets
-are supported.  Many of these targets are called by the 'make git_ci'
-process, but can be run standalone also
+Once the Makefile is built as per the synopsis the following git related and utility targets are available:
 
-=over 4
+git_init
 
-=item make git_manicheck
+Creates an empty git repository and creates a .gitignore file (using the git_ignore target). No files are added to the git repository
 
-Will check that MANIFEST and Git agree on files included in the project
+git_autocopyright
 
-=item make git_status
+Will update copyright information (including updating copyright effective year) in all modules if found. If not found a copyright notice will be inserted at the top of the file derived from the LICENSE field in the Makefile.PL
 
-Will check that no project files have been modified since last checked in to
-the repository.
+git_autolicense
 
-=item make git_version
+Will update or create an appropriate LICENSE file in the module MANIFEST and working directory with text obtained from the Software::License Perl module
 
-Will show the current version of the project in the working directory
+git_ci
 
-=item make git_tag
+Check all changes into git repository for files found in the MANIFEST. Will run a sanity to check that only files in the MANIFEST are in the git repository and vica-versa
 
-Will tag files with current version. Not recommended for manual use
+git_push
 
-=back
+Push all changes into remote repositories.
 
-=head1 LICENSE and COPYRIGHT
+git_release
 
-This file is part of ExtUtils::Git.
+Increment module version numbers, tag files and create a new distribution file for this module.
 
-This software is copyright (c) 2015 by Andrew Speer <andrew.speer@isolutions.com.au>.
+git_status
 
-This is free software; you can redistribute it and/or modify it under
-the same terms as the Perl 5 programming language system itself.
+Report status of git managed files vs MANIFEST and status of files (clean, changed, conflict)
 
-Full license text is available at:
-L<http://dev.perl.org/licenses/>
+git_version_increment
 
+Increment module version numbers
+
+cw
+
+Run perl -c -w against all files in the module
+
+doc
+
+Search for any DocBook or Markdown files in the directory structure and convert to POD. Files marked in the format module.pm.xml or module.pm.md will have their content converted to POD and appended to module.pm. Similarly for files in any bin directory.
+
+kwalitee
+
+Run Module::CPANTS::Kwalitee tests against a distribution and report results
+
+perlcritic
+
+Run perlcritic across all Perl files in the distribution MANIFEST and report results
+
+perltidy
+
+Run perltidy across all Perl files in the distribution MANIFEST
+
+perlver
+
+Run Perl::MinimumVersion across all Perl file in the distribution MANIFEST and report results
+
+readme
+
+Generate README file
+
+subsort
+
+Sort all subroutines in all Perl files in the distribution MANIFEST into alphabetical order

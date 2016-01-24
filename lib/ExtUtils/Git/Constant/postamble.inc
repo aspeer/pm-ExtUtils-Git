@@ -29,7 +29,7 @@ $(GIT_TARGETS_BRANCH) : git_ci
 
 #  Targets that have dependencies, extra steps etc.
 #
-git_ci : git_manicheck git_autolicense git_autocopyright
+git_ci : git_manicheck 
 	$(GIT_EXE) commit -a
 
 
@@ -42,7 +42,7 @@ git_release :
 
 #  Version increment
 #
-git_version_increment : git_status
+git_version_increment : git_status git_autolicense git_autocopyright
 	@$(GIT_PERL_PM)
 	-$(MAKE)
 	$(MAKE) git_version_increment_commit 
@@ -51,7 +51,7 @@ git_version_increment : git_status
 
 #  Build distribution
 #
-git_dist : git_status
+git_dist : git_status 
 	$(MAKE) $(DIST_DEFAULT_TARGET)
 
 

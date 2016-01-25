@@ -32,7 +32,7 @@ use ExtUtils::Git::Util;
 use ExtUtils::Git::Constant;
 use IO::File;
 use File::Spec;
-use ExtUtils::Manifest;
+use ExtUtils::Manifest qw(maniread maniadd);
 use ExtUtils::MM_Any;
 use Data::Dumper;
 use File::Temp;
@@ -1875,7 +1875,7 @@ sub git_version_update_file {
 sub doc {
 
 
-    #  Convert MD files to POD and append
+    #  Convert XML, MD files to POD, plaintext and append
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $exe_files_ar=$param_hr->{'EXE_FILES_AR'};
@@ -1906,7 +1906,8 @@ sub doc {
     #  Look for all XML files
     #
     my @manifest_xml_fn=grep {/\.xml$/} keys %{$manifest_hr};
-    msg('found following docbook files for conversion %s', Dumper(\@manifest_xml_fn));
+    msg('found following docbook files for conversion %s', Dumper(\@manifest_xml_fn))
+        if @manifest_xml_fn;
     
     
     #  Hash to hold files we generate so not processed twice
@@ -1930,9 +1931,9 @@ sub doc {
         (my $target_fn=$fn)=~s/\.xml$//;
         msg("considering $target_fn");
         if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
-            my $pod=Docbook::Convert->pod($xml) ||
+            my $pod=Docbook::Convert->pod($xml, { no_warn_unhandled=>1 }) ||
                 return err ();
-            Docbook::Convert::POD::Util->_pod_replace($target_fn, \$pod) ||
+            Docbook::Convert->pod_replace($target_fn, $pod) ||
                 return err ();
             msg("converted to POD: $target_fn");
         }
@@ -1940,14 +1941,15 @@ sub doc {
             #  Markdown
             (my $md_fn=$target_fn).='.md';
             $ignore_fn{$md_fn}++;
-            my $md=Docbook::Convert->markdown($xml) ||
+            my $md=Docbook::Convert->markdown($xml, { no_warn_unhandled=>1 }) ||
                 return err ();
             $self->doc_blurp($md_fn, $md) ||
                 return err();
+            maniadd({$md_fn=> undef});
             msg("converted to Markdown: $md_fn");
         }
         
-        #  Also convert to text if README or INSTALL. EDIT - doesn't work
+        #  Also convert to text if README or INSTALL
         #
         if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
             my $text=$self->doc_docbook2text($xml);
@@ -1960,15 +1962,18 @@ sub doc {
             };
             $text=join($/, @text);
             $self->doc_blurp($target_fn, $text);
+            maniadd({$target_fn=> undef});
             msg("converted to Text: $target_fn");
         }
     }
 
 
-    #  Look for all Markdown files
+    #  Look for all Markdown files ignoring ones we created ourselves
     #
     my @manifest_md_fn=grep {/\.md$/} keys %{$manifest_hr};
-    msg('found following md files for conversion %s', Dumper(\@manifest_md_fn));
+    @manifest_md_fn=grep {!$ignore_fn{$_}} @manifest_md_fn;
+    msg('found following Markdown files for conversion %s', Dumper(\@manifest_md_fn))
+        if @manifest_md_fn;
 
 
     #  Iterate
@@ -1976,11 +1981,6 @@ sub doc {
     foreach my $fn (@manifest_md_fn) {
     
     
-        #  Ignore ones we generated above
-        #
-        next if $ignore_fn{$fn};
-
-
         #  Slurp in the file
         #
         my $md=$self->doc_slurp($fn) ||
@@ -1994,7 +1994,7 @@ sub doc {
         if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
             my $pod=$self->doc_md2pod($md) ||
                 return err ();
-            Docbook::Convert::POD::Util->_pod_replace($target_fn, \$pod) ||
+            Docbook::Convert->pod_replace($target_fn, $pod) ||
                 return err ();
             msg("converted to POD: $target_fn");
         }
@@ -2003,10 +2003,9 @@ sub doc {
             #
             if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
                 #  Plain text
-                my $text=$self->doc_md2text($md) ||
+                $self->doc_md2text($md, $target_fn) ||
                     return err ();
-                $self->doc_blurp($target_fn, $text) ||
-                    return err();
+                maniadd({$target_fn=> undef});
                 msg("converted to text: $target_fn");
             }
         }

@@ -643,6 +643,7 @@ sub git_autocopyright_xml {
         #
         msg("considering $fn");
 
+
         #  Check for exclusion;
         if (grep {$fn=~/$_/} @{$GIT_AUTOCOPYRIGHT_EXCLUDE_XML_AR}) {
             msg("skipping $fn: matches exclude filter");
@@ -682,6 +683,14 @@ sub git_autocopyright_xml {
         $twig_or->parsefile($fn);
         
         
+        #  Did we find copyright section ? If not skip.
+        #
+        unless (@section) {
+            msg("copyright section not found: $fn");
+            next;
+        }
+        
+
         #  Get type of Docbook, article or refentry
         #
         my $elt_or=$twig_or->first_elt;
@@ -709,6 +718,8 @@ sub git_autocopyright_xml {
             $copyright_xml_or->replace($section_xml_or);
         }
         else {
+            #  Paste new section at end. Never called - leave here as code example
+            #
             @section=$twig_or->get_xpath("${section_type}[last()]");
             my $section_xml_or=shift @section ||
                 return err("unable to get last $section_type in file $fn");
@@ -1821,7 +1832,9 @@ sub git_version_update_file {
 
     #  Check old version not newer than proposed version number
     #
-    if ((version->parse($version_old) > version->parse($version_new)) && !$force) {
+    my $version_old_numify=version->parse($version_old)->numify;
+    my $version_new_numify=version->parse($version_new)->numify;
+    if (($version_old_numify > $version_new_numify) && !$force) {
         return err ("version of file $fn ($version_old) is later than proposed version ($version_new)");
     }
 
@@ -1938,33 +1951,40 @@ sub doc {
             msg("converted to POD: $target_fn");
         }
         else {
-            #  Markdown
-            (my $md_fn=$target_fn).='.md';
-            $ignore_fn{$md_fn}++;
-            my $md=Docbook::Convert->markdown($xml, { no_warn_unhandled=>1 }) ||
-                return err ();
-            $self->doc_blurp($md_fn, $md) ||
-                return err();
-            maniadd({$md_fn=> undef});
-            msg("converted to Markdown: $md_fn");
+            #  Also convert README or INSTALL
+            #
+            if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
+
+                #  Markdown
+                (my $md_fn=$target_fn).='.md';
+                $ignore_fn{$md_fn}++;
+                my $md=Docbook::Convert->markdown($xml, { no_warn_unhandled=>1 }) ||
+                    return err ();
+                $self->doc_blurp($md_fn, $md) ||
+                    return err();
+                maniadd({$md_fn=> undef});
+                msg("converted to Markdown: $md_fn");
+
+                #  Text
+                my $text=$self->doc_docbook2text($xml);
+                #  Bug in pandoc - remove lines with > only
+                #
+                my @text;
+                foreach my $line (split(/\n/, $text)) {
+                    next if $line=~/^>$/;
+                    push @text, $line;
+                };
+                $text=join($/, @text);
+                $self->doc_blurp($target_fn, $text);
+                maniadd({$target_fn=> undef});
+                msg("converted to Text: $target_fn");
+            }
+            else {
+                msg("skipped $target_fn");
+            }
+
         }
         
-        #  Also convert to text if README or INSTALL
-        #
-        if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
-            my $text=$self->doc_docbook2text($xml);
-            #  Bug in pandoc - remove lines with > only
-            #
-            my @text;
-            foreach my $line (split(/\n/, $text)) {
-                next if $line=~/^>$/;
-                push @text, $line;
-            };
-            $text=join($/, @text);
-            $self->doc_blurp($target_fn, $text);
-            maniadd({$target_fn=> undef});
-            msg("converted to Text: $target_fn");
-        }
     }
 
 
@@ -2008,6 +2028,10 @@ sub doc {
                 maniadd({$target_fn=> undef});
                 msg("converted to text: $target_fn");
             }
+            else {
+                msg("skipped $target_fn");
+            }
+
         }
 
     }

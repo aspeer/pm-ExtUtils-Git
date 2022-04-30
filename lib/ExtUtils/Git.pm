@@ -1,7 +1,7 @@
 #
 #  This file is part of ExtUtils::Git.
 #
-#  This software is copyright (c) 2015 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  This software is copyright (c) 2022 by Andrew Speer <andrew.speer@isolutions.com.au>.
 #
 #  This is free software; you can redistribute it and/or modify it under
 #  the same terms as the Perl 5 programming language system itself.
@@ -1585,13 +1585,14 @@ sub git_version_increment {
 
         #  On master branch - are we promoting alpha, i.e. can we delete _ char ?
         #
-        unless ($version[-1]=~s/_.*//) {
+        #unless ($version[-1]=~s/_.*//) {
+        $version[-1]=~s/_.*//;
 
             #  No - just increment
             #
             $version[-1]++;
 
-        }
+        #}
         $version[-1]=sprintf('%03d', $version[-1]);
         $version_new=join('.', @version);
 
@@ -1606,7 +1607,7 @@ sub git_version_increment {
     #
     foreach my $fn ((grep {/\.p(m|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
         if (exists $manifest_hr->{$fn}) {
-            msg("version update $fn");
+            msg("version update $fn to $version_new");
             $self->git_version_update_file($fn, $version_new) ||
                 return err ("unable to update file $fn");
         }
@@ -1780,6 +1781,34 @@ sub kwalitee {
     #  Add extra indicators
     #
     $cpants_or->mck(Module::CPANTS::SiteKwalitee->new);
+    
+    
+    #  Need to massage things if only a script package, not a whole module
+    #
+    foreach my $fn_exe (@{$param_hr->{EXE_FILES_AR}}) {
+        push @{$cpants_or->d->{modules}},
+        {
+            'file' 		=> $fn_exe,
+            'in_basedir' 	=> 0,
+            'in_lib' 		=> 1,
+            'module' 		=> 'main',
+        };
+    }
+    #  Futx with Parse::LocalDistribution to inject script if  needed also
+    my $parse_cr=\&Parse::LocalDistribution::parse;
+    { no warnings qw(redefine);
+      *Parse::LocalDistribution::parse=sub { 
+          my $hr=$parse_cr->(@_);
+          #unless (keys %{$hr}) {
+          unless ($hr->{$param_hr->{'NAME'}}) {
+            $hr->{$param_hr->{'NAME'}}={'version' => $param_hr->{'VERSION'}};
+          }
+          return $hr;
+      };
+    }
+    
+    #  Now run the tests
+    #    
     $cpants_or->run;
 
 
@@ -2426,7 +2455,7 @@ Search for any DocBook or Markdown files in the directory structure and convert 
 
 B<kwalitee>
 
-Run Module::CPANTS::Kwalitee tests against a distribution and report results
+Run Module::CPANTS::Kwalitee tests against a distribution and report results. Requires L<Module::CPANTS::SiteKwalitee|https://github.com/cpants/Module-CPANTS-SiteKwalitee>
 
 B<perlcritic>
 
@@ -2454,18 +2483,16 @@ Sort all subroutines in all Perl files in the distribution MANIFEST into alphabe
 Andrew Speer L<mailto:andrew.speer@isolutions.com.au>
 
 
-=head1 LICENSE
+=head1 LICENSE and COPYRIGHT
 
-This software is copyright (c) 2015 by Andrew Speer L<mailto:andrew.speer@isolutions.com.au>.
+This file is part of ExtUtils::Git.
+
+This software is copyright (c) 2022 by Andrew Speer <andrew.speer@isolutions.com.au>.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
-Terms of the Perl programming language system itself
-
-a) the GNU General Public License as published by the Free
-   Software Foundation; either version 1, or (at your option) any
-   later version, or
-b) the "Artistic License"
+Full license text is available at:
+L<http://dev.perl.org/licenses/>
 
 =cut

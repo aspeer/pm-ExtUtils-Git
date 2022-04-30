@@ -1,7 +1,7 @@
 GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment_commit \
 	git_lint git_version_dump git_version_increment_files git_remote git_push git_arg git_version_reset \
 	git_autocopyright_pm git_autocopyright_pod git_autocopyright_xml git_autocopyright_md \
-	perlver doc
+	perlver doc markpod
 
 
 #  Other targets that need the Makefile rebuilt after running

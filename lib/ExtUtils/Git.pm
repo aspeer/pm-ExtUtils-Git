@@ -1730,6 +1730,54 @@ sub perlver {
 }
 
 
+sub markpod {
+
+
+    #  Convert any MD to POD
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+
+
+    #  Try to load modules we need
+    #
+    eval {
+        require App::Markpod;
+        1;
+    } || return err ('cannot load module App::Markpod');
+
+
+    #  Get manifest - only convert files in manifest
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Get modules and exe files and iterate
+    #
+    my %perlver;
+    my ($pm_to_inst_ar, $exe_files_ar)=
+        @{$param_hr}{qw(TO_INST_PM_AR EXE_FILES_AR)};
+    foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
+
+
+        #  Skip LICENSE, non-Manifest files
+        #
+        next if ($fn eq $LICENSE_FN);
+        next unless exists $manifest_hr->{$fn};
+        msg("processing $fn");
+        my $markpod_or=App::Markpod->new();
+        $markpod_or->markpod($fn) ||
+            return err("error on converting file $fn to markpod");
+
+    }
+
+
+    #  Done
+    #
+    return \undef;
+
+}
+
+
 sub kwalitee {
 
 

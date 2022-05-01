@@ -60,7 +60,7 @@ $ExtUtils::Manifest::Quiet=1;
 #  Version information in a format suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.178';
+$VERSION='1.176';
 
 
 #  All done, init finished
@@ -1778,6 +1778,46 @@ sub markpod {
 }
 
 
+sub markpod_readme {
+
+
+    #  Convert the Markdown POD section of main file to README.md
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+
+
+    #  Try to load modules we need
+    #
+    eval {
+        require App::Markpod;
+        1;
+    } || return err ('cannot load module App::Markpod');
+
+
+    #  Get the VERSION_FROM file. That is considered the main files
+    #
+    my $fn=$param_hr->{'VERSION_FROM'} ||
+        return err('unable to determine version_from file, params %s', Dumper($param_hr));
+    msg("processing $fn, extracting markdown to README.md");
+
+
+    #  Convert file
+    #
+    my $markpod_or=App::Markpod->new({
+        extract		=> 1,
+        outfile		=> 'README.md'
+    }) || return err('unable to create new App::Markpod object');
+    $markpod_or->markpod($fn) ||
+        return err("error on converting file $fn to markpod");
+
+
+    #  Done
+    #
+    return \undef;
+
+}
+
+
 sub kwalitee {
 
 
@@ -2012,8 +2052,8 @@ sub doc {
 
         #  Slurp in the file
         #
-        my $xml=$self->doc_slurp($fn) ||
-            return err();
+        my $xml=${ $self->doc_slurp($fn) ||
+            return err() };
 
 
         #  Get target file name;
@@ -2043,7 +2083,8 @@ sub doc {
                 msg("converted to Markdown: $md_fn");
 
                 #  Text
-                my $text=$self->doc_docbook2text($xml);
+                my $text=${$self->doc_docbook2text($xml) ||
+                    return err() };
                 #  Bug in pandoc - remove lines with > only
                 #
                 my @text;
@@ -2080,8 +2121,8 @@ sub doc {
     
         #  Slurp in the file
         #
-        my $md=$self->doc_slurp($fn) ||
-            return err();
+        my $md=${ $self->doc_slurp($fn) ||
+            return err() };
 
 
         #  Get target file name;
@@ -2089,8 +2130,8 @@ sub doc {
         (my $target_fn=$fn)=~s/\.md$//;
         msg("considering $target_fn");
         if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
-            my $pod=$self->doc_md2pod($md) ||
-                return err ();
+            my $pod={ $self->doc_md2pod($md) ||
+                return err () };
             Docbook::Convert->pod_replace($target_fn, $pod) ||
                 return err ();
             msg("converted to POD: $target_fn");
@@ -2132,7 +2173,7 @@ sub doc_slurp {
     local $/=undef;
     $text=<$fh>;
     $fh->close();
-    return $text;
+    return \($text ||= '');
     
 }
     
@@ -2176,7 +2217,7 @@ sub doc_md2pod {
 
     #  Done
     #
-    return $pod;
+    return \($pod ||='');
 
 }
 
@@ -2207,6 +2248,7 @@ sub doc_md2text {
     my $text;
     {   my $command_ar=
             $PANDOC_CMD_MD2TEXT_CR->($PANDOC_EXE, '-');
+        #die Dumper($command_ar, \$md, ($fn || \$text), \undef);
         IPC::Run3::run3($command_ar, \$md, ($fn || \$text), \undef) ||
             return err ('unable to run3 %s', Dumper($command_ar));
         if ((my $err=$?) >> 8) {
@@ -2216,7 +2258,7 @@ sub doc_md2text {
 
     #  Done
     #
-    return $text;
+    return \($text ||= '');
 
 }
 
@@ -2255,7 +2297,7 @@ sub doc_docbook2text {
 
     #  Done
     #
-    return $text;
+    return \($text ||= '');
 
 }
 

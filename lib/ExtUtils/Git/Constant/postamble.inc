@@ -137,3 +137,7 @@ readme :
 	pandoc -f docbook -t markdown_github $(VERSION_FROM).xml > README.md
 	pandoc -f docbook -t plain $(VERSION_FROM).xml > README
 	$(MAKE) git_autocopyright
+
+markpod_readme:
+	@$(GIT_PERL_PM)
+	$(MAKE) doc

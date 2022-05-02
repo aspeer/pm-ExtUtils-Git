@@ -775,7 +775,9 @@ sub git_autocopyright_md {
     #
     #foreach my $fn (grep {/\.md$/} keys %{$manifest_hr}) {
     my @fn (grep {/\.md$/} keys %{$manifest_hr}) {
-    foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
+    #foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
+    #  Don't do pm files yet
+    foreach my $fn (@fn) {
 
 
         #  Start processing

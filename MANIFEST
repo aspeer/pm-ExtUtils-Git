@@ -2,7 +2,6 @@ MANIFEST
 MANIFEST.SKIP
 Makefile.PL
 lib/ExtUtils/Git.pm
-lib/ExtUtils/Git.pm.xml
 lib/ExtUtils/Git/Util.pm
 lib/ExtUtils/Git/Constant.pm
 lib/ExtUtils/Git/Constant/postamble.inc

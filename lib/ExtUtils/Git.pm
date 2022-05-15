@@ -1,14 +1,14 @@
 #
-#  This file is part of ExtUtils::Git.
+# This file is part of ExtUtils::Git.
 #
-#  This software is copyright (c) 2022 by Andrew Speer <andrew.speer@isolutions.com.au>.
+# This software is copyright (c) 2022 by Andrew Speer <andrew.speer@isolutions.com.au>.
 #
-#  This is free software; you can redistribute it and/or modify it under
-#  the same terms as the Perl 5 programming language system itself.
+# This is free software; you can redistribute it and/or modify it under
+# the same terms as the Perl 5 programming language system itself.
 #
-#  Full license text is available at:
+# Full license text is available at:
 #
-#  <http://dev.perl.org/licenses/>
+# <http://dev.perl.org/licenses/>
 #
 
 
@@ -742,7 +742,6 @@ sub git_autocopyright_xml {
 }
 
 
-
 sub git_autocopyright_md {
 
 
@@ -751,7 +750,7 @@ sub git_autocopyright_md {
     my ($self, $param_hr)=(shift(), arg(@_));
     my ($license, $author, $name, $pm_to_inst_ar, $exe_files_ar)=
         @{$param_hr}{qw(LICENSE AUTHOR NAME TO_INST_PM_AR EXE_FILES_AR)};
-    debug('in git_autocopyright');
+    debug('in git_autocopyright_md');
 
 
     #  Generate copyright
@@ -774,12 +773,11 @@ sub git_autocopyright_md {
     #  Iterate across files to protect
     #
     #foreach my $fn (grep {/\.md$/} keys %{$manifest_hr}) {
-    my @fn (grep {/\.md$/} keys %{$manifest_hr}) {
-    #foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
-    #  Don't do pm files yet
-    foreach my $fn (@fn) {
-
-
+    my $in_markdown;
+    my @fn=(grep {/\.md$/i} keys %{$manifest_hr});
+    #my @fn;
+    foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
+        
         #  Start processing
         #
         msg("considering $fn");
@@ -799,6 +797,12 @@ sub git_autocopyright_md {
         }
 
 
+        #  If file is .md then whole file is markdown. If not we need to parse for markdown section
+        #
+        #$in_markdown++ if ($fn=~/\.md$/i);
+        #  Prob not needed anymore
+
+
         #  Open file for read
         #
         my $fh=IO::File->new($fn, O_RDONLY) ||
@@ -812,104 +816,145 @@ sub git_autocopyright_md {
         my @header;
 
 
-        #  Flag set if existing copyright notice detected
-        #
-        my $keyword_found_fg;
-
-
         #  Turn into array, search for keyword
         #
-        my ($lineno, @line, $headno)=0;
+        my %headno;
+        my ($lineno, @line);
         while (my $line=<$fh>) {
             push @line, $line;
-            debug("line $line");
             foreach my $keyword (@keyword) {
                 if ($line=~/^(#+).*\Q$keyword\E/i) {
+                    debug("hit on line $line\n");
                     push(@header, $lineno || 0);
-                    $headno=$1;
+                    $headno{$lineno}=$1;
                     last;
                 }
             }
             $lineno++;
         }
-        debug("headno: $headno, lineno $lineno. %s", Dumper(\@header));
+        debug("headno: %s, lineno $lineno. %s", Dumper(\%headno), Dumper(\@header));
 
 
         #  Close
         #
         $fh->close();
-
-
-        #  Only do cleanup of old copyright if copyright section was found
+        
+        
+        #  If we found hits then start processing
         #
-        if (defined($header[0])) {
+        my $file_updated;
+        if (@header) {
+        
 
-
-            #  Valid copyright block (probably) found. Set flag
+            #  Yes, start processing each line where we saw a hit
             #
-            debug("keyword found");
-            $keyword_found_fg++;
+            while (my $header_start_line_no=shift(@header)) {
 
-
-            #  Start looks for start and end of header
-            #
-            for (my $lineno_header=$header[0]+1; $lineno_header <= @line; $lineno_header++) {
-
-
-                #  We are going forwards through file, as soon as we
-                #  see a non comment line we quit
+        
+                #   Wheer does this header end ?
                 #
-                my $line_header=$line[$lineno_header];
-                last if $line_header=~/^#+/i;
-                $header[1]=$lineno_header;
+                my $header_end_line_no;
 
+
+                #  Start looking for end of header
+                #
+                for ($header_end_line_no=$header_start_line_no+1; $header_end_line_no <= @line; $header_end_line_no++) {
+
+
+                    #  We are going forwards through file, as soon as we
+                    #  see next hash then that is the end of this markdown section
+                    #
+                    my $line_header=$line[$header_end_line_no];
+                    last if $line_header=~/^#+/i;
+
+                }
+                
+
+                #  If not found preseume it's everything till end of file
+                #
+                $header_end_line_no ||= @line;
+                debug('header_start_line_no:%s, header_end_line_no:%s', $header_start_line_no, $header_end_line_no);
+
+
+                #  Check if this is actually a comment section (all lines #), not actual markdown. Start by generating text we
+                #  have found.
+                #
+                my @header_copyright_ln=@line[$header_start_line_no..$header_end_line_no];
+                my $header_copyright=join('', @header_copyright_ln);
+                debug("copyright canidate: $header_copyright");
+                
+
+                #  Check if this is actually a comment section (all lines #), not actual markdown
+                #
+                debug("in_markdown: $in_markdown, header_copyright %s", $header_copyright);
+                unless ($in_markdown) {
+                    my @count_hash=($header_copyright=~/^\#/mg);
+                    my $count_hash=scalar @count_hash;
+                    debug("count_hash $count_hash, lc %s", scalar @header_copyright_ln);
+                    if ($count_hash == scalar @header_copyright_ln) {
+                        debug('skip - looks like comments');
+                        next;
+                    }
+                }
+
+
+                #  Valid copyright block (probably) found. Get the markdown heading style (#,## etc.) and generate
+                #
+                my $headno=$headno{$header_start_line_no};
+                my $copyright_insert="$headno $COPYRIGHT_HEADER_MD" . $copyright;
+
+
+                #  Only do update if no match
+                #
+                debug("hc: $header_copyright, c: $copyright_insert");
+                if ($header_copyright ne $copyright_insert) {
+
+
+                    #  Need to update. If delim found, need to splice out
+                    #
+                    msg "copyright updated: $fn";
+                    debug('splicing out');
+                    splice(@line, $header_start_line_no, ($header_end_line_no-$header_start_line_no+1));
+
+
+                    #  Splice new notice in now
+                    #
+                    splice(@line, $header_start_line_no, 0, $copyright_insert);
+                    #die Dumper(\@line);
+                    
+                    #  Flag that file needs to be written out
+                    #
+                    $file_updated++;
+                    
+                }
+                else {
+                
+                    #  Copyright is ok
+                    #
+                    msg("copyright OK at line $header_start_line_no: $fn");
+                    
+                }
             }
-            $header[1] ||= @line;
-            debug('header[0]:%s, header[1]:%s', @header);
-
         }
         else {
 
-
-            # No match found. Skip
+            # No header match found. Skip
             #
             msg("copyright section not found: $fn");
             next;
 
         }
-
-
-        #  Massage copyright with POD header, primitive link conversion
+        
+        
+        #  If we get here file might have been updated. Do we need to save ?
         #
-        my $copyright_insert="$headno $COPYRIGHT_HEADER_MD" . $copyright;
-
-
-        #  Only do update if no match
-        #
-        my $header_copyright=join('', @line[$header[0]..$header[1]]);
-        debug("hc: $header_copyright, c: $copyright_insert");
-        if ($header_copyright ne $copyright_insert) {
-
-
-            #  Need to update. If delim found, need to splice out
+        if ($file_updated) {
+        
+            
+            #  It has, write out
             #
-            msg "copyright updated: $fn";
-            if ($keyword_found_fg) {
-
-
-                #  Yes, found, so splice existing notice out
-                #
-                debug('splicing out');
-                splice(@line, $header[0], ($header[1]-$header[0]+1));
-
-
-            }
-
-
-            #  Splice new notice in now
-            #
-            splice(@line, $header[0], 0, $copyright_insert);
-
+            debug("writing out file: $fn");
+        
 
             #  Re-open file for write out
             #
@@ -917,12 +962,14 @@ sub git_autocopyright_md {
                 return err ("unable to open $fn, $!");
             print $fh join('', @line);
             $fh->close();
-
+            
         }
         else {
-
-            msg "copyright OK: $fn";
-
+        
+            #  No
+            # 
+            msg("file not changed: $fn");
+            
         }
 
     }

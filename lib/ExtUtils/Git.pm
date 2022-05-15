@@ -853,12 +853,13 @@ sub git_autocopyright_md {
         
                 #   Wheer does this header end ?
                 #
-                my $header_end_line_no;
+                my $header_end_line_no=$header_start_line_no+1;
 
 
                 #  Start looking for end of header
                 #
-                for ($header_end_line_no=$header_start_line_no+1; $header_end_line_no <= @line; $header_end_line_no++) {
+                #for ($header_end_line_no=$header_start_line_no+1; $header_end_line_no <= @line; $header_end_line_no++) {
+                while ($header_end_line_no <= @line) {
 
 
                     #  We are going forwards through file, as soon as we
@@ -866,6 +867,8 @@ sub git_autocopyright_md {
                     #
                     my $line_header=$line[$header_end_line_no];
                     last if $line_header=~/^#+/i;
+                    last if $line_header=~/^=end\s+markdown/i;
+                    $header_end_line_no++;
 
                 }
                 
@@ -914,7 +917,8 @@ sub git_autocopyright_md {
                     #
                     msg "copyright updated: $fn";
                     debug('splicing out');
-                    splice(@line, $header_start_line_no, ($header_end_line_no-$header_start_line_no+1));
+                    #splice(@line, $header_start_line_no, ($header_end_line_no-$header_start_line_no+1));
+                    splice(@line, $header_start_line_no, ($header_end_line_no-$header_start_line_no));
 
 
                     #  Splice new notice in now

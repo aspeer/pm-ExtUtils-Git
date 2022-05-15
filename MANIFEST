@@ -8,7 +8,6 @@ lib/ExtUtils/Git/Constant/postamble.inc
 lib/ExtUtils/Git/Constant/copyright.inc
 lib/ExtUtils/Git/MM.pm
 t/00-load.t
-test.md
 LICENSE
 INSTALL
 README

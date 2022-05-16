@@ -2080,12 +2080,6 @@ sub doc {
     #  md=>text
 
 
-    #  Load Docbook2Pod module
-    #
-    eval {
-        require Docbook::Convert;
-        1;
-    } || return err ('cannot load module Docbook::Convert');
 
 
     #  Look for all XML files
@@ -2094,7 +2088,17 @@ sub doc {
     msg('found following docbook files for conversion %s', Dumper(\@manifest_xml_fn))
         if @manifest_xml_fn;
     
+
+    #  Load Docbook2Pod module if needed
+    #
+    if (@manifest_xml_fn) {
+        eval {
+            require Docbook::Convert;
+            1;
+        } || return err ('cannot load module Docbook::Convert');
+    }
     
+        
     #  Hash to hold files we generate so not processed twice
     #
     my %ignore_fn;
@@ -2183,8 +2187,9 @@ sub doc {
         #  Get target file name;
         #
         (my $target_fn=$fn)=~s/\.md$//;
-        msg("considering $target_fn");
+        msg("considering target $target_fn from file: $fn");
         if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
+            msg("converting $fn to POD");
             my $pod={ $self->doc_md2pod($md) ||
                 return err () };
             Docbook::Convert->pod_replace($target_fn, $pod) ||
@@ -2196,6 +2201,7 @@ sub doc {
             #
             if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
                 #  Plain text
+                msg("converting $fn to plain text $target_fn");
                 $self->doc_md2text($md, $target_fn) ||
                     return err ();
                 maniadd({$target_fn=> undef});

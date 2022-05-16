@@ -78,7 +78,7 @@ sub bin_find {
 
     #  Return
     #
-    return $bin_fn;
+    return $bin_fn || '';
 
 }
 

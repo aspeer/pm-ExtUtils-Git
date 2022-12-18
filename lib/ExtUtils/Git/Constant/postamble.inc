@@ -49,6 +49,12 @@ git_version_increment : git_status git_autolicense git_autocopyright
 	$(MAKE) git_tag
 
 
+#  Version increment force - no checks
+#
+git_version_increment_force : 
+	@$(GIT_PERL_PM)
+
+
 #  Build distribution
 #
 git_dist : git_status 

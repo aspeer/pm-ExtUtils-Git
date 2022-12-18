@@ -1,14 +1,14 @@
 #
-# This file is part of ExtUtils::Git.
+#  This file is part of ExtUtils::Git.
 #
-# This software is copyright (c) 2022 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  This software is copyright (c) 2022 by Andrew Speer <andrew.speer@isolutions.com.au>.
 #
-# This is free software; you can redistribute it and/or modify it under
-# the same terms as the Perl 5 programming language system itself.
+#  This is free software; you can redistribute it and/or modify it under
+#  the same terms as the Perl 5 programming language system itself.
 #
-# Full license text is available at:
+#  Full license text is available at:
 #
-# <http://dev.perl.org/licenses/>
+#  <http://dev.perl.org/licenses/>
 #
 
 
@@ -60,7 +60,7 @@ $ExtUtils::Manifest::Quiet=1;
 #  Version information in a format suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.176';
+$VERSION='1.179';
 
 
 #  All done, init finished
@@ -1686,6 +1686,16 @@ sub git_version_increment {
 }
 
 
+sub git_version_increment_force {
+
+
+   #  Pseudonmy for version increment from target with no check 
+   #
+   return shift()->git_version_increment(@_);
+   
+}
+
+
 sub git_version_reset {
 
 
@@ -2568,19 +2578,18 @@ Requires [PerlyTidy::SubSort](https://github.com/aspeer/pm-PerlTidy-SubSort)
 
 Andrew Speer <andrew.speer@isolutions.com.au>
 
-# LICENSE
+# LICENSE and COPYRIGHT
 
-This software is copyright (c) 2015 by Andrew Speer <andrew.speer@isolutions.com.au>.
+This file is part of ExtUtils::Git.
+
+This software is copyright (c) 2022 by Andrew Speer <andrew.speer@isolutions.com.au>.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
-Terms of the Perl programming language system itself
+Full license text is available at:
 
-a) the GNU General Public License as published by the Free
-   Software Foundation; either version 1, or (at your option) any
-   later version, or
-b) the "Artistic License"
+<http://dev.perl.org/licenses/>
 
 =end markdown
 

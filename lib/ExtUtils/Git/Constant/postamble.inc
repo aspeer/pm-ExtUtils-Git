@@ -63,7 +63,7 @@ git_dist : git_status
 
 #  Make new repository and import files into Git
 #
-git_import : git_init git_autolicense git_autocopyright
+git_import : git_init git_autolicense git_autocopyright cpanfile
 	@$(GIT_PERL_PM) && \
 	$(GIT_EXE) commit -m "MANIFEST Import"
 
@@ -153,6 +153,7 @@ markpod_readme :
 #
 cpanfile :
 	scan-perl-prereqs-nqlite  --exclude_core --suggests --save_cpanfile 
+	@$(GIT_PERL_PM)
 
 scandeps :
 	scan-perl-prereqs-nqlite  --exclude_core 

@@ -110,6 +110,8 @@ sub fn {
 
     LICENSE_FN => 'LICENSE',
 
+    CPANFILE_FN => 'cpanfile',
+
     METAFILE_FN => 'META.yml',
 
     EXTUTILS_ARGV => q["$(NAME)" "$(NAME_SYM)" "$(DISTNAME)" "$(DISTVNAME)" "$(VERSION)" ] .

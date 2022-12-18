@@ -2074,6 +2074,25 @@ sub git_version_update_file {
 }
 
 
+sub cpanfile {
+
+    #  Generate cpanfile for CPANMinus. Actually done by scandeps - but add to git here
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+
+
+    #  Add to manifest and git if needed
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+    unless ($manifest_hr->{$CPANFILE_FN}) {
+        ExtUtils::Manifest::maniadd({$CPANFILE_FN => undef});
+        my $git_or=$self->_git();
+        $git_or->add($CPANFILE_FN);
+    }
+
+}
+
+
 sub doc {
 
 

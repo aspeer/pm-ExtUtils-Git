@@ -38,7 +38,7 @@ use Cwd;
 #  Version information in a formate suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.179';
+$VERSION='1.180';
 
 
 #  use ExtUtils::MakeMaker as our parent class.

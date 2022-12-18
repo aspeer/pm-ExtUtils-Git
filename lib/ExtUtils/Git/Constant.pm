@@ -40,7 +40,8 @@ $VERSION='1.178';
 #  Get module file name and path, derive name of file to store local constants
 #
 my $module_fn=abs_path(__FILE__);
-my $local_fn="${module_fn}.local";
+my $constant_local_fn="${module_fn}.local";
+my $constant_home_fn=glob(sprintf('~/.%s.local', __PACKAGE__));
 
 
 #  Find file in path
@@ -149,6 +150,7 @@ sub fn {
             *.tmp
             .dumper.cache
             *.tdy
+            .pm_filter.pf
             )
     ],
 
@@ -219,7 +221,9 @@ sub fn {
 
     #  Local constants override anything above
     #
-    %{do($local_fn)}
+    %{do($constant_local_fn)},
+    %{do($constant_home_fn)}
+    
 
 );
 

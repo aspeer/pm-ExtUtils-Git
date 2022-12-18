@@ -1438,7 +1438,14 @@ sub git_remote {
         $remote{$name}=$repo;
     }
     while (my ($name, $repo)=each %{$GIT_REMOTE_HR}) {
-        my $repo_location=sprintf($repo, $param_hr->{'DISTNAME'});
+        my $repo_location;
+        if ($repo=~/\%/) {
+           # Needs sprintf
+           $repo_location=sprintf($repo, $param_hr->{'DISTNAME'}) 
+        }
+        else {
+           $repo_location=$repo;
+        }
         if (exists($remote{$name}) && ($remote{$name} ne $repo_location)) {
 
             #  Already exists - delete
@@ -2080,8 +2087,6 @@ sub doc {
     #  md=>text
 
 
-
-
     #  Look for all XML files
     #
     my @manifest_xml_fn=grep {/\.xml$/} keys %{$manifest_hr};
@@ -2214,8 +2219,13 @@ sub doc {
         }
 
     }
-
-
+    
+    
+    #  Do markpod files also
+    #
+    $self->markpod(@_);
+    
+    
     #  Done
     #
     return \undef;

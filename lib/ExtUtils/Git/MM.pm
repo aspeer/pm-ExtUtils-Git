@@ -83,6 +83,7 @@ sub import {
         distdir
         depend
         postamble
+        special_targets
         );    #dist_ci
     {   no warnings 'redefine';
         foreach my $section (grep {$import_tag{$_} || $import_tag{':all'}} @section) {
@@ -250,3 +251,13 @@ sub postamble {
 
 }
 
+
+sub special_targets {
+
+    my $self=shift();
+    my $special_targets=$self->{'special_targets'}(@_);
+    $special_targets=~s/\.PHONY:\s+(.*)/\.PHONY: $1 cpanfile/m;
+    return $special_targets;
+
+}
+    

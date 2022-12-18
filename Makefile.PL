@@ -42,13 +42,12 @@ WriteMakefile(
 
     PREREQ_PM                           =>    do { $::prereq_hr={
 
-        'File::Touch'                   =>  0,
         'File::Grep'                    =>  0,
         'Git::Wrapper'                  =>  0,
         'Software::License'             =>  0,
+        'Software::LicenseUtils'        =>  0,
         'Module::Extract::VERSION'      =>  0,
-	    'PPI'				            =>  0,
-	    'XML::Twig'			            =>  0
+	'PPI'				=>  0
 
        }; ($ENV{'PREREQ_PM'} eq '0') ? {} : $::prereq_hr },
 

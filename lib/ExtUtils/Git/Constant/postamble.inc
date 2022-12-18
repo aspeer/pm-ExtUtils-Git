@@ -138,6 +138,16 @@ readme :
 	pandoc -f docbook -t plain $(VERSION_FROM).xml > README
 	$(MAKE) git_autocopyright
 
-markpod_readme:
+markpod_readme :
 	@$(GIT_PERL_PM)
 	$(MAKE) doc
+
+
+#  Make CPANM file, scan deps
+#
+cpanfile :
+	scan-perl-prereqs-nqlite  --exclude_core --suggests --save_cpanfile 
+
+scandeps :
+	scan-perl-prereqs-nqlite  --exclude_core 
+

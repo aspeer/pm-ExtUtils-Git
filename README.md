@@ -73,11 +73,13 @@ Run Module::CPANTS::Kwalitee tests against a distribution and report results. Re
 
 **perlcritic**
 
-Run perlcritic across all Perl files in the distribution MANIFEST and report results
+Run perlcritic across all Perl files in the distribution MANIFEST and report results. Requires
+Perl::Critic from CPAN to be installed
 
 **perltidy**
 
-Run perltidy across all Perl files in the distribution MANIFEST. Requires [PerlyTidy::SubSort](https://github.com/aspeer/pm-PerlTidy-SubSort)
+Run perltidy across all Perl files in the distribution MANIFEST. Requires Perl::Tidy from CPAN to
+be installed.
 
 **perlver**
 
@@ -87,14 +89,20 @@ Run Perl::MinimumVersion across all Perl file in the distribution MANIFEST and r
 
 Convert Markdown formatted POD embedded in files plain POD. Requires [pl-markpod](https://github.com/aspeer/pl-markpod)
 
+**markpod_readme
+
+Convert Markdown formatted POD embedded in main module file (designated by VERSION_FROM in
+Makefile.PL) into README.md
+
 **readme**
 
-Generate README file from README.md
+Generate README file from README.md. Will also look for INSTALL.md and convert to plaintext
+INSTALL. Requires [Pandoc](https://pandoc.org)
 
 **subsort**
 
 Sort all subroutines in all Perl files in the distribution MANIFEST into alphabetical order.
-Requires 
+Requires [PerlyTidy::SubSort](https://github.com/aspeer/pm-PerlTidy-SubSort)
 
 # AUTHOR
 
@@ -112,4 +120,3 @@ the same terms as the Perl 5 programming language system itself.
 Full license text is available at:
 
 <http://dev.perl.org/licenses/>
-

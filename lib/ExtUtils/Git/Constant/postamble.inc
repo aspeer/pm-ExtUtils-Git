@@ -1,7 +1,7 @@
 GIT_TARGETS=git_manicheck git_version git_ignore git_tag git_autolicense git_version_increment_commit \
 	git_lint git_version_dump git_version_increment_files git_remote git_push git_arg git_version_reset \
 	git_autocopyright_pm git_autocopyright_pod git_autocopyright_xml git_autocopyright_md \
-	perlver doc markpod
+	perlver markpod
 
 
 #  Other targets that need the Makefile rebuilt after running
@@ -27,10 +27,15 @@ $(GIT_TARGETS_BRANCH) : git_ci
 	$(MAKE)
 
 
-#  Targets that have dependencies, extra steps etc.
+#  Targets that have dependencies, extra steps etc. 
 #
-git_ci : git_manicheck 
+git_ci : git_manicheck doc cpanfile
 	$(GIT_EXE) commit -a
+
+
+#  Git commit is an aliase for git_ci
+#
+git_commit : git_ci
 
 
 #  Target to build a release
@@ -139,14 +144,20 @@ git_autocopyright : git_autocopyright_pm git_autocopyright_xml git_autocopyright
 
 #  Create README
 #
-readme :
-	pandoc -f docbook -t markdown_github $(VERSION_FROM).xml > README.md
-	pandoc -f docbook -t plain $(VERSION_FROM).xml > README
-	$(MAKE) git_autocopyright
+pandoc_readme :
+	$(MAKE) git_autocopyright_xml
+	[ -f "$(VERSION_FROM).xml" ] && pandoc -f docbook -t gfm "$(VERSION_FROM).xml" > README.md || $(TRUE)
+	[ -f "$(VERSION_FROM).xml" ] && pandoc -f docbook -t plain $(VERSION_FROM).xml > README || $(TRUE)
 
 markpod_readme :
+	$(MAKE) git_autocopyright_md
 	@$(GIT_PERL_PM)
-	$(MAKE) doc
+
+
+#  Create doc
+#
+doc : git_autocopyright_pm pandoc_readme markpod markpod_readme
+	@$(GIT_PERL_PM)
 
 
 #  Make CPANM file, scan deps

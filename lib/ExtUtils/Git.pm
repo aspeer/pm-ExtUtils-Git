@@ -399,6 +399,23 @@ sub git_autocopyright_pod {
         return err ("unable to generate copyright from license $license");
 
 
+    #  Not strictly markdown but pass through markdown=>POD parser to interpret links ets
+    #
+    eval {
+        require App::Markpod;
+        1;
+    } || return err ('cannot load module App::Markpod');
+    my $markpod_or=App::Markpod->new();
+    my $md2pod_or=Markdown::Pod->new() ||
+        return err ('unable to create new Markdown::Pod object');
+    my $copyright_pod=$md2pod_or->markdown_to_pod(dialect => $markpod_or->{'dialect'}, markdown => $copyright) ||
+        return err ('unknown error from App::Markpod->markpod_parse');
+    #  Add CR's back in
+    #
+    $copyright_pod="\n${copyright_pod}\n";
+    #die("copyright: *$copyright*, copyright_pod: *$copyright_pod*");
+
+
     #  Get manifest - only update files listed there
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
@@ -413,7 +430,8 @@ sub git_autocopyright_pod {
 
     #  Iterate across files to protect
     #
-    foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
+    #foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
+    foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}, @fn) {
 
 
         #  Check for exclusion;
@@ -516,7 +534,7 @@ sub git_autocopyright_pod {
 
         #  Massage copyright with POD header, primitive link conversion
         #
-        my $copyright_insert=sprintf($COPYRIGHT_HEADER_POD, $headno) . $copyright;
+        my $copyright_insert=sprintf($COPYRIGHT_HEADER_POD, $headno) . $copyright_pod;
         $copyright_insert=~s/^\s*<http/L<http/m;
 
 
@@ -775,8 +793,8 @@ sub git_autocopyright_md {
     #foreach my $fn (grep {/\.md$/} keys %{$manifest_hr}) {
     my $in_markdown;
     my @fn=(grep {/\.md$/i} keys %{$manifest_hr});
-    #my @fn;
-    foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
+    #foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
+    foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}, @fn) {
         
         #  Start processing
         #
@@ -866,8 +884,13 @@ sub git_autocopyright_md {
                     #  see next hash then that is the end of this markdown section
                     #
                     my $line_header=$line[$header_end_line_no];
-                    last if $line_header=~/^#+/i;
-                    last if $line_header=~/^=end\s+markdown/i;
+                    if ($line_header=~/^#+/i || $line_header=~/^=end\s+markdown/i) {
+                        #  Back up a line to ignore end of copyright marker
+                        $header_end_line_no--;
+                        last;
+                    }
+                    #last if $line_header=~/^#+/i;
+                    #last if $line_header=~/^=end\s+markdown/i;
                     $header_end_line_no++;
 
                 }
@@ -1837,8 +1860,9 @@ sub markpod {
         next unless exists $manifest_hr->{$fn};
         msg("processing $fn");
         my $markpod_or=App::Markpod->new();
-        $markpod_or->markpod($fn) ||
+        my $changes_sr=$markpod_or->markpod($fn) ||
             return err("error on converting file $fn to markpod");
+        msg('changes made: %s', ${$changes_sr} || 0 );
 
     }
 
@@ -2149,7 +2173,8 @@ sub doc {
             return err() };
 
 
-        #  Get target file name;
+        #  Get target file name. If foo.pm.xml, bar.pl.xml and foo.pm or bar.pl exists, then
+        #  convert Docbook to POD and install into target file.
         #
         (my $target_fn=$fn)=~s/\.xml$//;
         msg("considering $target_fn");
@@ -2161,11 +2186,12 @@ sub doc {
             msg("converted to POD: $target_fn");
         }
         else {
-            #  Also convert README or INSTALL
+            #  Also convert README.xml or INSTALL.xml to INSTALL.md or INSTALL.xml
             #
             if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
 
-                #  Markdown
+                #  Covert to Markdown
+                #
                 (my $md_fn=$target_fn).='.md';
                 $ignore_fn{$md_fn}++;
                 my $md=Docbook::Convert->markdown($xml, { no_warn_unhandled=>1 }) ||
@@ -2175,7 +2201,8 @@ sub doc {
                 maniadd({$md_fn=> undef});
                 msg("converted to Markdown: $md_fn");
 
-                #  Text
+                #  And then to README and INSTALL text files
+                #
                 my $text=${$self->doc_docbook2text($xml) ||
                     return err() };
                 #  Bug in pandoc - remove lines with > only
@@ -2218,7 +2245,10 @@ sub doc {
             return err() };
 
 
-        #  Get target file name;
+        #  Get target file name. If foo.pm.md, bar.pl.md and foo.pm or bar.pl exists, then
+        #  convert Markdown to POD and install into target file.
+        #
+
         #
         (my $target_fn=$fn)=~s/\.md$//;
         msg("considering target $target_fn from file: $fn");
@@ -2248,11 +2278,6 @@ sub doc {
         }
 
     }
-    
-    
-    #  Do markpod files also
-    #
-    $self->markpod(@_);
     
     
     #  Done
@@ -2612,6 +2637,7 @@ Full license text is available at:
 
 =end markdown
 
+
 =head1 NAME
 
 ExtUtils::Git -- create Makefile targets for Git checkin and other utility/tidy up functions
@@ -2687,11 +2713,13 @@ Run Module::CPANTS::Kwalitee tests against a distribution and report results. Re
 
 B<perlcritic>
 
-Run perlcritic across all Perl files in the distribution MANIFEST and report results
+Run perlcritic across all Perl files in the distribution MANIFEST and report results. Requires
+Perl::Critic from CPAN to be installed
 
 B<perltidy>
 
-Run perltidy across all Perl files in the distribution MANIFEST. Requires L<PerlyTidy::SubSort|https://github.com/aspeer/pm-PerlTidy-SubSort>
+Run perltidy across all Perl files in the distribution MANIFEST. Requires Perl::Tidy from CPAN to
+be installed.
 
 B<perlver>
 
@@ -2701,14 +2729,20 @@ B<markpod>
 
 Convert Markdown formatted POD embedded in files plain POD. Requires L<pl-markpod|https://github.com/aspeer/pl-markpod>
 
+**markpod_readme
+
+Convert Markdown formatted POD embedded in main module file (designated by VERSION_FROM in
+Makefile.PL) into README.md
+
 B<readme>
 
-Generate README file from README.md
+Generate README file from README.md. Will also look for INSTALL.md and convert to plaintext
+INSTALL. Requires L<Pandoc|https://pandoc.org>
 
 B<subsort>
 
 Sort all subroutines in all Perl files in the distribution MANIFEST into alphabetical order.
-Requires 
+Requires L<PerlyTidy::SubSort|https://github.com/aspeer/pm-PerlTidy-SubSort>
 
 
 =head1 AUTHOR
@@ -2720,12 +2754,13 @@ Andrew Speer L<mailto:andrew.speer@isolutions.com.au>
 
 This file is part of ExtUtils::Git.
 
-This software is copyright (c) 2022 by Andrew Speer <andrew.speer@isolutions.com.au>.
+This software is copyright (c) 2022 by Andrew Speer L<mailto:andrew.speer@isolutions.com.au>.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
 Full license text is available at:
+
 L<http://dev.perl.org/licenses/>
 
 =cut

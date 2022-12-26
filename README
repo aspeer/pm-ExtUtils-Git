@@ -91,12 +91,12 @@ results. Requires Module::CPANTS::SiteKwalitee
 perlcritic
 
 Run perlcritic across all Perl files in the distribution MANIFEST and
-report results
+report results. Requires Perl::Critic from CPAN to be installed
 
 perltidy
 
 Run perltidy across all Perl files in the distribution MANIFEST.
-Requires PerlyTidy::SubSort
+Requires Perl::Tidy from CPAN to be installed.
 
 perlver
 
@@ -108,30 +108,35 @@ markpod
 Convert Markdown formatted POD embedded in files plain POD. Requires
 pl-markpod
 
+**markpod_readme
+
+Convert Markdown formatted POD embedded in main module file (designated
+by VERSION_FROM in Makefile.PL) into README.md
+
 readme
 
-Generate README file from README.md
+Generate README file from README.md. Will also look for INSTALL.md and
+convert to plaintext INSTALL. Requires Pandoc
 
 subsort
 
 Sort all subroutines in all Perl files in the distribution MANIFEST into
-alphabetical order. Requires
+alphabetical order. Requires PerlyTidy::SubSort
 
 AUTHOR
 
 Andrew Speer andrew.speer@isolutions.com.au
 
-LICENSE
+LICENSE and COPYRIGHT
 
-This software is copyright (c) 2015 by Andrew Speer
+This file is part of ExtUtils::Git.
+
+This software is copyright (c) 2022 by Andrew Speer
 andrew.speer@isolutions.com.au.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
-Terms of the Perl programming language system itself
+Full license text is available at:
 
-a) the GNU General Public License as published by the Free Software
-Foundation; either version 1, or (at your option) any later version, or
-
-b) the "Artistic License"
+http://dev.perl.org/licenses/

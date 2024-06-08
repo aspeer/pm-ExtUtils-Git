@@ -1189,7 +1189,7 @@ sub git_import {
     #  Check all files present
     #
     ExtUtils::Manifest::manicheck() &&
-        return err ('MANIFEST manicheck error');
+        return err ('MANIFEST manichleck error');
 
 
     #  Get the manifest
@@ -1402,6 +1402,54 @@ sub git_manicheck {
     #  All done
     #
     return $fail ? err ('MANIFEST check failed') : msg('Git and MANIFEST are in sync');
+
+}
+
+
+sub git_maniadd {
+
+
+    #  Add all git files into MANIFEST
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my $distname=$param_hr->{'DISTNAME'} ||
+        return err ('unable to get distname');
+
+
+    #  Get manifest
+    #
+    my $manifest_hr=ExtUtils::Manifest::maniread();
+
+
+    #  Read in all the Git files skipping any in MANIFEST.SKIP
+    #
+    my $maniskip_or=ExtUtils::Manifest::maniskip();
+    my %git_manifest=map {$_ => 1} grep {!$maniskip_or->($_)} $self->_git->ls_files;
+
+
+    #  Checl for files in Git but not in the MANIFEST
+    #
+    {   my %test=%git_manifest;
+        map {delete $test{$_}} keys %{$manifest_hr};
+        foreach my $fn_glob (@{$GIT_IGNORE_AR}) {
+            foreach my $fn (glob($fn_glob)) {
+                delete $test{$fn};
+            }
+        }
+        if (keys %test) {
+            msg(
+                "the following files are in Git but not in MANIFEST, adding: \n\n%s\n",
+                Dumper([sort keys %test]));
+            foreach my $fn (sort keys %test) {
+                ExtUtils::Manifest::maniadd({$fn => undef});
+            }
+        }
+    }
+
+
+    #  All done
+    #
+    return msg('Git and MANIFEST are in sync');
 
 }
 

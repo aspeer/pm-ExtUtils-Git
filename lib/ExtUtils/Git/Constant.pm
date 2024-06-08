@@ -128,7 +128,7 @@ sub fn {
     GIT_BRANCH_DEVELOPMENT => 'development',
 
     GIT_REMOTE_HR => {
-        origin => 'git@localhost:/pm-%s.git',
+        origin => 'gitea@localhost:/aspeer/pm-%s.git',
     },
 
     GIT_IGNORE_FN => '.gitignore',

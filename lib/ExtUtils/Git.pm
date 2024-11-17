@@ -408,7 +408,7 @@ sub git_autocopyright_pod {
     my $markpod_or=App::Markpod->new();
     my $md2pod_or=Markdown::Pod->new() ||
         return err ('unable to create new Markdown::Pod object');
-    my $copyright_pod=$md2pod_or->markdown_to_pod(dialect => $markpod_or->{'dialect'}, markdown => $copyright) ||
+    my $copyright_pod=$md2pod_or->markdown_to_pod(dialect => $markpod_or->{'opt'}{'dialect'}, markdown => $copyright) ||
         return err ('unknown error from App::Markpod->markpod_parse');
     #  Add CR's back in
     #
@@ -1908,8 +1908,20 @@ sub markpod {
         next unless exists $manifest_hr->{$fn};
         msg("processing $fn");
         my $markpod_or=App::Markpod->new();
-        my $changes_sr=$markpod_or->markpod($fn) ||
+        my $changes_sr=$markpod_or->markpod_process($fn) ||
             return err("error on converting file $fn to markpod");
+        if (${$changes_sr}) {
+            $markpod_or->markpod_inplace_update($fn) ||
+                return err();
+        }
+        my $md_sr=$markpod_or->markdown() ||
+            return err();
+        if (${$md_sr}) {
+            my $md_fn="${fn}.md";
+            msg("creating $md_fn");
+            $markpod_or->outfile($md_sr, $md_fn); 
+            maniadd({$md_fn=> undef});
+        }
         msg('changes made: %s', ${$changes_sr} || 0 );
 
     }
@@ -1947,12 +1959,23 @@ sub markpod_readme {
 
     #  Convert file
     #
-    my $markpod_or=App::Markpod->new({
-        extract		=> 1,
-        outfile		=> 'README.md'
-    }) || return err('unable to create new App::Markpod object');
-    $markpod_or->markpod($fn) ||
-        return err("error on converting file $fn to markpod");
+    #my $markpod_or=App::Markpod->new({
+    #    extract		=> 1,
+    #    outfile		=> 'README.md'
+    #}) || return err('unable to create new App::Markpod object');
+    #$markpod_or->markpod($fn) ||
+    #    return err("error on converting file $fn to markpod");
+    my $markpod_or=App::Markpod->new();
+    my $changes_sr=$markpod_or->markpod_process($fn) ||
+        return err();
+    if (${$changes_sr}) {
+        $markpod_or->outfile($markpod_or->markdown(), 'README.md') ||
+            return err();
+        msg('updated README.md');
+    }
+    else {
+        msg('no changes, README.md not updated');
+    }
 
 
     #  Done
@@ -2197,12 +2220,12 @@ sub doc {
 
     #  Load Docbook2Pod module if needed
     #
-    if (@manifest_xml_fn) {
+    #if (@manifest_xml_fn) {
         eval {
             require Docbook::Convert;
             1;
         } || return err ('cannot load module Docbook::Convert');
-    }
+    #}
     
         
     #  Hash to hold files we generate so not processed twice
@@ -2299,16 +2322,16 @@ sub doc {
 
         #
         (my $target_fn=$fn)=~s/\.md$//;
-        msg("considering target $target_fn from file: $fn");
-        if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
-            msg("converting $fn to POD");
-            my $pod={ $self->doc_md2pod($md) ||
-                return err () };
-            Docbook::Convert->pod_replace($target_fn, $pod) ||
-                return err ();
-            msg("converted to POD: $target_fn");
-        }
-        else {
+        #msg("considering target $target_fn from file: $fn");
+        #if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
+        #    msg("converting $fn to POD");
+        #    my $pod=${ $self->doc_md2pod($md) ||
+        #        return err () };
+        #    Docbook::Convert->pod_replace($target_fn, $pod) ||
+        #        return err ();
+        #    msg("converted to POD: $target_fn");
+        #}
+        #else {
             #  Also convert to text if README or INSTALL
             #
             if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
@@ -2323,7 +2346,7 @@ sub doc {
                 msg("skipped $target_fn");
             }
 
-        }
+        #}
 
     }
     

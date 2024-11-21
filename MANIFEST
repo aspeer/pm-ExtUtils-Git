@@ -13,3 +13,4 @@ INSTALL
 README
 README.md
 cpanfile
+lib/ExtUtils/Git.pm.md                   

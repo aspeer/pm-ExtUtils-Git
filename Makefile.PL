@@ -47,8 +47,9 @@ WriteMakefile(
         'Software::License'             =>  0,
         'Software::LicenseUtils'        =>  0,
         'Module::Extract::VERSION'      =>  0,
-	'PPI'				=>  0,
 	'XML::Twig'                     =>  0
+    	'PPI'				=>  0,
+    	'IPC::Run3'                     =>  0
 
        }; ($ENV{'PREREQ_PM'} eq '0') ? {} : $::prereq_hr },
 

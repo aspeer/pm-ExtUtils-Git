@@ -1497,6 +1497,24 @@ sub git_remote {
     #  Add default remote git repositories
     #
     my ($self, $param_hr)=(shift(), arg(@_));
+    
+    
+    #  Get type - module or script;
+    #
+    my $repo_type;
+    my ($pm_files_ar, $exe_files_ar)=@{$param_hr}{qw(
+        TO_INST_PM_AR
+        EXE_FILES_AR
+    )};
+    if (grep {/\.pm$/} @{$pm_files_ar}) {
+        $repo_type='pm';
+    }
+    elsif (@{$exe_files_ar}) {
+        $repo_type='pl';
+    }
+    else {
+        $repo_type='px';
+    }
 
 
     #  Iterate through remote targets and add
@@ -1512,7 +1530,7 @@ sub git_remote {
         my $repo_location;
         if ($repo=~/\%/) {
            # Needs sprintf
-           $repo_location=sprintf($repo, $param_hr->{'DISTNAME'}) 
+           $repo_location=sprintf($repo, $repo_type, $param_hr->{'DISTNAME'}) 
         }
         else {
            $repo_location=$repo;

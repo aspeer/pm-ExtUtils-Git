@@ -20,7 +20,7 @@ package ExtUtils::Git;
 #  Pragma
 #
 use strict qw(vars);
-use vars   qw($VERSION);
+use vars   qw($VERSION $VERSION_GIT_REF);
 use warnings;
 no warnings qw(uninitialized);
 sub BEGIN {local $^W=0}
@@ -61,6 +61,7 @@ $ExtUtils::Manifest::Quiet=1;
 #  all on one line
 #
 $VERSION='1.182';
+$VERSION_GIT_REF='69526bb';
 
 
 #  All done, init finished

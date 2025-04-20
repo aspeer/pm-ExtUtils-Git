@@ -60,7 +60,7 @@ $ExtUtils::Manifest::Quiet=1;
 #  Version information in a format suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.181';
+$VERSION='1.182';
 
 
 #  All done, init finished
@@ -2858,7 +2858,7 @@ Andrew Speer L<mailto:andrew.speer@isolutions.com.au>
 
 This file is part of ExtUtils::Git.
 
-This software is copyright (c) 2024 by Andrew Speer L<mailto:andrew.speer@isolutions.com.au>.
+This software is copyright (c) 2025 by Andrew Speer L<mailto:andrew.speer@isolutions.com.au>.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

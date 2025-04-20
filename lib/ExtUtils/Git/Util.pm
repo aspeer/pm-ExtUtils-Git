@@ -35,7 +35,7 @@ use Carp;
 #  Version information in a format suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.181';
+$VERSION='1.182';
 
 
 #  Done

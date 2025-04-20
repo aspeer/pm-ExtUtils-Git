@@ -1,7 +1,7 @@
 #
 #  This file is part of ExtUtils::Git.
 #
-#  This software is copyright (c) 2024 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  This software is copyright (c) 2025 by Andrew Speer <andrew.speer@isolutions.com.au>.
 #
 #  This is free software; you can redistribute it and/or modify it under
 #  the same terms as the Perl 5 programming language system itself.
@@ -1051,7 +1051,8 @@ sub git_branch_development {
     #
     my $branch=$self->_git_branch_current() ||
         return err ('unable to get current branch');
-    if ($branch eq $GIT_BRANCH_MASTER) {
+    #if ($branch eq $GIT_BRANCH_MASTER) {
+    if ($branch =~ $GIT_BRANCH_MASTER_QR) {
         unless (grep {/$GIT_BRANCH_DEVELOPMENT/} $git_or->branch()) {
             msg("creating branch $GIT_BRANCH_DEVELOPMENT");
             $git_or->branch($GIT_BRANCH_DEVELOPMENT);
@@ -1067,7 +1068,7 @@ sub git_branch_development {
         msg("already on $GIT_BRANCH_DEVELOPMENT branch");
     }
     else {
-        return err ("can only branch from $GIT_BRANCH_MASTER currently");
+        return err ("can only branch from $GIT_BRANCH_MASTER or $GIT_BRANCH_MAIN currently");
     }
 }
 
@@ -1085,7 +1086,8 @@ sub git_branch_master {
     #
     my $branch=$self->_git_branch_current() ||
         return err ('unable to get current branch');
-    unless ($branch eq $GIT_BRANCH_MASTER) {
+    #unless ($branch eq $GIT_BRANCH_MASTER) {
+    unless ($branch =~ $GIT_BRANCH_MASTER_QR) {
         msg("checkout $GIT_BRANCH_MASTER");
         $git_or->checkout("$GIT_BRANCH_MASTER");
         msg("merge $branch");
@@ -1094,7 +1096,7 @@ sub git_branch_master {
         $self->git_version_increment(@_);
     }
     else {
-        return err ("can't merge while on $GIT_BRANCH_MASTER branch");
+        return err ("can't merge while on $GIT_BRANCH_MASTER or $GIT_BRANCH_MAIN branch");
     }
 
 
@@ -1707,7 +1709,8 @@ sub git_version_increment {
 
     #  Check branch and make alpha if not on master
     #
-    unless ((my $branch=$self->_git_branch_current) eq $GIT_BRANCH_MASTER) {
+    #unless ((my $branch=$self->_git_branch_current) eq $GIT_BRANCH_MASTER) {
+    unless ((my $branch=$self->_git_branch_current) =~ $GIT_BRANCH_MASTER_QR) {
 
 
         #  Get new alpha suffix
@@ -2726,7 +2729,7 @@ Andrew Speer <andrew.speer@isolutions.com.au>
 
 This file is part of ExtUtils::Git.
 
-This software is copyright (c) 2024 by Andrew Speer <andrew.speer@isolutions.com.au>.
+This software is copyright (c) 2025 by Andrew Speer <andrew.speer@isolutions.com.au>.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
@@ -2855,7 +2858,7 @@ Andrew Speer L<mailto:andrew.speer@isolutions.com.au>
 
 This file is part of ExtUtils::Git.
 
-This software is copyright (c) 2022 by Andrew Speer L<mailto:andrew.speer@isolutions.com.au>.
+This software is copyright (c) 2024 by Andrew Speer L<mailto:andrew.speer@isolutions.com.au>.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

@@ -14,3 +14,4 @@ README
 README.md
 cpanfile
 lib/ExtUtils/Git.pm.md                   
+bin/extutils_git.pl

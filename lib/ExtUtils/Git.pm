@@ -1714,7 +1714,8 @@ sub git_version_increment {
         #
         $version[-1]=~s/_.*//;
         $version[-1]++;
-        my $suffix=sprintf('%08i', hex($self->_git_rev_parse_short()));
+        #my $suffix=sprintf('%08i', hex($self->_git_rev_parse_short()));
+        my $suffix=$self->_git_rev_list_count() || '0';
 
 
         #  Add _ to ver number
@@ -2588,6 +2589,16 @@ sub _git_rev_parse_short {
     $rev ||= 'HEAD';
     my $git_or=$self->_git();
     return ($git_or->rev_parse('--short', $rev))[0];
+
+}
+
+
+sub _git_rev_list_count {
+
+    my ($self, $rev)=@_;
+    $rev ||= 'HEAD';
+    my $git_or=$self->_git();
+    return ($git_or->rev_list('--count', $rev))[0];
 
 }
 

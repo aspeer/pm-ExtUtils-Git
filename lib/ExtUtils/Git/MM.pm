@@ -16,7 +16,7 @@ package ExtUtils::Git::MM;
 #  Compiler Pragma
 #
 use strict qw(vars);
-use vars qw($VERSION @ISA);
+use vars   qw($VERSION @ISA);
 use warnings;
 no warnings qw(uninitialized);
 sub BEGIN {local $^W=0}
@@ -84,7 +84,7 @@ sub import {
         depend
         postamble
         special_targets
-        );    #dist_ci
+    );    #dist_ci
     {   no warnings 'redefine';
         foreach my $section (grep {$import_tag{$_} || $import_tag{':all'}} @section) {
             $self{$section}=UNIVERSAL::can('MY', $section);
@@ -119,11 +119,11 @@ sub const_config {
     #   Update license data. Get license type and author
     #
     my $license=$mm->{'LICENSE'} ||
-        return err ('no license specified in Makefile');
+        return err('no license specified in Makefile');
     my @author=@{
         $mm->{'AUTHOR'}
             ||
-            return err ('no author specified in Makefile')};
+            return err('no author specified in Makefile')};
     my $author=shift(@author);
 
 
@@ -131,9 +131,9 @@ sub const_config {
     #
     my @license_module=Software::LicenseUtils->guess_license_from_meta_key($license);
     @license_module ||
-        return err ("unable to determine correct license module from string: $license");
+        return err("unable to determine correct license module from string: $license");
     (@license_module > 1) &&
-        return err ("ambiguous license string: $license, resolves to %s", join(',', @license_module));
+        return err("ambiguous license string: $license, resolves to %s", join(',', @license_module));
     my $license_or=(shift @license_module)->new({holder => $author});
 
 
@@ -231,7 +231,7 @@ sub postamble {
     #  Open it
     #
     my $patch_fh=IO::File->new($patch_fn, O_RDONLY) ||
-        return err ("unable to open $patch_fn, $!");
+        return err("unable to open $patch_fn, $!");
 
 
     #  Get original and append
@@ -260,4 +260,4 @@ sub special_targets {
     return $special_targets;
 
 }
-    
+

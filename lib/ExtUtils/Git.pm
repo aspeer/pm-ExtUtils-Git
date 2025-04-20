@@ -20,7 +20,7 @@ package ExtUtils::Git;
 #  Pragma
 #
 use strict qw(vars);
-use vars qw($VERSION);
+use vars   qw($VERSION);
 use warnings;
 no warnings qw(uninitialized);
 sub BEGIN {local $^W=0}
@@ -107,7 +107,7 @@ sub git_autocopyright_pm {
     #  Generate copyright
     #
     my $copyright=$self->copyright_generate($license, $author, $name) ||
-        return err ("unable to generate copyright from license $license");
+        return err("unable to generate copyright from license $license");
 
 
     #  Add comment fields and a CR
@@ -125,7 +125,7 @@ sub git_autocopyright_pm {
     #  Load exclusion file
     #
     my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
-        return err ();
+        return err();
 
 
     #  Iterate across files to protect
@@ -153,7 +153,7 @@ sub git_autocopyright_pm {
         #  Open file for read
         #
         my $fh=IO::File->new($fn, O_RDONLY) ||
-            return err ("unable to open file $fn, $!");
+            return err("unable to open file $fn, $!");
 
 
         #  Setup keywords we are looking for
@@ -285,7 +285,7 @@ sub git_autocopyright_pm {
             #  Re-open file for write out
             #
             $fh=IO::File->new($fn, O_TRUNC | O_WRONLY) ||
-                return err ("unable to open $fn, $!");
+                return err("unable to open $fn, $!");
             print $fh join('', @line);
             $fh->close();
 
@@ -313,9 +313,9 @@ sub copyright_generate {
     #
     my @license_guess=Software::LicenseUtils->guess_license_from_meta_key($license);
     @license_guess ||
-        return err ("unable to determine license from string $license");
+        return err("unable to determine license from string $license");
     (@license_guess > 1) &&
-        return err ("ambiguous license from string $license");
+        return err("ambiguous license from string $license");
     my $license_guess=shift @license_guess;
     my $license_or=$license_guess->new({holder => $author});
 
@@ -327,7 +327,7 @@ sub copyright_generate {
         type   => 'FILE',
         source => $TEMPLATE_COPYRIGHT_FN,
 
-    ) || return err ("unable to open template, $TEMPLATE_COPYRIGHT_FN $!");
+    ) || return err("unable to open template, $TEMPLATE_COPYRIGHT_FN $!");
 
 
     #  Fill in with out self ref as a hash
@@ -341,7 +341,7 @@ sub copyright_generate {
         },
         DELIMITERS => ['<:', ':>'],
 
-    ) || return err ("unable to fill in template $TEMPLATE_COPYRIGHT_FN, $Text::Template::ERROR");
+    ) || return err("unable to fill in template $TEMPLATE_COPYRIGHT_FN, $Text::Template::ERROR");
     debug("copyright $copyright");
 
 
@@ -370,7 +370,7 @@ sub copyright_exclude_fn_hr {
             do {$exclude_fn}
         };
         $exclude_ar ||
-            return err ("unable to read $exclude_ar, $@");
+            return err("unable to read $exclude_ar, $@");
     }
     my %exclude_fn=map {$_ => 1} @{$exclude_ar};
 
@@ -396,7 +396,7 @@ sub git_autocopyright_pod {
     #  Generate copyright
     #
     my $copyright=$self->copyright_generate($license, $author, $name) ||
-        return err ("unable to generate copyright from license $license");
+        return err("unable to generate copyright from license $license");
 
 
     #  Not strictly markdown but pass through markdown=>POD parser to interpret links ets
@@ -404,15 +404,17 @@ sub git_autocopyright_pod {
     eval {
         require App::Markpod;
         1;
-    } || return err ('cannot load module App::Markpod');
+    } || return err('cannot load module App::Markpod');
     my $markpod_or=App::Markpod->new();
     my $md2pod_or=Markdown::Pod->new() ||
-        return err ('unable to create new Markdown::Pod object');
+        return err('unable to create new Markdown::Pod object');
     my $copyright_pod=$md2pod_or->markdown_to_pod(dialect => $markpod_or->{'opt'}{'dialect'}, markdown => $copyright) ||
-        return err ('unknown error from App::Markpod->markpod_parse');
+        return err('unknown error from App::Markpod->markpod_parse');
+
     #  Add CR's back in
     #
     $copyright_pod="\n${copyright_pod}\n";
+
     #die("copyright: *$copyright*, copyright_pod: *$copyright_pod*");
 
 
@@ -425,7 +427,7 @@ sub git_autocopyright_pod {
     #  Load exclusion file
     #
     my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
-        return err ();
+        return err();
 
 
     #  Iterate across files to protect
@@ -453,7 +455,7 @@ sub git_autocopyright_pod {
         #  Open file for read
         #
         my $fh=IO::File->new($fn, O_RDONLY) ||
-            return err ("unable to open file $fn, $!");
+            return err("unable to open file $fn, $!");
 
 
         #  Setup keywords we are looking for
@@ -568,7 +570,7 @@ sub git_autocopyright_pod {
             #  Re-open file for write out
             #
             $fh=IO::File->new($fn, O_TRUNC | O_WRONLY) ||
-                return err ("unable to open $fn, $!");
+                return err("unable to open $fn, $!");
             print $fh join('', @line);
             $fh->close();
 
@@ -604,8 +606,8 @@ sub copyright_generate_xml {
             undef @para;
         }
         else {
-            push @para, $line;;
-        }    
+            push @para, $line;
+        }
     }
     if (@para) {
         my $para_xml_or=XML::Twig::Elt->new('para', @para);
@@ -625,7 +627,7 @@ sub git_autocopyright_xml {
     my ($license, $author, $name, $pm_to_inst_ar, $exe_files_ar)=
         @{$param_hr}{qw(LICENSE AUTHOR NAME TO_INST_PM_AR EXE_FILES_AR)};
     debug('in git_autocopyright');
-    
+
 
     #  Need the XML::Twig module
     #
@@ -638,8 +640,8 @@ sub git_autocopyright_xml {
     #  Generate copyright
     #
     my $copyright=$self->copyright_generate($license, $author, $name) ||
-        return err ("unable to generate copyright from license $license");
-    
+        return err("unable to generate copyright from license $license");
+
 
     #  Get manifest - only update files listed there
     #
@@ -649,7 +651,7 @@ sub git_autocopyright_xml {
     #  Load exclusion file
     #
     my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
-        return err ();
+        return err();
 
 
     #  Iterate across files to protect
@@ -675,8 +677,8 @@ sub git_autocopyright_xml {
             msg("skipping $fn: not in MANIFEST");
             next;
         }
-        
-        
+
+
         #  Subroutine to count section/refsections we see
         #
         my @section;
@@ -695,40 +697,40 @@ sub git_autocopyright_xml {
         #  Parse the file
         #
         my $twig_or=XML::Twig->new(
-            TwigHandlers=> { section=>$section_cr, refsection=>$section_cr },
+            TwigHandlers => {section => $section_cr, refsection => $section_cr},
 
         );
         $twig_or->parsefile($fn);
-        
-        
+
+
         #  Did we find copyright section ? If not skip.
         #
         unless (@section) {
             msg("copyright section not found: $fn");
             next;
         }
-        
+
 
         #  Get type of Docbook, article or refentry
         #
         my $elt_or=$twig_or->first_elt;
         my $doctype=$elt_or->name;
         my $section_type={
-            article     => 'section',
-            refentry    => 'refsection',
-        }->{$doctype} ||
+            article  => 'section',
+            refentry => 'refsection',
+            }->{$doctype} ||
             return err("unable to get section type for Docbook template $doctype");
         msg("doctype of $doctype detected in: $fn");
-        
-        
+
+
         #  Generate XML
         #
         my $copyright_xml_or=$self->copyright_generate_xml(
             $copyright,
             $section_type
         );
-        
-        
+
+
         #  Now paste in
         #
         if (@section) {
@@ -743,13 +745,13 @@ sub git_autocopyright_xml {
                 return err("unable to get last $section_type in file $fn");
             $copyright_xml_or->paste('after', $section_xml_or);
         }
-        
+
 
         #  Write out the file
         #
         $twig_or->print_to_file($fn);
-        
-        
+
+
         #  Done
         #
         msg("copyright section updated: $fn");
@@ -774,7 +776,7 @@ sub git_autocopyright_md {
     #  Generate copyright
     #
     my $copyright=$self->copyright_generate($license, $author, $name) ||
-        return err ("unable to generate copyright from license $license");
+        return err("unable to generate copyright from license $license");
 
 
     #  Get manifest - only update files listed there
@@ -785,7 +787,7 @@ sub git_autocopyright_md {
     #  Load exclusion file
     #
     my $exclude_fn_hr=$self->copyright_exclude_fn_hr($GIT_AUTOCOPYRIGHT_EXCLUDE_FN) ||
-        return err ();
+        return err();
 
 
     #  Iterate across files to protect
@@ -793,9 +795,10 @@ sub git_autocopyright_md {
     #foreach my $fn (grep {/\.md$/} keys %{$manifest_hr}) {
     my $in_markdown;
     my @fn=(grep {/\.md$/i} keys %{$manifest_hr});
+
     #foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}, @fn) {
     foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}, @fn) {
-        
+
         #  Start processing
         #
         msg("considering $fn");
@@ -824,7 +827,7 @@ sub git_autocopyright_md {
         #  Open file for read
         #
         my $fh=IO::File->new($fn, O_RDONLY) ||
-            return err ("unable to open file $fn, $!");
+            return err("unable to open file $fn, $!");
 
 
         #  Setup keywords we are looking for
@@ -856,19 +859,19 @@ sub git_autocopyright_md {
         #  Close
         #
         $fh->close();
-        
-        
+
+
         #  If we found hits then start processing
         #
         my $file_updated;
         if (@header) {
-        
+
 
             #  Yes, start processing each line where we saw a hit
             #
             while (my $header_start_line_no=shift(@header)) {
 
-        
+
                 #   Wheer does this header end ?
                 #
                 my $header_end_line_no=$header_start_line_no+1;
@@ -885,16 +888,18 @@ sub git_autocopyright_md {
                     #
                     my $line_header=$line[$header_end_line_no];
                     if ($line_header=~/^#+/i || $line_header=~/^=end\s+markdown/i) {
+
                         #  Back up a line to ignore end of copyright marker
                         $header_end_line_no--;
                         last;
                     }
+
                     #last if $line_header=~/^#+/i;
                     #last if $line_header=~/^=end\s+markdown/i;
                     $header_end_line_no++;
 
                 }
-                
+
 
                 #  If not found preseume it's everything till end of file
                 #
@@ -908,7 +913,7 @@ sub git_autocopyright_md {
                 my @header_copyright_ln=@line[$header_start_line_no..$header_end_line_no];
                 my $header_copyright=join('', @header_copyright_ln);
                 debug("copyright canidate: $header_copyright");
-                
+
 
                 #  Check if this is actually a comment section (all lines #), not actual markdown
                 #
@@ -940,6 +945,7 @@ sub git_autocopyright_md {
                     #
                     msg "copyright updated: $fn";
                     debug('splicing out');
+
                     #splice(@line, $header_start_line_no, ($header_end_line_no-$header_start_line_no+1));
                     splice(@line, $header_start_line_no, ($header_end_line_no-$header_start_line_no));
 
@@ -947,19 +953,20 @@ sub git_autocopyright_md {
                     #  Splice new notice in now
                     #
                     splice(@line, $header_start_line_no, 0, $copyright_insert);
+
                     #die Dumper(\@line);
-                    
+
                     #  Flag that file needs to be written out
                     #
                     $file_updated++;
-                    
+
                 }
                 else {
-                
+
                     #  Copyright is ok
                     #
                     msg("copyright OK at line $header_start_line_no: $fn");
-                    
+
                 }
             }
         }
@@ -971,32 +978,32 @@ sub git_autocopyright_md {
             next;
 
         }
-        
-        
+
+
         #  If we get here file might have been updated. Do we need to save ?
         #
         if ($file_updated) {
-        
-            
+
+
             #  It has, write out
             #
             debug("writing out file: $fn");
-        
+
 
             #  Re-open file for write out
             #
             $fh=IO::File->new($fn, O_TRUNC | O_WRONLY) ||
-                return err ("unable to open $fn, $!");
+                return err("unable to open $fn, $!");
             print $fh join('', @line);
             $fh->close();
-            
+
         }
         else {
-        
+
             #  No
-            # 
+            #
             msg("file not changed: $fn");
-            
+
         }
 
     }
@@ -1009,17 +1016,17 @@ sub git_autolicense {
 
     #  Generate license file
     #
-    my ($self, $param_hr)=(shift(), arg(@_));
+    my ($self,    $param_hr)=(shift(), arg(@_));
     my ($license, $author)=@{$param_hr}{qw(LICENSE AUTHOR)};
     my @license_guess=Software::LicenseUtils->guess_license_from_meta_key($license);
     @license_guess ||
-        return err ("unable to determine license from string $license");
+        return err("unable to determine license from string $license");
     (@license_guess > 1) &&
-        return err ("ambiguous license from string $license");
+        return err("ambiguous license from string $license");
     my $license_guess=shift @license_guess;
     my $license_or=$license_guess->new({holder => $author});
     my $license_fh=IO::File->new($LICENSE_FN, O_WRONLY | O_TRUNC | O_CREAT) ||
-        return err ("unable to open file $LICENSE_FN, $!");
+        return err("unable to open file $LICENSE_FN, $!");
     print $license_fh $license_or->fulltext();
     $license_fh->close();
     msg("generated $license_guess LICENSE file");
@@ -1050,9 +1057,10 @@ sub git_branch_development {
     #  Get current branch
     #
     my $branch=$self->_git_branch_current() ||
-        return err ('unable to get current branch');
+        return err('unable to get current branch');
+
     #if ($branch eq $GIT_BRANCH_MASTER) {
-    if ($branch =~ $GIT_BRANCH_MASTER_QR) {
+    if ($branch=~$GIT_BRANCH_MASTER_QR) {
         unless (grep {/$GIT_BRANCH_DEVELOPMENT/} $git_or->branch()) {
             msg("creating branch $GIT_BRANCH_DEVELOPMENT");
             $git_or->branch($GIT_BRANCH_DEVELOPMENT);
@@ -1068,7 +1076,7 @@ sub git_branch_development {
         msg("already on $GIT_BRANCH_DEVELOPMENT branch");
     }
     else {
-        return err ("can only branch from $GIT_BRANCH_MASTER or $GIT_BRANCH_MAIN currently");
+        return err("can only branch from $GIT_BRANCH_MASTER or $GIT_BRANCH_MAIN currently");
     }
 }
 
@@ -1085,9 +1093,10 @@ sub git_branch_master {
     #  Get current branch
     #
     my $branch=$self->_git_branch_current() ||
-        return err ('unable to get current branch');
+        return err('unable to get current branch');
+
     #unless ($branch eq $GIT_BRANCH_MASTER) {
-    unless ($branch =~ $GIT_BRANCH_MASTER_QR) {
+    unless ($branch=~$GIT_BRANCH_MASTER_QR) {
         msg("checkout $GIT_BRANCH_MASTER");
         $git_or->checkout("$GIT_BRANCH_MASTER");
         msg("merge $branch");
@@ -1096,7 +1105,7 @@ sub git_branch_master {
         $self->git_version_increment(@_);
     }
     else {
-        return err ("can't merge while on $GIT_BRANCH_MASTER or $GIT_BRANCH_MAIN branch");
+        return err("can't merge while on $GIT_BRANCH_MASTER or $GIT_BRANCH_MAIN branch");
     }
 
 
@@ -1129,7 +1138,7 @@ sub git_commit {
     #  Do it
     #
     unless (system($GIT_EXE, 'commit', '-a') == 0) {
-        return err ("error on git commit, $?");
+        return err("error on git commit, $?");
     }
 
 
@@ -1157,7 +1166,7 @@ sub git_ignore {
     #  Add files to .gitignore
     #
     my $fh=IO::File->new($GIT_IGNORE_FN, O_WRONLY | O_TRUNC | O_CREAT) ||
-        return err ("unable to open $GIT_IGNORE_FN, $!");
+        return err("unable to open $GIT_IGNORE_FN, $!");
 
 
     #  Write them out
@@ -1191,7 +1200,7 @@ sub git_import {
     #  Check all files present
     #
     ExtUtils::Manifest::manicheck() &&
-        return err ('MANIFEST manichleck error');
+        return err('MANIFEST manichleck error');
 
 
     #  Get the manifest
@@ -1271,7 +1280,7 @@ sub git_lint {
     #
     if (@match) {
 
-        return err (join($/, @match));
+        return err(join($/, @match));
 
     }
 
@@ -1300,7 +1309,7 @@ sub git_manicheck {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
-        return err ('unable to get distname');
+        return err('unable to get distname');
 
 
     #  Get manifest
@@ -1403,7 +1412,7 @@ sub git_manicheck {
 
     #  All done
     #
-    return $fail ? err ('MANIFEST check failed') : msg('Git and MANIFEST are in sync');
+    return $fail ? err('MANIFEST check failed') : msg('Git and MANIFEST are in sync');
 
 }
 
@@ -1415,7 +1424,7 @@ sub git_maniadd {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
-        return err ('unable to get distname');
+        return err('unable to get distname');
 
 
     #  Get manifest
@@ -1499,15 +1508,15 @@ sub git_remote {
     #  Add default remote git repositories
     #
     my ($self, $param_hr)=(shift(), arg(@_));
-    
-    
+
+
     #  Get type - module or script;
     #
     my $repo_type;
     my ($pm_files_ar, $exe_files_ar)=@{$param_hr}{qw(
-        TO_INST_PM_AR
-        EXE_FILES_AR
-    )};
+            TO_INST_PM_AR
+            EXE_FILES_AR
+        )};
     if (grep {/\.pm$/} @{$pm_files_ar}) {
         $repo_type='pm';
     }
@@ -1531,11 +1540,12 @@ sub git_remote {
     while (my ($name, $repo)=each %{$GIT_REMOTE_HR}) {
         my $repo_location;
         if ($repo=~/\%/) {
-           # Needs sprintf
-           $repo_location=sprintf($repo, $repo_type, $param_hr->{'DISTNAME'}) 
+
+            # Needs sprintf
+            $repo_location=sprintf($repo, $repo_type, $param_hr->{'DISTNAME'})
         }
         else {
-           $repo_location=$repo;
+            $repo_location=$repo;
         }
         if (exists($remote{$name}) && ($remote{$name} ne $repo_location)) {
 
@@ -1566,13 +1576,13 @@ sub git_status {
     my $self=shift();
     my $param_hr=arg(@_);
     my $version_from=$param_hr->{'VERSION_FROM'} ||
-        return err ('unable to get version_from');
+        return err('unable to get version_from');
 
 
     #  Stat the master version file
     #
     my $version_from_mtime=(stat($version_from))[9] ||
-        return err ("unable to stat file $version_from, $!");
+        return err("unable to stat file $version_from, $!");
 
 
     #  Get the manifest
@@ -1590,7 +1600,7 @@ sub git_status {
     if (keys %{$git_modified_hr}) {
         my $err="The following files have been modified since last commit:\n";
         $err.=Data::Dumper::Dumper($git_modified_hr);
-        return err ($err);
+        return err($err);
     }
 
 
@@ -1604,7 +1614,7 @@ sub git_status {
     if (keys %{$git_conflict_hr}) {
         my $err="The following files have conflicts preventing commit:\n";
         $err.=Data::Dumper::Dumper($git_conflict_hr);
-        return err ($err);
+        return err($err);
     }
 
 
@@ -1627,13 +1637,13 @@ sub git_tag {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $distname=$param_hr->{'DISTNAME'} ||
-        return err ('unable to get distname');
+        return err('unable to get distname');
 
 
     #  Read in version number, convers .'s to -
     #
     my $version=$self->git_version(@_) ||
-        return err ('unable to get version number');
+        return err('unable to get version number');
 
 
     #  Add distname
@@ -1666,13 +1676,13 @@ sub git_version {
     #
     my ($self, $param_hr)=(shift(), arg(@_));
     my $version_from=$param_hr->{'VERSION_FROM'} ||
-        return err ('unable to get version_from file name');
+        return err('unable to get version_from file name');
 
 
     #  Get version from version_from file
     #
     my $version_git=eval {MM->parse_version(File::Spec->rel2abs($version_from))} ||
-        return err ("unable to read version info from version_from file $version_from, $!");
+        return err("unable to read version info from version_from file $version_from, $!");
 
 
     #  Display
@@ -1696,13 +1706,13 @@ sub git_version_increment {
     my ($version_from_fn, $pm_to_inst_ar, $exe_files_ar)=
         @{$param_hr}{qw(VERSION_FROM TO_INST_PM_AR EXE_FILES_AR)};
     $version_from_fn ||
-        return err ('unable to get version_from file name');
+        return err('unable to get version_from file name');
 
 
     #  Get current version
     #
     my $version=$self->git_version(@_) ||
-        return err ("unable to get existing version from $version_from_fn");
+        return err("unable to get existing version from $version_from_fn");
     my @version=split(/\./, $version);
     my $version_new;
 
@@ -1710,13 +1720,14 @@ sub git_version_increment {
     #  Check branch and make alpha if not on master
     #
     #unless ((my $branch=$self->_git_branch_current) eq $GIT_BRANCH_MASTER) {
-    unless ((my $branch=$self->_git_branch_current) =~ $GIT_BRANCH_MASTER_QR) {
+    unless ((my $branch=$self->_git_branch_current)=~$GIT_BRANCH_MASTER_QR) {
 
 
         #  Get new alpha suffix
         #
         $version[-1]=~s/_.*//;
         $version[-1]++;
+
         #my $suffix=sprintf('%08i', hex($self->_git_rev_parse_short()));
         my $suffix=$self->_git_rev_list_count() || '0';
 
@@ -1743,9 +1754,9 @@ sub git_version_increment {
         #unless ($version[-1]=~s/_.*//) {
         $version[-1]=~s/_.*//;
 
-            #  No - just increment
-            #
-            $version[-1]++;
+        #  No - just increment
+        #
+        $version[-1]++;
 
         #}
         $version[-1]=sprintf('%03d', $version[-1]);
@@ -1764,7 +1775,7 @@ sub git_version_increment {
         if (exists $manifest_hr->{$fn}) {
             msg("version update $fn to $version_new");
             $self->git_version_update_file($fn, $version_new) ||
-                return err ("unable to update file $fn");
+                return err("unable to update file $fn");
         }
         else {
             msg("skipping $fn, not in MANIFEST");
@@ -1782,10 +1793,10 @@ sub git_version_increment {
 sub git_version_increment_force {
 
 
-   #  Pseudonmy for version increment from target with no check 
-   #
-   return shift()->git_version_increment(@_);
-   
+    #  Pseudonmy for version increment from target with no check
+    #
+    return shift()->git_version_increment(@_);
+
 }
 
 
@@ -1812,7 +1823,7 @@ sub git_version_reset {
         if (exists $manifest_hr->{$fn}) {
             msg("version update $fn");
             $self->git_version_update_file($fn, $version_new, (my $force=1)) ||
-                return err ("unable to update file $fn");
+                return err("unable to update file $fn");
         }
         else {
             msg("skipping $fn, not in MANIFEST");
@@ -1852,7 +1863,7 @@ sub perlver {
     eval {
         require Perl::MinimumVersion;
         1;
-    } || return err ('cannot load module Perl::MinimumVersion');
+    } || return err('cannot load module Perl::MinimumVersion');
 
 
     #  Get manifest - only test files in manifest
@@ -1873,7 +1884,7 @@ sub perlver {
         next if ($fn eq $LICENSE_FN);
         next unless exists $manifest_hr->{$fn};
         my $pv_or=Perl::MinimumVersion->new($fn) ||
-            return err ("unable to create new Perl::MinimumVersion object for file $fn, $!");
+            return err("unable to create new Perl::MinimumVersion object for file $fn, $!");
         my $v_or=$perlver{$fn}=$pv_or->minimum_version();
         msg("Perl::MinimumVersion for $fn: %s (%s)", $v_or->normal(), $v_or->numify());
 
@@ -1884,7 +1895,7 @@ sub perlver {
     #
     my @perlver=sort {version->parse($b) <=> version->parse($a)} values %perlver;
     my $v_or=shift(@perlver) ||
-        return err ('unable to determine minimum perl version');
+        return err('unable to determine minimum perl version');
 
 
     #  Done
@@ -1908,7 +1919,7 @@ sub markpod {
     eval {
         require App::Markpod;
         1;
-    } || return err ('cannot load module App::Markpod');
+    } || return err('cannot load module App::Markpod');
 
 
     #  Get manifest - only convert files in manifest
@@ -1941,10 +1952,10 @@ sub markpod {
         if (${$md_sr}) {
             my $md_fn="${fn}.md";
             msg("creating $md_fn");
-            $markpod_or->outfile($md_sr, $md_fn); 
-            maniadd({$md_fn=> undef});
+            $markpod_or->outfile($md_sr, $md_fn);
+            maniadd({$md_fn => undef});
         }
-        msg('changes made: %s', ${$changes_sr} || 0 );
+        msg('changes made: %s', ${$changes_sr} || 0);
 
     }
 
@@ -1969,7 +1980,7 @@ sub markpod_readme {
     eval {
         require App::Markpod;
         1;
-    } || return err ('cannot load module App::Markpod');
+    } || return err('cannot load module App::Markpod');
 
 
     #  Get the VERSION_FROM file. That is considered the main files
@@ -2020,7 +2031,7 @@ sub kwalitee {
         zip     => 'zip'
     );
     my $distvname_suffix=$suffix{$dist_default} ||
-        return err ("unable to determine suffix for dist_default type: $dist_default");
+        return err("unable to determine suffix for dist_default type: $dist_default");
     my $distvname_fn="${distvname}.${distvname_suffix}";
     msg("distvname $distvname_fn");
 
@@ -2038,13 +2049,13 @@ sub kwalitee {
     eval {
         require Module::CPANTS::Kwalitee;
         Module::CPANTS::Kwalitee->import();
-    } || return err ("cannot load module Module::CPANTS::Kwalitee, $@") if $@;
+    } || return err("cannot load module Module::CPANTS::Kwalitee, $@") if $@;
     eval {
         require Module::CPANTS::Analyse;
-    } || return err ('cannot load module Perl::MinimumVersion');
+    } || return err('cannot load module Perl::MinimumVersion');
     eval {
         require Module::CPANTS::SiteKwalitee;
-    } || return err ('cannot load module Module::CPANTS::SiteKwalitee');
+    } || return err('cannot load module Module::CPANTS::SiteKwalitee');
 
 
     #  Start CPANTS check
@@ -2058,34 +2069,36 @@ sub kwalitee {
     #  Add extra indicators
     #
     $cpants_or->mck(Module::CPANTS::SiteKwalitee->new);
-    
-    
+
+
     #  Need to massage things if only a script package, not a whole module
     #
     foreach my $fn_exe (@{$param_hr->{EXE_FILES_AR}}) {
         push @{$cpants_or->d->{modules}},
-        {
-            'file' 		=> $fn_exe,
-            'in_basedir' 	=> 0,
-            'in_lib' 		=> 1,
-            'module' 		=> 'main',
-        };
+            {
+            'file'       => $fn_exe,
+            'in_basedir' => 0,
+            'in_lib'     => 1,
+            'module'     => 'main',
+            };
     }
+
     #  Futx with Parse::LocalDistribution to inject script if  needed also
     my $parse_cr=\&Parse::LocalDistribution::parse;
-    { no warnings qw(redefine);
-      *Parse::LocalDistribution::parse=sub { 
-          my $hr=$parse_cr->(@_);
-          #unless (keys %{$hr}) {
-          unless ($hr->{$param_hr->{'NAME'}}) {
-            $hr->{$param_hr->{'NAME'}}={'version' => $param_hr->{'VERSION'}};
-          }
-          return $hr;
-      };
+    {   no warnings qw(redefine);
+        *Parse::LocalDistribution::parse=sub {
+            my $hr=$parse_cr->(@_);
+
+            #unless (keys %{$hr}) {
+            unless ($hr->{$param_hr->{'NAME'}}) {
+                $hr->{$param_hr->{'NAME'}}={'version' => $param_hr->{'VERSION'}};
+            }
+            return $hr;
+        };
     }
-    
+
     #  Now run the tests
-    #    
+    #
     $cpants_or->run;
 
 
@@ -2110,7 +2123,7 @@ sub kwalitee {
     #  Return
     #
     if (keys %error) {
-        return err (Dumper(\%error));
+        return err(Dumper(\%error));
     }
     else {
         return msg("Kwalitee check OK, points: %s", $cpants_or->mck->total_kwalitee());
@@ -2131,9 +2144,9 @@ sub git_version_update_file {
     #
     my (undef, undef, $version_old, undef, $lineno)=Module::Extract::VERSION->parse_version_safely($fn);
     $version_old ||
-        return err ("unable to determine current version number in file $fn");
+        return err("unable to determine current version number in file $fn");
     $lineno ||
-        return err ("unable to line number of version string in file $fn");
+        return err("unable to line number of version string in file $fn");
 
 
     #  Check old version not newer than proposed version number
@@ -2141,16 +2154,16 @@ sub git_version_update_file {
     my $version_old_numify=version->parse($version_old)->numify;
     my $version_new_numify=version->parse($version_new)->numify;
     if (($version_old_numify > $version_new_numify) && !$force) {
-        return err ("version of file $fn ($version_old) is later than proposed version ($version_new)");
+        return err("version of file $fn ($version_old) is later than proposed version ($version_new)");
     }
 
 
     #  Open file for read + tmp file handle
     #
     my $old_fh=IO::File->new($fn, O_RDONLY) ||
-        return err ("unable to open file '$fn' for read, $!");
+        return err("unable to open file '$fn' for read, $!");
     my $tmp_fh=File::Temp->new(UNLINK => 0) ||
-        return err ('unable to create temporary file');
+        return err('unable to create temporary file');
     my $tmp_fn=$tmp_fh->filename();
 
 
@@ -2159,7 +2172,7 @@ sub git_version_update_file {
     for (1..($lineno-1)) {print $tmp_fh scalar <$old_fh>}
     my $line_version=<$old_fh>;
     unless ($line_version=~s/\Q$version_old\E/$version_new/) {
-        return err ("unable to substitute version string in $line_version");
+        return err("unable to substitute version string in $line_version");
     }
     print $tmp_fh $line_version;
 
@@ -2176,7 +2189,7 @@ sub git_version_update_file {
     #  Overwrite existing file
     #
     File::Copy::move($tmp_fn, $fn) ||
-        return err ("unable to replace $fn with newer version, $!");
+        return err("unable to replace $fn with newer version, $!");
 
 
     #  All OK
@@ -2223,9 +2236,9 @@ sub doc {
     #  Get manifest - only convert files in manifest
     #
     my $manifest_hr=ExtUtils::Manifest::maniread();
-    
-    
-    #  Hierachy: 
+
+
+    #  Hierachy:
     #  xml=>md
     #  xml=>pod
     #  xml=>text
@@ -2238,18 +2251,19 @@ sub doc {
     my @manifest_xml_fn=grep {/\.xml$/} keys %{$manifest_hr};
     msg('found following docbook files for conversion %s', Dumper(\@manifest_xml_fn))
         if @manifest_xml_fn;
-    
+
 
     #  Load Docbook2Pod module if needed
     #
     #if (@manifest_xml_fn) {
-        eval {
-            require Docbook::Convert;
-            1;
-        } || return err ('cannot load module Docbook::Convert');
+    eval {
+        require Docbook::Convert;
+        1;
+    } || return err('cannot load module Docbook::Convert');
+
     #}
-    
-        
+
+
     #  Hash to hold files we generate so not processed twice
     #
     my %ignore_fn;
@@ -2262,8 +2276,10 @@ sub doc {
 
         #  Slurp in the file
         #
-        my $xml=${ $self->doc_slurp($fn) ||
-            return err() };
+        my $xml=${
+            $self->doc_slurp($fn)
+                ||
+                return err()};
 
 
         #  Get target file name. If foo.pm.xml, bar.pl.xml and foo.pm or bar.pl exists, then
@@ -2272,10 +2288,10 @@ sub doc {
         (my $target_fn=$fn)=~s/\.xml$//;
         msg("considering $target_fn");
         if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
-            my $pod=Docbook::Convert->pod($xml, { no_warn_unhandled=>1 }) ||
-                return err ();
+            my $pod=Docbook::Convert->pod($xml, {no_warn_unhandled => 1}) ||
+                return err();
             Docbook::Convert->pod_replace($target_fn, $pod) ||
-                return err ();
+                return err();
             msg("converted to POD: $target_fn");
         }
         else {
@@ -2287,27 +2303,30 @@ sub doc {
                 #
                 (my $md_fn=$target_fn).='.md';
                 $ignore_fn{$md_fn}++;
-                my $md=Docbook::Convert->markdown($xml, { no_warn_unhandled=>1 }) ||
-                    return err ();
+                my $md=Docbook::Convert->markdown($xml, {no_warn_unhandled => 1}) ||
+                    return err();
                 $self->doc_blurp($md_fn, $md) ||
                     return err();
-                maniadd({$md_fn=> undef});
+                maniadd({$md_fn => undef});
                 msg("converted to Markdown: $md_fn");
 
                 #  And then to README and INSTALL text files
                 #
-                my $text=${$self->doc_docbook2text($xml) ||
-                    return err() };
+                my $text=${
+                    $self->doc_docbook2text($xml)
+                        ||
+                        return err()};
+
                 #  Bug in pandoc - remove lines with > only
                 #
                 my @text;
                 foreach my $line (split(/\n/, $text)) {
                     next if $line=~/^>$/;
                     push @text, $line;
-                };
+                }
                 $text=join($/, @text);
                 $self->doc_blurp($target_fn, $text);
-                maniadd({$target_fn=> undef});
+                maniadd({$target_fn => undef});
                 msg("converted to Text: $target_fn");
             }
             else {
@@ -2315,14 +2334,14 @@ sub doc {
             }
 
         }
-        
+
     }
 
 
     #  Look for all Markdown files ignoring ones we created ourselves
     #
     my @manifest_md_fn=grep {/\.md$/} keys %{$manifest_hr};
-    @manifest_md_fn=grep {!$ignore_fn{$_}} @manifest_md_fn;
+    @manifest_md_fn=grep    {!$ignore_fn{$_}} @manifest_md_fn;
     msg('found following Markdown files for conversion %s', Dumper(\@manifest_md_fn))
         if @manifest_md_fn;
 
@@ -2330,12 +2349,14 @@ sub doc {
     #  Iterate
     #
     foreach my $fn (@manifest_md_fn) {
-    
-    
+
+
         #  Slurp in the file
         #
-        my $md=${ $self->doc_slurp($fn) ||
-            return err() };
+        my $md=${
+            $self->doc_slurp($fn)
+                ||
+                return err()};
 
 
         #  Get target file name. If foo.pm.md, bar.pl.md and foo.pm or bar.pl exists, then
@@ -2344,6 +2365,7 @@ sub doc {
 
         #
         (my $target_fn=$fn)=~s/\.md$//;
+
         #msg("considering target $target_fn from file: $fn");
         #if ($target_fn=~/\.pm$/ || $target_fn=~/\.pl$/ || $exe_files{$target_fn}) {
         #    msg("converting $fn to POD");
@@ -2354,25 +2376,26 @@ sub doc {
         #    msg("converted to POD: $target_fn");
         #}
         #else {
-            #  Also convert to text if README or INSTALL
-            #
-            if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
-                #  Plain text
-                msg("converting $fn to plain text $target_fn");
-                $self->doc_md2text($md, $target_fn) ||
-                    return err ();
-                maniadd({$target_fn=> undef});
-                msg("converted to text: $target_fn");
-            }
-            else {
-                msg("skipped $target_fn");
-            }
+        #  Also convert to text if README or INSTALL
+        #
+        if (grep {$target_fn eq $_} @{$TEXT_FN_AR}) {
+
+            #  Plain text
+            msg("converting $fn to plain text $target_fn");
+            $self->doc_md2text($md, $target_fn) ||
+                return err();
+            maniadd({$target_fn => undef});
+            msg("converted to text: $target_fn");
+        }
+        else {
+            msg("skipped $target_fn");
+        }
 
         #}
 
     }
-    
-    
+
+
     #  Done
     #
     return \undef;
@@ -2386,28 +2409,28 @@ sub doc_slurp {
     #
     my ($self, $fn)=@_;
     my $fh=IO::File->new($fn, O_RDONLY) ||
-        return err ("unable to open file $fn, $!");
+        return err("unable to open file $fn, $!");
     my $text;
     local $/=undef;
     $text=<$fh>;
     $fh->close();
     return \($text ||= '');
-    
+
 }
-    
+
 
 sub doc_blurp {
 
     #  Save to file
     #
     my ($self, $fn, $text)=@_;
-    my $fh=IO::File->new($fn, O_WRONLY|O_CREAT|O_TRUNC) ||
-        return err ("unable to open $fn for write, $!");
+    my $fh=IO::File->new($fn, O_WRONLY | O_CREAT | O_TRUNC) ||
+        return err("unable to open $fn for write, $!");
     print $fh $text;
     $fh->close();
-    
+
 }
-    
+
 
 sub doc_md2pod {
 
@@ -2415,8 +2438,8 @@ sub doc_md2pod {
     #  Convert Markdown to POD
     #
     my ($self, $md)=@_;
-    
-    
+
+
     #  Meed Markdown::Pod module
     #
     eval {
@@ -2426,16 +2449,16 @@ sub doc_md2pod {
 
 
     my $m2p_or=Markdown::Pod->new() ||
-        return err ('unable to create new Markdown::Pod object');
+        return err('unable to create new Markdown::Pod object');
     my $pod=$m2p_or->markdown_to_pod(
         dialect  => $MARKDOWN_DIALECT,
         markdown => $md,
-    ) || return err ('unable to created pod from markdown');
+    ) || return err('unable to created pod from markdown');
 
 
     #  Done
     #
-    return \($pod ||='');
+    return \($pod ||= '');
 
 }
 
@@ -2446,19 +2469,19 @@ sub doc_md2text {
     #  Convert Markdown to text
     #
     my ($self, $md, $fn)=@_;
-    
-    
+
+
     #  Need IPC::Run3
     #
     eval {
         require IPC::Run3;
         1;
     } || return err('unable to load IPC::Run3 module');
-    
-    
+
+
     #  Need pandoc for this bit
     #
-    $PANDOC_EXE || 
+    $PANDOC_EXE ||
         return err('pandoc is required for markdown to text conversion');
 
     #  Run the Pandoc conversion to markup
@@ -2466,11 +2489,12 @@ sub doc_md2text {
     my $text;
     {   my $command_ar=
             $PANDOC_CMD_MD2TEXT_CR->($PANDOC_EXE, '-');
+
         #die Dumper($command_ar, \$md, ($fn || \$text), \undef);
         IPC::Run3::run3($command_ar, \$md, ($fn || \$text), \undef) ||
-            return err ('unable to run3 %s', Dumper($command_ar));
+            return err('unable to run3 %s', Dumper($command_ar));
         if ((my $err=$?) >> 8) {
-            return err ("error $err on run3 of: %s", Dumper($command_ar));
+            return err("error $err on run3 of: %s", Dumper($command_ar));
         }
     }
 
@@ -2486,7 +2510,7 @@ sub doc_docbook2text {
     #  Convert Docbook to text
     #
     my ($self, $xml, $fn)=@_;
-    
+
 
     #  Need IPC::Run3
     #
@@ -2494,11 +2518,11 @@ sub doc_docbook2text {
         require IPC::Run3;
         1;
     } || return err('unable to load IPC::Run3 module');
-    
+
 
     #  Need pandoc for this bit
     #
-    $PANDOC_EXE || 
+    $PANDOC_EXE ||
         return err('pandoc is required for markdown to text conversion');
 
     #  Run the Pandoc conversion to markup
@@ -2507,9 +2531,9 @@ sub doc_docbook2text {
     {   my $command_ar=
             $PANDOC_CMD_DOCBOOK2TEXT_CR->($PANDOC_EXE, '-');
         IPC::Run3::run3($command_ar, \$xml, ($fn || \$text), \undef) ||
-            return err ('unable to run3 %s', Dumper($command_ar));
+            return err('unable to run3 %s', Dumper($command_ar));
         if ((my $err=$?) >> 8) {
-            return err ("error $err on run3 of: %s", Dumper($command_ar));
+            return err("error $err on run3 of: %s", Dumper($command_ar));
         }
     }
 
@@ -2529,7 +2553,7 @@ sub doc_docbook2text {
 sub _git {
 
     my $git_or=Git::Wrapper->new(cwd(), 'git_binary' => $GIT_EXE) ||
-        return err ('unable to get Git::Wrapper object');
+        return err('unable to get Git::Wrapper object');
 
 }
 
@@ -2737,7 +2761,6 @@ the same terms as the Perl 5 programming language system itself.
 Full license text is available at:
 
 <http://dev.perl.org/licenses/>
-
 
 =end markdown
 

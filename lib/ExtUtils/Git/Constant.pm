@@ -16,7 +16,7 @@ package ExtUtils::Git::Constant;
 #  Compiler Pragma
 #
 use strict qw(vars);
-use vars qw($VERSION @ISA %EXPORT_TAGS @EXPORT_OK @EXPORT %Constant);
+use vars   qw($VERSION @ISA %EXPORT_TAGS @EXPORT_OK @EXPORT %Constant);
 use warnings;
 no warnings qw(uninitialized);
 local $^W=0;
@@ -59,7 +59,7 @@ sub bin_find {
     #  convert.
     #
     my @dir=grep {-d $_} split(/:|;/, $ENV{'PATH'});
-    my %dir=map {$_ => 1} @dir;
+    my %dir=map  {$_ => 1} @dir;
     DIR: foreach my $dir (@dir) {
         next unless delete $dir{$dir};
         next unless -d $dir;
@@ -123,8 +123,8 @@ sub fn {
 
     GIT_GROUP => 'git',
 
-    GIT_BRANCH_MAIN 	=> 'main',
-    GIT_BRANCH_MASTER 	=> 'master',
+    GIT_BRANCH_MAIN      => 'main',
+    GIT_BRANCH_MASTER    => 'master',
     GIT_BRANCH_MASTER_QR => qr/^(master|main)$/,
 
     GIT_BRANCH_DEVELOPMENT => 'development',
@@ -155,7 +155,7 @@ sub fn {
             .dumper.cache
             *.tdy
             .pm_filter.pf
-            )
+        )
     ],
 
     TEMPLATE_POSTAMBLE_FN => &fn('postamble.inc'),
@@ -183,7 +183,7 @@ sub fn {
     COPYRIGHT_HEADER_XML => "<title>LICENSE and COPYRIGHT</title>\n\n",
 
     COPYRIGHT_HEADER_MD => "LICENSE and COPYRIGHT\n",
-    
+
     COPYRIGHT_HEADER => 'LICENSE and COPYRIGHT',
 
     PANDOC_EXE => &bin_find(qw(pandoc pandoc.exe)),
@@ -194,7 +194,7 @@ sub fn {
             '-fdocbook',            # from docbook
             '-tmarkdown_github',    # to markdown (github dialect)
             shift(),                # File name
-            ]
+        ]
     },
 
     PANDOC_CMD_MD2TEXT_CR => sub {
@@ -203,18 +203,18 @@ sub fn {
             '-fmarkdown_github',    # from markdown (github dialect)
             '-tplain',              # to plaintext
             shift(),                # File name
-            ]
+        ]
     },
 
     PANDOC_CMD_DOCBOOK2TEXT_CR => sub {
         return [
             shift(),                # PANDOC_EXE
-            '-fdocbook',             # from docbook
+            '-fdocbook',            # from docbook
             '-tplain',              # to plaintext
             shift(),                # File name
-            ]
+        ]
     },
-    
+
     TEXT_FN_AR => [qw(README INSTALL)],
 
 
@@ -227,7 +227,7 @@ sub fn {
     #
     %{do($constant_local_fn)},
     %{do($constant_home_fn)}
-    
+
 
 );
 

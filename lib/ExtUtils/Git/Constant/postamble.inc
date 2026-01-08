@@ -166,6 +166,11 @@ cpanfile :
 	scan-perl-prereqs-nqlite  --exclude_core --suggests --save_cpanfile 
 	@$(GIT_PERL_PM)
 
+
+cpan_upload : git_status
+	  cpan-upload -u aspeer $(DISTVNAME).tar$(SUFFIX)
+
+
 scandeps :
 	scan-perl-prereqs-nqlite  --exclude_core 
 

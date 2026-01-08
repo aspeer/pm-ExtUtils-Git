@@ -1,7 +1,7 @@
 #
 #  This file is part of ExtUtils::Git.
 #
-#  This software is copyright (c) 2025 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  This software is copyright (c) 2026 by Andrew Speer <andrew.speer@isolutions.com.au>.
 #
 #  This is free software; you can redistribute it and/or modify it under
 #  the same terms as the Perl 5 programming language system itself.
@@ -61,7 +61,7 @@ $ExtUtils::Manifest::Quiet=1;
 #  all on one line
 #
 $VERSION='1.182';
-$VERSION_GIT_REF='69526bb';
+$VERSION_GIT_REF='662f68e';
 
 
 #  All done, init finished
@@ -131,7 +131,8 @@ sub git_autocopyright_pm {
 
     #  Iterate across files to protect
     #
-    foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}) {
+    #foreach my $fn (@{$pm_to_inst_ar}, @{$exe_files_ar}) {
+    foreach my $fn ((grep {/\.p(m|od|l)$/} @{$pm_to_inst_ar}), @{$exe_files_ar}) {
 
 
         #  Check for exclusions and skip;
@@ -1113,6 +1114,37 @@ sub git_branch_master {
 }
 
 
+sub git_branch_main {
+
+
+    #   Merge current branch to main
+    #
+    my ($self, $param_hr)=(shift(), arg(@_));
+    my $git_or=$self->_git();
+
+
+    #  Get current branch
+    #
+    my $branch=$self->_git_branch_current() ||
+        return err('unable to get current branch');
+
+    #unless ($branch eq $GIT_BRANCH_MASTER) {
+    unless ($branch=~$GIT_BRANCH_MASTER_QR) {
+        msg("checkout $GIT_BRANCH_MAIN");
+        $git_or->checkout("$GIT_BRANCH_MAIN");
+        msg("merge $branch");
+        $git_or->merge($branch);
+        msg('checkout complete');
+        $self->git_version_increment(@_);
+    }
+    else {
+        return err("can't merge while on $GIT_BRANCH_MASTER or $GIT_BRANCH_MAIN branch");
+    }
+
+
+}
+
+
 sub git_branch_current {
 
 
@@ -1372,6 +1404,9 @@ sub git_manicheck {
                 delete $test{$fn};
             }
         }
+        foreach my $fn_ext (@{$GIT_IGNORE_EXT_AR}) {
+            map { delete $test{$_} if /\Q$fn_ext\E$/ } keys %test;
+        }
         if (keys %test) {
             msg(
                 "the following files are in MANIFEST but not in Git: \n\n%s\n",
@@ -1468,6 +1503,11 @@ sub git_maniadd {
 
 sub git_master {
     &git_branch_master(@_);
+}
+
+
+sub git_main {
+    &git_branch_main(@_);
 }
 
 
@@ -1660,6 +1700,7 @@ sub git_tag {
     #}
     my $git_or=$self->_git();
     $git_or->tag('-a', '-m', $tag, $tag);
+    $git_or->tag('-a', '-m', "v${version}.0", $tag);
 
 
     #  All done
@@ -1716,6 +1757,7 @@ sub git_version_increment {
         return err("unable to get existing version from $version_from_fn");
     my @version=split(/\./, $version);
     my $version_new;
+    use Data::Dumper;
 
 
     #  Check branch and make alpha if not on master
@@ -1757,11 +1799,18 @@ sub git_version_increment {
 
         #  No - just increment
         #
-        $version[-1]++;
+        $version[1]++;
 
         #}
-        $version[-1]=sprintf('%03d', $version[-1]);
-        $version_new=join('.', @version);
+        $version[1]=sprintf('%03d', $version[1]);
+        
+        
+        #  3 level style?
+        #
+        if (@version == 3) {
+            #$version[2]=0;
+        }
+        $version_new=join('.', @version[0,1]);
 
     }
 
@@ -2754,7 +2803,7 @@ Andrew Speer <andrew.speer@isolutions.com.au>
 
 This file is part of ExtUtils::Git.
 
-This software is copyright (c) 2025 by Andrew Speer <andrew.speer@isolutions.com.au>.
+This software is copyright (c) 2026 by Andrew Speer <andrew.speer@isolutions.com.au>.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
@@ -2762,6 +2811,7 @@ the same terms as the Perl 5 programming language system itself.
 Full license text is available at:
 
 <http://dev.perl.org/licenses/>
+
 
 =end markdown
 

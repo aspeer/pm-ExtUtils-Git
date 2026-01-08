@@ -1,7 +1,7 @@
 #
 #  This file is part of ExtUtils::Git.
 #
-#  This software is copyright (c) 2025 by Andrew Speer <andrew.speer@isolutions.com.au>.
+#  This software is copyright (c) 2026 by Andrew Speer <andrew.speer@isolutions.com.au>.
 #
 #  This is free software; you can redistribute it and/or modify it under
 #  the same terms as the Perl 5 programming language system itself.
@@ -125,7 +125,7 @@ sub fn {
 
     GIT_BRANCH_MAIN      => 'main',
     GIT_BRANCH_MASTER    => 'master',
-    GIT_BRANCH_MASTER_QR => qr/^(master|main)$/,
+    GIT_BRANCH_MASTER_QR => qr/^(?:master|main)$/,
 
     GIT_BRANCH_DEVELOPMENT => 'development',
 
@@ -157,18 +157,22 @@ sub fn {
             .pm_filter.pf
         )
     ],
+    
+    GIT_IGNORE_EXT_AR => [qw(
+        .tmp
+    )],
 
     TEMPLATE_POSTAMBLE_FN => &fn('postamble.inc'),
 
     TEMPLATE_COPYRIGHT_FN => &fn('copyright.inc'),
 
-    GIT_AUTOCOPYRIGHT_EXCLUDE_AR => [qr/^LICENSE$/, qr/\.xml$/, qr/copyright\.inc$/, qr/postamble\.inc/],
+    GIT_AUTOCOPYRIGHT_EXCLUDE_AR => [qr/^LICENSE$/, qr/\.xml$/, qr/copyright\.inc$/, qr/postamble\.inc/, qr/\.tmp$/],
 
     GIT_AUTOCOPYRIGHT_EXCLUDE_POD_AR => [qr/^LICENSE$/],
 
     GIT_AUTOCOPYRIGHT_EXCLUDE_XML_AR => [qr/^t\//],
 
-    GIT_AUTOCOPYRIGHT_EXCLUDE_MD_AR => [],
+    GIT_AUTOCOPYRIGHT_EXCLUDE_MD_AR => [qw/\.md$/],
 
     GIT_AUTOCOPYRIGHT_EXCLUDE_FN => '.git_autocopyright_exclude',
 

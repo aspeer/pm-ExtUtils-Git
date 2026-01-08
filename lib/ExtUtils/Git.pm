@@ -60,7 +60,7 @@ $ExtUtils::Manifest::Quiet=1;
 #  Version information in a format suitable for CPAN etc. Must be
 #  all on one line
 #
-$VERSION='1.182';
+$VERSION='1.183';
 chomp($VERSION_GIT_REF=do { local (@ARGV, $/) = ($_=__FILE__.'.ref'); <> if -f $_ });
 
 

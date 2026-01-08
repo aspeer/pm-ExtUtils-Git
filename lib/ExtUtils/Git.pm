@@ -61,7 +61,7 @@ $ExtUtils::Manifest::Quiet=1;
 #  all on one line
 #
 $VERSION='1.182';
-$VERSION_GIT_REF='662f68e';
+chomp($VERSION_GIT_REF=do { local (@ARGV, $/) = ($_=__FILE__.'.ref'); <> if -f $_ });
 
 
 #  All done, init finished
@@ -2812,7 +2812,6 @@ Full license text is available at:
 
 <http://dev.perl.org/licenses/>
 
-
 =end markdown
 
 
@@ -2932,7 +2931,7 @@ Andrew Speer L<mailto:andrew.speer@isolutions.com.au>
 
 This file is part of ExtUtils::Git.
 
-This software is copyright (c) 2025 by Andrew Speer L<mailto:andrew.speer@isolutions.com.au>.
+This software is copyright (c) 2026 by Andrew Speer L<mailto:andrew.speer@isolutions.com.au>.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

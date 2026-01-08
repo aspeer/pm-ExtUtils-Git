@@ -97,10 +97,11 @@ sub post_initialize {
     #  Update Git Ref in file if needed/available
     #
     my $devnull=File::Spec->devnull();
-    if (my $git_version=qx(git rev-parse --short HEAD 2>$devnull)) {
+    if (my $git_version=qx(git rev-parse HEAD 2>$devnull)) {
         chomp $git_version;
-        tie my @lines, 'Tie::File', $mm_or->{'VERSION_FROM'} || die "error on Tie::File, $!";
-        for (@lines) {s/\$VERSION_GIT_REF\s*=\s*(['"])([^'"]*)(['"])/\$VERSION_GIT_REF=${1}${git_version}${3}/}
+        $git_version=substr($git_version, 0, 10);
+        tie my @lines, 'Tie::File', $mm_or->{'VERSION_FROM'} . '.ref' || die "error on Tie::File, $!";
+        $lines[0]=$git_version;
     }
     $mm_or->SUPER::post_initialize;
 
